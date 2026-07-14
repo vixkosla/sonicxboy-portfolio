@@ -530,19 +530,51 @@ void main() {
     vUv * 8.0 + vec2(uTime * 0.14, -uTime * 0.11)
   );
 
-  const float gridDensity = 6.0;
+  // Four broad cells read as an intentional cage at reactor scale. Two
+  // nested masks give every bar a sharp core and a soft emissive shoulder;
+  // fwidth keeps both masks stable when the cube recedes or turns edge-on.
+  const float gridDensity = 4.0;
   vec2 fragmentGrid = vUv * gridDensity;
   vec2 cell = floor(fragmentGrid);
   vec2 cellUv = fract(fragmentGrid);
   vec2 nearestLine = min(cellUv, 1.0 - cellUv);
   float lineDistance = min(nearestLine.x, nearestLine.y);
-  float gridLine = 1.0 - smoothstep(0.025, 0.105, lineDistance);
-  float gridNode = 1.0 - smoothstep(0.018, 0.105, length(nearestLine));
+  vec2 fragmentFootprint = fwidth(fragmentGrid);
+  float lineAA = max(fragmentFootprint.x, fragmentFootprint.y) * 0.78;
+  float gridCore = 1.0 - smoothstep(
+    max(0.0, 0.036 - lineAA),
+    0.036 + lineAA,
+    lineDistance
+  );
+  float gridGlow = 1.0 - smoothstep(
+    max(0.0, 0.105 - lineAA * 1.35),
+    0.105 + lineAA * 1.35,
+    lineDistance
+  );
+  float gridLine = max(gridCore, gridGlow * 0.48);
+  float nodeDistance = length(nearestLine);
+  float gridNode = 1.0 - smoothstep(
+    max(0.0, 0.055 - lineAA * 1.25),
+    0.055 + lineAA * 1.25,
+    nodeDistance
+  );
   float outerDistance = min(
     min(vUv.x, 1.0 - vUv.x),
     min(vUv.y, 1.0 - vUv.y)
   );
-  float outerEdge = 1.0 - smoothstep(0.018, 0.11, outerDistance);
+  vec2 uvFootprint = fwidth(vUv);
+  float edgeAA = max(uvFootprint.x, uvFootprint.y) * 0.9;
+  float outerCore = 1.0 - smoothstep(
+    max(0.0, 0.024 - edgeAA),
+    0.024 + edgeAA,
+    outerDistance
+  );
+  float outerGlow = 1.0 - smoothstep(
+    max(0.0, 0.115 - edgeAA * 1.4),
+    0.115 + edgeAA * 1.4,
+    outerDistance
+  );
+  float outerEdge = max(outerCore, outerGlow * 0.52);
   float scan = 0.5 + 0.5 * sin(
     fragmentGrid.y * 1.35 - uTime * 1.4 + surfaceNoise * 2.2
   );
@@ -571,16 +603,22 @@ void main() {
   );
   vec3 color = mix(reactorGreen, reactorMint, highlight);
   color *= 0.78 + surfaceNoise * 0.31;
+  color += reactorMint * (gridCore * 0.16 + outerCore * 0.21);
   color += waveBlue * breakupStructure * 0.82;
 
+  // Rear faces reveal the volume but stay quiet enough to avoid a moire
+  // carpet where several sides overlap in projection.
+  float faceVisibility = gl_FrontFacing ? 1.0 : 0.34;
   float structureAlpha =
-    gridLine * (0.31 + scan * 0.11) +
-    gridNode * 0.13 +
-    outerEdge * (0.46 + fresnel * 0.23);
+    gridCore * (0.42 + scan * 0.12) +
+    gridGlow * 0.075 +
+    gridNode * 0.16 +
+    outerCore * (0.54 + fresnel * 0.22) +
+    outerGlow * 0.085;
   float alpha = uOpacity * (
     fragmentLife * structureAlpha + breakupStructure * 0.27
-  );
-  gl_FragColor = vec4(color, alpha);
+  ) * faceVisibility;
+  gl_FragColor = vec4(color * mix(0.58, 1.0, faceVisibility), alpha);
 }
 `
 

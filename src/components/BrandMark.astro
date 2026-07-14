@@ -1,0 +1,76 @@
+---
+// Blockbuster-title lockup: SONIC / giant X / BOY, one stacked unit.
+// Scales with the parent font-size.
+---
+
+<a class="brand-mark" href="/" aria-label="SonicXBoy — на главную">
+  <span class="brand-mark__line brand-mark__line--top">Sonic</span>
+  <span class="brand-mark__x">X</span>
+  <span class="brand-mark__line brand-mark__line--bottom">Boy</span>
+</a>
+
+<style>
+  .brand-mark {
+    display: inline-grid;
+    justify-items: center;
+    row-gap: 0.3em;
+    font-family: var(--font-display, 'Unbounded Variable', system-ui, sans-serif);
+    line-height: 1;
+    color: var(--ink, #e8f5ee);
+    text-decoration: none;
+    text-transform: uppercase;
+    pointer-events: auto;
+  }
+
+  .brand-mark__line {
+    font-weight: 640;
+    white-space: nowrap;
+  }
+
+  /* Tracking tuned so both lines match the lockup width;
+     negative margin compensates the trailing letter-space. */
+  .brand-mark__line--top {
+    letter-spacing: 0.34em;
+    margin-right: -0.34em;
+  }
+
+  .brand-mark__line--bottom {
+    letter-spacing: 1.3em;
+    margin-right: -1.3em;
+  }
+
+  .brand-mark__x {
+    position: relative;
+    font-size: 2.7em;
+    font-weight: 900;
+    background: linear-gradient(160deg, #7dffc7 8%, #18d383 46%, #0a7a4c 92%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter:
+      drop-shadow(0 0 0.09em rgba(24, 211, 131, 0.55))
+      drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.3));
+  }
+
+  /* Thin film-title rules flanking the X */
+  .brand-mark__x::before,
+  .brand-mark__x::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 0.55em;
+    height: 1px;
+  }
+
+  .brand-mark__x::before {
+    right: 100%;
+    margin-right: 0.14em;
+    background: linear-gradient(90deg, transparent, rgba(24, 211, 131, 0.65));
+  }
+
+  .brand-mark__x::after {
+    left: 100%;
+    margin-left: 0.14em;
+    background: linear-gradient(90deg, rgba(24, 211, 131, 0.65), transparent);
+  }
+</style>

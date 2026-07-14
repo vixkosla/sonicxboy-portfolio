@@ -2,6 +2,7 @@
 import '@fontsource-variable/unbounded'
 import '@fontsource-variable/onest'
 import '@fontsource-variable/jetbrains-mono'
+import BrandMark from '../components/BrandMark.astro'
 import HeroScene from '../components/HeroScene.tsx'
 
 const personSchema = {
@@ -41,6 +42,7 @@ const personSchema = {
       content="SonicXBoy — разработчик интерактивной 3D-графики для веба: Three.js, WebGL, GLSL, React Three Fiber. Анимации, конфигураторы и визуализации прямо в браузере."
     />
     <meta name="theme-color" content="#050907" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="SonicXBoy — WebGL Developer" />
     <meta
@@ -94,22 +96,7 @@ const personSchema = {
         top: 1.6rem;
         left: clamp(1.5rem, 8vw, 9rem);
         z-index: 2;
-      }
-
-      .brand__mark {
-        font-family: var(--font-display);
-        font-size: 1.02rem;
-        font-weight: 640;
-        letter-spacing: 0.1em;
-        color: var(--ink);
-        text-decoration: none;
-        pointer-events: auto;
-      }
-
-      .brand__x {
-        color: var(--emerald);
-        font-weight: 900;
-        text-shadow: 0 0 18px rgba(24, 211, 131, 0.55);
+        font-size: 0.72rem;
       }
 
       /* ── Reactor card (arrives from the 3D scene) ─────────── */
@@ -485,9 +472,7 @@ const personSchema = {
     <HeroScene client:load />
 
     <header class="brand">
-      <a class="brand__mark" href="/" aria-label="SonicXBoy — на главную"
-        >SONIC<span class="brand__x">X</span>BOY</a
-      >
+      <BrandMark />
     </header>
 
     <main>
