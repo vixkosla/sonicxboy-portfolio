@@ -23,10 +23,10 @@ import {
   PLASMA_GEOMETRY,
   PLASMA_RADIUS,
   createFlashMaterial,
-  createGlassMaterial,
+  createGridMaterial,
   createPlasmaMaterial,
   updateFlashMaterial,
-  updateGlassMaterial,
+  updateGridMaterial,
   updatePlasmaMaterial,
 } from '../lib/FireEffect'
 import {
@@ -72,8 +72,8 @@ const ORBIT_END =
   ORBIT_CAPTURE_START +
   ORBIT_CAPTURE_MAX_OFFSET +
   ORBIT_CAPTURE_DURATION * ORBIT_SCALE_RECOVERY_END
-const NUCLEUS_GLASS_START = 0.65
-const NUCLEUS_GLASS_DURATION = 1.45
+const NUCLEUS_GRID_START = 0.65
+const NUCLEUS_GRID_DURATION = 1.45
 const NUCLEUS_EXPAND_START = 2.45
 const NUCLEUS_EXPAND_DURATION = 2.5
 const NUCLEUS_MAX_SCALE = 1.7
@@ -608,7 +608,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       const numericPreview = previewStage === '' ? Number.NaN : Number(previewStage)
       const previewMainElapsed = Number.isFinite(numericPreview)
         ? numericPreview
-        : previewStage === 'glass'
+        : previewStage === 'grid'
           ? NUCLEUS_EXPAND_START + 1.25
           : previewStage === 'flash'
             ? PLASMA_CORE_START + 0.12
@@ -647,12 +647,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         roughness: 0.28,
         transparent: true,
         opacity: 1,
-        emissive: new Color('#8fffe0'),
+        emissive: new Color('#6cf3b3'),
         emissiveIntensity: 0,
       }),
     [],
   )
-  const glassMaterial = useMemo(() => createGlassMaterial(), [])
+  const gridMaterial = useMemo(() => createGridMaterial(), [])
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
   const flashMaterial = useMemo(() => createFlashMaterial(), [])
   const reactorMaterial = useMemo(
@@ -1454,8 +1454,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     syncOrbiters(group, spin.mainElapsed)
     updateHeroPlate(group, camera, spin.mainElapsed)
 
-    const glassProgress = smootherstep(
-      (spin.mainElapsed - NUCLEUS_GLASS_START) / NUCLEUS_GLASS_DURATION,
+    const gridProgress = smootherstep(
+      (spin.mainElapsed - NUCLEUS_GRID_START) / NUCLEUS_GRID_DURATION,
     )
     const expandProgress = smootherstep(
       (spin.mainElapsed - NUCLEUS_EXPAND_START) / NUCLEUS_EXPAND_DURATION,
@@ -1510,14 +1510,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       )
     }
 
-    const conversionGlow = 4 * glassProgress * (1 - glassProgress)
-    nucleusMaterial.depthWrite = glassProgress < 0.02
-    nucleusMaterial.opacity = 1 - glassProgress
+    const conversionGlow = 4 * gridProgress * (1 - gridProgress)
+    nucleusMaterial.depthWrite = gridProgress < 0.02
+    nucleusMaterial.opacity = 1 - gridProgress
     nucleusMaterial.emissiveIntensity = conversionGlow * 0.72
-    updateGlassMaterial(
-      glassMaterial,
+    updateGridMaterial(
+      gridMaterial,
       assembly.time,
-      glassProgress,
+      gridProgress,
       warmProgress,
       finalExpandProgress,
     )
@@ -1573,7 +1573,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
           </mesh>
 
-          <mesh material={glassMaterial} renderOrder={2}>
+          <mesh material={gridMaterial} renderOrder={2}>
             <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
           </mesh>
         </group>
@@ -1694,21 +1694,28 @@ export default function HeroScene() {
       <article
         ref={cardRef}
         className="reactor-card"
-        aria-hidden="true"
       >
         <div className="reactor-card__signal" aria-hidden="true" />
         <div className="reactor-card__meta">
           <span>REACTOR NODE</span>
           <span>01 / ACTIVE</span>
         </div>
-        <h2>Интерактивные системы</h2>
+        <h2>Интерактивная 3D-графика для веба</h2>
         <p>
-          WebGL-сцены, где движение, свет и интерфейс продолжают одну историю.
+          Делаю анимации, конфигураторы и визуализации на Three.js, которые
+          работают прямо в браузере. Сцена на этой странице собрана с нуля — от
+          математики траекторий до шейдеров плазмы.
+        </p>
+        <p>
+          Веду проект целиком: концепция, прототип, продакшен, оптимизация — вы
+          общаетесь напрямую с тем, кто пишет код. База — МГТУ им. Баумана и
+          Школа 21. Санкт-Петербург, работаю удалённо.
         </p>
         <div className="reactor-card__stack">
           <span>THREE.JS</span>
           <span>R3F</span>
           <span>GLSL</span>
+          <span>TYPESCRIPT</span>
         </div>
       </article>
     </>

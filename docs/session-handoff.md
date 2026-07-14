@@ -46,10 +46,11 @@ for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 3. It receives a strong spin with precession and nutation, then brakes.
 4. The shell separates into three nested rotating polyhedra around the nucleus.
 5. The polyhedra converge into the final spherical voxel shell.
-6. The nucleus becomes glass-like and ignites a volumetric plasma core.
+6. The nucleus becomes an emissive emerald grid cage and ignites a volumetric
+   plasma core.
 7. The 26 scaffold cubes morph and divide into 104 radial reactor plates.
 8. Two blue ionization waves shut down the covering; the plates release, one becomes
-   an interface card, the glass vessel disintegrates, and an upright plasma flame
+   an interface card, the grid cage disintegrates, and an upright plasma flame
    fills the vacated reactor volume.
 
 The current closing stage now needs visual approval as one uninterrupted sequence.
@@ -153,11 +154,13 @@ The replacement is a real three-dimensional volume inside the center cube:
   plasma flow;
 - white core, warm filament layers, a density gap, and an electric blue rim;
 - custom premultiplied-style blending with depth testing preserved;
-- a separate glass edge/Fresnel cube rendered after the volume;
+- a separate six-cell-per-axis grid cage rendered after the volume;
 - one warm point light whose intensity flickers without allocating in `useFrame`.
 
-The nucleus now changes during orbital departure. Transparency begins at `0.65s` of
-main spin time. Expansion begins at `2.45s`, synchronized with launch of the closest
+The nucleus now changes during orbital departure. At `0.65s` of main spin time the
+solid cube crossfades into a surface-less `6 x 6` face grid whose main color is the
+same `#18d383` used by the reactor plates. Expansion begins at `2.45s`, synchronized
+with launch of the closest
 octahedral/face-center class, and reaches `1.7x` (`0.85` side length) over `2.5s`.
 At the final shell this leaves about `0.05` local radial clearance to corner
 cubelets.
@@ -170,7 +173,7 @@ Plasma is staged rather than faded in as one finished asset:
 - blue ionization-rim ignition at `8.8s`.
 
 Development URL `/?plasma-preview` jumps to the final state and freezes rotation.
-Values `glass`, `flash`, `core`, and `warm` preview the intermediate beats; numeric
+Values `grid`, `flash`, `core`, and `warm` preview the intermediate beats; numeric
 values select an exact main-spin time. The preview branch is gated behind
 `import.meta.env.DEV`.
 
@@ -229,11 +232,14 @@ The existing tech badges and hero subtitle fade at that point to prevent overlap
 The card is a viewport-wide bottom strip with responsive hero gutters and a
 `220px..292px` responsive minimum height. It has no side/bottom border or radius.
 Placeholder Russian copy currently describes interactive WebGL systems.
+Its top border, `36px` CSS grid, labels, reactor plates, and nucleus grid all derive
+from the same `#18d383` reactor color. Red remains only the launch warning; after
+three pulses its vertical signal edge settles to emerald over `2.4s`.
 
-The final source expansion overlaps the release. The glass frame still follows the
-`4.35x` scale envelope, but only as a transient demolition volume: a deterministic
-`5 x 5` cell grid on every face dissolves in staggered pieces with a short blue edge
-flash, leaving no oversized glass cube in the settled composition.
+The final source expansion overlaps the release. The grid cage still follows the
+`4.35x` scale envelope, but only as a transient demolition volume: its deterministic
+`6 x 6` face cells disappear with staggered timing and a short blue line flash,
+leaving no oversized cage in the settled composition.
 
 The plasma changes quality and anatomy with the same progress. Ray-march samples
 rise from 38 to 80 only in the enlarged state. The visible base and white core stay
@@ -260,13 +266,13 @@ The current three-polyhedron model was sampled at 600 FPS with two checks:
   local self-spin, scale-out, orbit motion, and scale recovery.
 - Final orbit-mesh to main-mesh handoff mismatch: below `4e-9` world units.
 - The plasma version passes `pnpm build`. Headless Firefox/BiDi validation produced
-  rendered frames for glass growth, flash, isolated core, warm plasma, and final
+  rendered frames for grid growth, flash, isolated core, warm plasma, and final
   ionization rim with no shader or runtime errors; only the two known upstream
   Three.js deprecation warnings remain.
 - Reactor morph, first division, 104-tile covering, and resumed stable rotation were
   captured in Firefox/BiDi with no additional runtime or shader errors.
 - The corrected emerald base plates, blue wave frames, red signal handoff, staggered
-  glass breakup, fog/viewport-gated plate removal, spherical core with an offscreen
+  grid breakup, fog/viewport-gated plate removal, spherical core with an offscreen
   plume, full-width DOM strip, and settled final composition were captured in
   Firefox/BiDi. Only the same upstream `Clock` and shadow-map deprecation warnings
   were emitted.

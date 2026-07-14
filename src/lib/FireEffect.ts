@@ -476,7 +476,7 @@ void main() {
 }
 `
 
-const glassVertexShader = `
+const gridVertexShader = `
 varying vec2 vUv;
 varying vec3 vWorldNormal;
 varying vec3 vWorldPosition;
@@ -490,7 +490,7 @@ void main() {
 }
 `
 
-const glassFragmentShader = `
+const gridFragmentShader = `
 precision highp float;
 
 uniform float uTime;
@@ -502,71 +502,84 @@ varying vec2 vUv;
 varying vec3 vWorldNormal;
 varying vec3 vWorldPosition;
 
-float glassHash(vec2 p) {
+float gridHash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);
   return fract(p.x * p.y);
 }
 
-float glassNoise(vec2 p) {
+float gridNoise(vec2 p) {
   vec2 cell = floor(p);
   vec2 local = fract(p);
   local = local * local * (3.0 - 2.0 * local);
-  float a = glassHash(cell);
-  float b = glassHash(cell + vec2(1.0, 0.0));
-  float c = glassHash(cell + vec2(0.0, 1.0));
-  float d = glassHash(cell + vec2(1.0, 1.0));
+  float a = gridHash(cell);
+  float b = gridHash(cell + vec2(1.0, 0.0));
+  float c = gridHash(cell + vec2(0.0, 1.0));
+  float d = gridHash(cell + vec2(1.0, 1.0));
   return mix(mix(a, b, local.x), mix(c, d, local.x), local.y);
 }
 
 void main() {
   vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
   float facing = abs(dot(normalize(vWorldNormal), viewDirection));
-  float fresnel = pow(1.0 - facing, 2.35);
-  vec2 centeredUv = abs(vUv - 0.5) * 2.0;
-  float edge = smoothstep(0.72, 0.98, max(centeredUv.x, centeredUv.y));
-  float shimmer = 0.5 + 0.5 * sin(uTime * 0.84 + vWorldPosition.y * 17.0);
-  float edgeNoise = glassNoise(vUv * 9.0 + vec2(uTime * 0.19, -uTime * 0.14));
-  float noisyEdge = smoothstep(
-    0.54,
-    0.97,
-    edge + (edgeNoise - 0.5) * 0.34
+  float fresnel = pow(1.0 - facing, 2.15);
+  float shimmer = 0.5 + 0.5 * sin(
+    uTime * 1.05 + vWorldPosition.y * 15.0 + vWorldPosition.x * 8.0
+  );
+  float surfaceNoise = gridNoise(
+    vUv * 8.0 + vec2(uTime * 0.14, -uTime * 0.11)
   );
 
-  vec2 fragmentGrid = vUv * 5.0;
+  const float gridDensity = 6.0;
+  vec2 fragmentGrid = vUv * gridDensity;
   vec2 cell = floor(fragmentGrid);
   vec2 cellUv = fract(fragmentGrid);
+  vec2 nearestLine = min(cellUv, 1.0 - cellUv);
+  float lineDistance = min(nearestLine.x, nearestLine.y);
+  float gridLine = 1.0 - smoothstep(0.025, 0.105, lineDistance);
+  float gridNode = 1.0 - smoothstep(0.018, 0.105, length(nearestLine));
+  float outerDistance = min(
+    min(vUv.x, 1.0 - vUv.x),
+    min(vUv.y, 1.0 - vUv.y)
+  );
+  float outerEdge = 1.0 - smoothstep(0.018, 0.11, outerDistance);
+  float scan = 0.5 + 0.5 * sin(
+    fragmentGrid.y * 1.35 - uTime * 1.4 + surfaceNoise * 2.2
+  );
+
   float faceSeed = dot(abs(normalize(vWorldNormal)), vec3(17.0, 31.0, 47.0));
-  float breakTime = 0.06 + glassHash(cell + vec2(faceSeed)) * 0.56;
+  float breakTime = 0.06 + gridHash(cell + vec2(faceSeed)) * 0.56;
   float fragmentLife =
     1.0 - smoothstep(breakTime - 0.025, breakTime + 0.045, uDissolve);
-  float cellBorder = 1.0 - smoothstep(
-    0.025,
-    0.12,
-    min(min(cellUv.x, 1.0 - cellUv.x), min(cellUv.y, 1.0 - cellUv.y))
-  );
   float breakupGlow =
     1.0 - smoothstep(0.0, 0.045, abs(uDissolve - breakTime));
+  float structure = max(
+    outerEdge,
+    max(gridLine * (0.72 + scan * 0.28), gridNode * 0.86)
+  );
+  float breakupStructure = breakupGlow * (0.16 + gridLine * 0.84);
 
-  if (fragmentLife < 0.08) discard;
+  if (max(structure * fragmentLife, breakupStructure) < 0.025) discard;
 
-  vec3 coolGlass = vec3(0.045, 0.48, 0.37);
-  vec3 coldReflection = vec3(0.58, 1.0, 0.91);
-  vec3 hotReflection = vec3(1.0, 0.19, 0.025);
-  vec3 reflection = mix(coldReflection, hotReflection, uWarmth * 0.72);
-  vec3 color = mix(coolGlass, reflection, fresnel * (0.14 + shimmer * 0.09));
-  color +=
-    vec3(0.03, 0.52, 0.39) * noisyEdge *
-    (0.42 + edgeNoise * 0.24) * (1.0 - uDissolve * 0.82);
-  color +=
-    vec3(0.025, 0.20, 1.0) * breakupGlow *
-    (0.18 + cellBorder * 0.22);
+  vec3 reactorGreen = vec3(0.094, 0.827, 0.514);
+  vec3 reactorMint = vec3(0.37, 0.95, 0.67);
+  vec3 waveBlue = vec3(0.141, 0.298, 1.0);
+  float highlight = clamp(
+    0.10 + fresnel * 0.42 + shimmer * 0.08 + uWarmth * 0.13,
+    0.0,
+    0.52
+  );
+  vec3 color = mix(reactorGreen, reactorMint, highlight);
+  color *= 0.78 + surfaceNoise * 0.31;
+  color += waveBlue * breakupStructure * 0.82;
 
-  float alpha =
-    uOpacity * fragmentLife *
-    (0.14 + fresnel * 0.25 +
-      noisyEdge * 0.27 * (1.0 - uDissolve * 0.82) +
-      breakupGlow * 0.13);
+  float structureAlpha =
+    gridLine * (0.31 + scan * 0.11) +
+    gridNode * 0.13 +
+    outerEdge * (0.46 + fresnel * 0.23);
+  float alpha = uOpacity * (
+    fragmentLife * structureAlpha + breakupStructure * 0.27
+  );
   gl_FragColor = vec4(color, alpha);
 }
 `
@@ -604,7 +617,7 @@ export function createPlasmaMaterial() {
       uWarmProgress: { value: 0 },
       uRimProgress: { value: 0 },
       uExpansion: { value: 0 },
-      uStepCount: { value: 34 },
+      uStepCount: { value: 38 },
       uCenter: { value: new Vector3() },
       uRadii: {
         value: new Vector3(PLASMA_RADIUS, PLASMA_RADIUS, PLASMA_RADIUS),
@@ -623,7 +636,7 @@ export function createPlasmaMaterial() {
   })
 }
 
-export function createGlassMaterial() {
+export function createGridMaterial() {
   return new ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -631,8 +644,8 @@ export function createGlassMaterial() {
       uWarmth: { value: 0 },
       uDissolve: { value: 0 },
     },
-    vertexShader: glassVertexShader,
-    fragmentShader: glassFragmentShader,
+    vertexShader: gridVertexShader,
+    fragmentShader: gridFragmentShader,
     transparent: true,
     blending: NormalBlending,
     depthWrite: false,
@@ -679,7 +692,7 @@ export function updatePlasmaMaterial(
   material.uniforms.uRadii.value.copy(radii)
 }
 
-export function updateGlassMaterial(
+export function updateGridMaterial(
   material: ShaderMaterial,
   time: number,
   opacity: number,

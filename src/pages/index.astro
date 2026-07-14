@@ -59,7 +59,9 @@ const personSchema = {
       :root {
         --ink: #e8f5ee;
         --ink-dim: rgba(218, 238, 229, 0.72);
-        --emerald: #18d383;
+        --reactor: #18d383;
+        --reactor-mint: #6cf3b3;
+        --emerald: var(--reactor);
         --emerald-dim: rgba(24, 211, 131, 0.32);
         --bg: #050907;
         --font-display: 'Unbounded Variable', system-ui, sans-serif;
@@ -126,9 +128,9 @@ const personSchema = {
         overflow: hidden;
         color: #eafff5;
         background:
-          linear-gradient(135deg, rgba(15, 42, 32, 0.88), rgba(4, 12, 9, 0.94)),
-          rgba(5, 9, 7, 0.9);
-        border: 1px solid rgba(24, 211, 131, 0.48);
+          linear-gradient(135deg, rgba(8, 34, 24, 0.92), rgba(3, 13, 9, 0.97)),
+          rgba(5, 9, 7, 0.94);
+        border: 1px solid rgba(24, 211, 131, 0.54);
         border-right: 0;
         border-bottom: 0;
         border-left: 0;
@@ -159,8 +161,14 @@ const personSchema = {
           repeating-linear-gradient(
             90deg,
             transparent 0,
-            transparent 34px,
-            rgba(139, 255, 211, 0.025) 35px
+            transparent 35px,
+            rgba(24, 211, 131, 0.045) 36px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0,
+            transparent 35px,
+            rgba(24, 211, 131, 0.038) 36px
           );
         opacity: 0.9;
       }
@@ -176,10 +184,15 @@ const personSchema = {
         position: absolute;
         inset: 0 auto 0 0;
         width: 3px;
-        background: #ff352c;
+        color: #ff352c;
+        background: currentColor;
         box-shadow:
-          0 0 12px rgba(255, 53, 44, 0.92),
-          0 0 34px rgba(255, 53, 44, 0.42);
+          0 0 12px currentColor,
+          0 0 34px currentColor;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__signal) {
+        animation: reactor-signal-settle 2.4s ease-out both;
       }
 
       :global(.reactor-card__signal::after) {
@@ -190,9 +203,9 @@ const personSchema = {
         width: 6px;
         height: 6px;
         border-radius: 50%;
-        background: #ff5a52;
-        box-shadow: 0 0 14px #ff352c;
-        animation: reactor-signal 2.4s ease-in-out infinite;
+        background: currentColor;
+        box-shadow: 0 0 14px currentColor;
+        animation: reactor-signal 0.8s ease-in-out 3;
       }
 
       :global(.reactor-card__meta) {
@@ -202,7 +215,7 @@ const personSchema = {
         justify-content: space-between;
         gap: 1rem;
         margin-bottom: 1rem;
-        color: rgba(156, 255, 211, 0.72);
+        color: rgba(108, 243, 179, 0.72);
         font: 600 0.66rem/1.2 var(--font-mono);
         letter-spacing: 0.14em;
       }
@@ -226,13 +239,17 @@ const personSchema = {
         line-height: 1.5;
       }
 
+      :global(.reactor-card p + p) {
+        margin-top: 0.55rem;
+      }
+
       :global(.reactor-card__stack) {
         position: relative;
         z-index: 1;
         display: flex;
         gap: 0.85rem;
         margin-top: 1rem;
-        color: #18d383;
+        color: var(--reactor);
         font: 600 0.65rem/1 var(--font-mono);
         letter-spacing: 0.12em;
       }
@@ -255,6 +272,11 @@ const personSchema = {
       @keyframes reactor-signal {
         0%, 100% { opacity: 0.36; transform: scale(0.82); }
         50% { opacity: 1; transform: scale(1.18); }
+      }
+
+      @keyframes reactor-signal-settle {
+        0%, 64% { color: #ff352c; }
+        100% { color: var(--reactor); }
       }
 
       /* ── Hero overlay ─────────────────────────────────────── */
@@ -306,28 +328,18 @@ const personSchema = {
         font-weight: 640;
       }
 
-      .about {
+      .subtitle {
         max-width: 46ch;
-        display: grid;
-        gap: 0.85rem;
+        font-size: 1.08rem;
+        line-height: 1.6;
+        color: var(--ink-dim);
         transition:
           opacity 0.32s ease,
           transform 0.58s cubic-bezier(0.16, 1, 0.3, 1),
           filter 0.42s ease;
       }
 
-      .about p {
-        font-size: 1.02rem;
-        line-height: 1.62;
-        color: var(--ink-dim);
-      }
-
-      .about strong {
-        color: var(--ink);
-        font-weight: 600;
-      }
-
-      :global(body.reactor-card-visible) .about {
+      :global(body.reactor-card-visible) .subtitle {
         opacity: 0;
         filter: blur(5px);
         transform: translate3d(-1.5rem, 0.75rem, 0) scale(0.96);
@@ -486,19 +498,9 @@ const personSchema = {
         <span class="headline__outline">Developer</span>
       </h1>
 
-      <div class="about">
-        <p>
-          Делаю интерактивную 3D-графику для веба: анимации, конфигураторы и
-          визуализации на Three.js, которые работают прямо в браузере. <strong
-            >Сцена на этой странице собрана с нуля</strong
-          > — от математики траекторий до шейдеров плазмы.
-        </p>
-        <p>
-          Веду проект целиком: концепция, прототип, продакшен, оптимизация — вы
-          общаетесь напрямую с тем, кто пишет код. База — МГТУ им. Баумана и
-          Школа 21. Санкт-Петербург, работаю удалённо.
-        </p>
-      </div>
+      <p class="subtitle">
+        Анимации, конфигураторы и визуализации на Three.js — прямо в браузере.
+      </p>
 
       <div class="tech-stack">
         <span class="tech-badge">Three.js</span>

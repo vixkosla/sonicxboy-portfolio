@@ -9,11 +9,12 @@ Its visual story is:
 2. the cube acquires mechanical momentum and rolls onto an edge/corner;
 3. the rigid lattice separates into orbital symmetry classes;
 4. orbital motion gradually yields to a spherical voxel shell;
-5. its nucleus becomes glass and ignites into a volumetric energy source;
+5. its nucleus becomes an emissive grid cage and ignites into a volumetric energy
+   source;
 6. the shell morphs and divides into a dense reactor covering;
 7. blue ionization waves release the covering while one plate crosses from WebGL
    into interface;
-8. the temporary glass vessel disintegrates while the source expands into the
+8. the temporary grid cage disintegrates while the source expands into the
    volume left behind as an upright flame.
 
 Mathematics must remain invisible. It provides collision constraints, continuity,
@@ -142,17 +143,19 @@ cube directions at `SHELL_RADIUS = 1.22`.
 ### 6. Plasma ignition
 
 The nucleus transformation begins during orbital departure rather than after the
-handoff. At `0.65s` of main spin time its opaque material starts dissolving into a
-noisy glass/Fresnel layer. Expansion waits until `2.45s`, when the last and closest
-octahedral class launches, then grows the glass cube to `1.7x` over `2.5s`.
+handoff. At `0.65s` of main spin time its opaque material starts dissolving into an
+emissive `6 x 6` grid on every face. The grid uses the same `#18d383` base color as
+the reactor plates, with a brighter same-hue highlight rather than a separate
+translucent palette. Expansion waits until `2.45s`, when the last and closest octahedral class
+launches, then grows the grid cube to `1.7x` over `2.5s`.
 
-The final glass side is `0.85`. This is close to the largest axis-aligned cube that
+The final grid side is `0.85`. This is close to the largest axis-aligned cube that
 fits inside the spherical shell: its corner radius is about `0.736`, leaving roughly
 `0.05` before the inner radial support of a final corner cubelet. Delaying expansion
 until the face-center class departs avoids growing through the still-assembled inner
 neighbors.
 
-Ignition is deliberately staged after the glass has reached full size:
+Ignition is deliberately staged after the grid has reached full size:
 
 - `5.8s`: a fast cold-white full-viewport flash reveals the white core;
 - after the flash, the lone core remains visible and pulses gently;
@@ -184,11 +187,11 @@ The plasma mesh keeps depth testing enabled and only disables depth writes. Opaq
 shell cubelets can therefore occlude the core correctly; it is visible through the
 real gaps instead of being composited over the whole assembly. A small warm point
 light flickers with the plasma and produces matching illumination on nearby
-cubelets. The glass cube is rendered after the volume as a separate transparent
-edge/Fresnel layer.
+cubelets. The grid cage is rendered after the volume as a separate transparent
+line layer; non-grid face fragments are discarded.
 
 In development, `?plasma-preview` starts directly at the completed shell and freezes
-its rotation. Named values (`glass`, `flash`, `core`, `warm`) expose each story beat,
+its rotation. Named values (`grid`, `flash`, `core`, `warm`) expose each story beat,
 and a numeric value jumps to that main-spin time. This branch is removed from
 production by `import.meta.env.DEV`.
 
@@ -271,12 +274,16 @@ subtitle fades with them. The card is now a true viewport-wide lower layout stri
 it is anchored to all three lower edges, has no side radius, and uses the same
 responsive page gutters as the hero text.
 
-While the covering releases, the glass nucleus follows the old `1.7x -> 4.35x`
-expansion envelope only as a temporary demolition volume. Every face is divided
-into a deterministic `5 x 5` grid; cells disappear at staggered thresholds while
-their borders briefly emit a blue breakup glow. The vessel is fully gone before the
-large final view, so a small-cube glass treatment is never enlarged into the main
-subject.
+The stable palette is deliberately singular: plates, cage lines, card border,
+labels, and its `36px` layout grid all use `#18d383` or transparent/darker derivatives
+of it. The red signal remains a temporary launch state and transitions to emerald
+after three pulses rather than becoming a permanent third accent.
+
+While the covering releases, the grid nucleus follows the old `1.7x -> 4.35x`
+expansion envelope only as a temporary demolition volume. Every face is already
+divided into a deterministic `6 x 6` grid; cells disappear at staggered thresholds
+while their lines briefly emit a blue breakup glow. The cage is fully gone before
+the large final view, so it never competes with the plasma as the main subject.
 
 The plasma raises its ray-march budget continuously from 38 to 80 samples only
 during this expansion. The visible lower source grows uniformly to `2.78x` and
