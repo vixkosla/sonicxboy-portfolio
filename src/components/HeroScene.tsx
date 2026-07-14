@@ -630,7 +630,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                             ? REACTOR_SCATTER_START + 0.72
                             : previewStage === 'card'
                               ? HERO_CARD_REVEAL + 0.42
-                              : HERO_CARD_REVEAL + 1.5
+                              : REACTOR_SCATTER_START +
+                                REACTOR_SCATTER_STAGGER +
+                                REACTOR_SCATTER_MAX_FLIGHT +
+                                0.2
       simulation.elapsed = MAIN_SPIN_START + previewMainElapsed
       simulation.settled = true
     }

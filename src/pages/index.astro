@@ -1,26 +1,82 @@
 ---
+import '@fontsource-variable/unbounded'
+import '@fontsource-variable/onest'
+import '@fontsource-variable/jetbrains-mono'
 import HeroScene from '../components/HeroScene.tsx'
+
+const personSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: 'SonicXBoy',
+  jobTitle: 'WebGL Developer',
+  description:
+    'Разработчик интерактивной 3D-графики для веба: Three.js, WebGL, GLSL, React Three Fiber. Анимации, конфигураторы и визуализации прямо в браузере.',
+  knowsAbout: [
+    'Three.js',
+    'WebGL',
+    'GLSL',
+    'React Three Fiber',
+    'React',
+    'TypeScript',
+    'Next.js',
+    'Astro',
+    'Node.js',
+  ],
+  sameAs: [
+    'https://x.com/vixkosla',
+    'https://www.upwork.com/freelancers/askerovt',
+    'https://t.me/vixkosla',
+  ],
+}
 ---
 
 <!doctype html>
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <title>WebGL Developer — Three.js, React Three Fiber</title>
-    <meta name="description" content="Interactive 3D experiences for the web" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SonicXBoy — WebGL Developer · Three.js, React Three Fiber</title>
+    <meta
+      name="description"
+      content="SonicXBoy — разработчик интерактивной 3D-графики для веба: Three.js, WebGL, GLSL, React Three Fiber. Анимации, конфигураторы и визуализации прямо в браузере."
+    />
+    <meta name="theme-color" content="#050907" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="SonicXBoy — WebGL Developer" />
+    <meta
+      property="og:description"
+      content="Интерактивная 3D-графика для веба: Three.js, WebGL, GLSL, React Three Fiber."
+    />
+    <meta property="og:locale" content="ru_RU" />
+    <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
     <style>
       * {
         margin: 0;
         padding: 0;
         box-sizing: border-box;
       }
-      
+
+      :root {
+        --ink: #e8f5ee;
+        --ink-dim: rgba(218, 238, 229, 0.72);
+        --emerald: #18d383;
+        --emerald-dim: rgba(24, 211, 131, 0.32);
+        --bg: #050907;
+        --font-display: 'Unbounded Variable', system-ui, sans-serif;
+        --font-body: 'Onest Variable', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
       body {
-        font-family: system-ui, -apple-system, sans-serif;
-        color: #fff;
-        background: #050907;
+        font-family: var(--font-body);
+        color: var(--ink);
+        background: var(--bg);
         overflow-x: hidden;
+      }
+
+      a:focus-visible {
+        outline: 2px solid var(--emerald);
+        outline-offset: 3px;
       }
 
       :global(.hero-scene) {
@@ -28,6 +84,33 @@ import HeroScene from '../components/HeroScene.tsx'
         inset: 0;
         z-index: 0;
       }
+
+      /* ── Wordmark ─────────────────────────────────────────── */
+
+      .brand {
+        position: fixed;
+        top: 1.6rem;
+        left: clamp(1.5rem, 8vw, 9rem);
+        z-index: 2;
+      }
+
+      .brand__mark {
+        font-family: var(--font-display);
+        font-size: 1.02rem;
+        font-weight: 640;
+        letter-spacing: 0.1em;
+        color: var(--ink);
+        text-decoration: none;
+        pointer-events: auto;
+      }
+
+      .brand__x {
+        color: var(--emerald);
+        font-weight: 900;
+        text-shadow: 0 0 18px rgba(24, 211, 131, 0.55);
+      }
+
+      /* ── Reactor card (arrives from the 3D scene) ─────────── */
 
       :global(.reactor-card) {
         position: fixed;
@@ -120,7 +203,7 @@ import HeroScene from '../components/HeroScene.tsx'
         gap: 1rem;
         margin-bottom: 1rem;
         color: rgba(156, 255, 211, 0.72);
-        font: 600 0.66rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+        font: 600 0.66rem/1.2 var(--font-mono);
         letter-spacing: 0.14em;
       }
 
@@ -128,9 +211,10 @@ import HeroScene from '../components/HeroScene.tsx'
         position: relative;
         z-index: 1;
         margin: 0 0 0.55rem;
-        font-size: clamp(1.35rem, 2.15vw, 1.68rem);
-        font-weight: 650;
-        letter-spacing: -0.025em;
+        font-family: var(--font-display);
+        font-size: clamp(1.2rem, 2vw, 1.5rem);
+        font-weight: 600;
+        letter-spacing: 0.01em;
       }
 
       :global(.reactor-card p) {
@@ -149,7 +233,7 @@ import HeroScene from '../components/HeroScene.tsx'
         gap: 0.85rem;
         margin-top: 1rem;
         color: #18d383;
-        font: 600 0.65rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        font: 600 0.65rem/1 var(--font-mono);
         letter-spacing: 0.12em;
       }
 
@@ -172,7 +256,9 @@ import HeroScene from '../components/HeroScene.tsx'
         0%, 100% { opacity: 0.36; transform: scale(0.82); }
         50% { opacity: 1; transform: scale(1.18); }
       }
-      
+
+      /* ── Hero overlay ─────────────────────────────────────── */
+
       main {
         position: relative;
         z-index: 1;
@@ -185,35 +271,74 @@ import HeroScene from '../components/HeroScene.tsx'
         padding: 2rem clamp(1.5rem, 8vw, 9rem);
         pointer-events: none;
       }
-      
-      h1 {
-        font-size: clamp(2rem, 5vw, 4rem);
-        font-weight: 700;
-        margin-bottom: 1rem;
-        max-width: 560px;
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        font-weight: 500;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--emerald);
+        margin-bottom: 1.1rem;
       }
-      
-      p {
-        font-size: clamp(1rem, 2vw, 1.5rem);
-        color: #a0a0a0;
-        max-width: 600px;
+
+      h1 {
+        font-family: var(--font-display);
+        font-size: clamp(2.1rem, 9vw, 7.4rem);
+        font-weight: 800;
+        line-height: 0.98;
+        letter-spacing: -0.01em;
+        text-transform: uppercase;
+        margin-bottom: 1.6rem;
+      }
+
+      .headline__solid,
+      .headline__outline {
+        display: block;
+      }
+
+      .headline__outline {
+        /* Opaque fill + paint-order hides the seams of Unbounded's
+           overlapping glyph contours, leaving only the outer stroke. */
+        color: var(--bg);
+        -webkit-text-stroke: 2px rgba(232, 245, 238, 0.9);
+        paint-order: stroke fill;
+        font-weight: 640;
+      }
+
+      .about {
+        max-width: 46ch;
+        display: grid;
+        gap: 0.85rem;
         transition:
           opacity 0.32s ease,
           transform 0.58s cubic-bezier(0.16, 1, 0.3, 1),
           filter 0.42s ease;
       }
 
-      :global(body.reactor-card-visible) main > p {
+      .about p {
+        font-size: 1.02rem;
+        line-height: 1.62;
+        color: var(--ink-dim);
+      }
+
+      .about strong {
+        color: var(--ink);
+        font-weight: 600;
+      }
+
+      :global(body.reactor-card-visible) .about {
         opacity: 0;
         filter: blur(5px);
         transform: translate3d(-1.5rem, 0.75rem, 0) scale(0.96);
       }
-      
+
       .tech-stack {
-        margin-top: 2rem;
+        margin-top: 1.9rem;
         display: flex;
-        gap: 1rem;
+        gap: 0.55rem;
         flex-wrap: wrap;
+        max-width: 40rem;
         transition:
           opacity 0.32s ease,
           transform 0.58s cubic-bezier(0.16, 1, 0.3, 1),
@@ -225,14 +350,94 @@ import HeroScene from '../components/HeroScene.tsx'
         filter: blur(5px);
         transform: translate3d(-1.5rem, 0.75rem, 0) scale(0.94);
       }
-      
+
       .tech-badge {
-        padding: 0.5rem 1rem;
-        background: rgba(16, 185, 129, 0.1);
-        border: 1px solid rgba(16, 185, 129, 0.3);
-        border-radius: 0.5rem;
-        font-size: 0.875rem;
-        color: #10b981;
+        padding: 0.38rem 0.7rem;
+        background: rgba(24, 211, 131, 0.08);
+        border: 1px solid var(--emerald-dim);
+        border-radius: 2px;
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--emerald);
+      }
+
+      /* ── Socials & contact ────────────────────────────────── */
+
+      .socials {
+        margin-top: 2.1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        flex-wrap: wrap;
+        pointer-events: auto;
+      }
+
+      .socials__icon {
+        display: grid;
+        place-items: center;
+        width: 2.75rem;
+        height: 2.75rem;
+        color: var(--ink);
+        background: rgba(232, 245, 238, 0.04);
+        border: 1px solid rgba(232, 245, 238, 0.18);
+        border-radius: 2px;
+        transition:
+          border-color 0.2s ease,
+          color 0.2s ease,
+          background 0.2s ease,
+          transform 0.2s ease;
+      }
+
+      .socials__icon:hover {
+        color: var(--emerald);
+        border-color: var(--emerald);
+        background: rgba(24, 211, 131, 0.08);
+        transform: translateY(-2px);
+      }
+
+      .socials__icon svg {
+        width: 1.15rem;
+        height: 1.15rem;
+        fill: currentColor;
+      }
+
+      .socials__cta {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.55rem;
+        height: 2.75rem;
+        padding: 0 1.15rem;
+        margin-left: 0.35rem;
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        text-decoration: none;
+        color: #04140c;
+        background: var(--emerald);
+        border: 1px solid var(--emerald);
+        border-radius: 2px;
+        transition: filter 0.2s ease, transform 0.2s ease;
+      }
+
+      .socials__cta:hover {
+        filter: brightness(1.14);
+        transform: translateY(-2px);
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .socials__icon,
+        .socials__cta {
+          transition: none;
+        }
+        .socials__icon:hover,
+        .socials__cta:hover {
+          transform: none;
+        }
       }
 
       @media (max-width: 720px) {
@@ -241,8 +446,16 @@ import HeroScene from '../components/HeroScene.tsx'
           padding-bottom: 15.5rem;
         }
 
+        .brand {
+          top: 1.1rem;
+        }
+
+        .about {
+          max-width: 100%;
+        }
+
         .tech-stack {
-          gap: 0.6rem;
+          gap: 0.45rem;
         }
 
         :global(.reactor-card) {
@@ -258,17 +471,93 @@ import HeroScene from '../components/HeroScene.tsx'
   </head>
   <body>
     <HeroScene client:load />
-    
+
+    <header class="brand">
+      <a class="brand__mark" href="/" aria-label="SonicXBoy — на главную"
+        >SONIC<span class="brand__x">X</span>BOY</a
+      >
+    </header>
+
     <main>
-      <h1>WebGL Developer</h1>
-      <p>Building interactive 3D experiences for the web</p>
-      
+      <p class="eyebrow">// интерактивная 3D-графика для веба</p>
+
+      <h1>
+        <span class="headline__solid">WebGL</span>
+        <span class="headline__outline">Developer</span>
+      </h1>
+
+      <div class="about">
+        <p>
+          Делаю интерактивную 3D-графику для веба: анимации, конфигураторы и
+          визуализации на Three.js, которые работают прямо в браузере. <strong
+            >Сцена на этой странице собрана с нуля</strong
+          > — от математики траекторий до шейдеров плазмы.
+        </p>
+        <p>
+          Веду проект целиком: концепция, прототип, продакшен, оптимизация — вы
+          общаетесь напрямую с тем, кто пишет код. База — МГТУ им. Баумана и
+          Школа 21. Санкт-Петербург, работаю удалённо.
+        </p>
+      </div>
+
       <div class="tech-stack">
         <span class="tech-badge">Three.js</span>
-        <span class="tech-badge">React Three Fiber</span>
         <span class="tech-badge">WebGL</span>
         <span class="tech-badge">GLSL</span>
+        <span class="tech-badge">React Three Fiber</span>
+        <span class="tech-badge">React</span>
+        <span class="tech-badge">TypeScript</span>
+        <span class="tech-badge">Next.js</span>
+        <span class="tech-badge">Astro</span>
+        <span class="tech-badge">Node.js</span>
+        <span class="tech-badge">GSAP</span>
+        <span class="tech-badge">Rapier</span>
       </div>
+
+      <nav class="socials" aria-label="Соцсети и контакты">
+        <a
+          class="socials__icon"
+          href="https://x.com/vixkosla"
+          target="_blank"
+          rel="noopener"
+          aria-label="X (Twitter)"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path
+              d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z"
+            ></path></svg
+          >
+        </a>
+        <a
+          class="socials__icon"
+          href="https://www.upwork.com/freelancers/askerovt"
+          target="_blank"
+          rel="noopener"
+          aria-label="Upwork"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path
+              d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06a2.705 2.705 0 0 1 2.703 2.703c-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z"
+            ></path></svg
+          >
+        </a>
+        <a
+          class="socials__icon"
+          href="https://t.me/vixkosla"
+          target="_blank"
+          rel="noopener"
+          aria-label="Telegram"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"
+            ><path
+              d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"
+            ></path></svg
+          >
+        </a>
+        <a class="socials__cta" href="https://t.me/vixkosla" target="_blank" rel="noopener"
+          >Написать в Telegram</a
+        >
+      </nav>
     </main>
   </body>
 </html>

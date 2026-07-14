@@ -162,15 +162,23 @@ Ignition is deliberately staged after the glass has reached full size:
 The conversion itself uses cold emerald/white energy, not yellow. Warm light only
 appears once the warm plasma layer exists.
 
-The core is not a billboard. A fragment shader ray-marches 34 samples through a
+The core is not a billboard. A fragment shader ray-marches 38 samples through a
 small sphere (`PLASMA_RADIUS = 0.235`) and integrates a flowing three-dimensional
-density field. Three octaves of value noise advect upward through the volume and
-distort its warm layers. The intended anatomy is:
+density field. Three octaves of value noise advect upward through the volume; a
+ridged detail field opens narrow channels and breaks continuous layers into flowing
+material. The intended anatomy is:
 
 - a moving amorphous white-hot center;
 - translucent yellow, orange, and red plasma filaments;
 - a low-density dark gap;
 - a thin noisy blue ionization rim, strengthened at grazing view angles.
+
+In the enlarged state the upper flow is not one textured tube. Seven analytic
+streams follow separate rising centerlines inside a shared domain-warped medium.
+Two additional angular ribbon families produce thin sheets between them, and a
+low-density blue-grey mist keeps the gaps volumetric instead of empty. The stream
+offsets are already separated inside the upper hemisphere, so visible lines grow
+out of different parts of the source before braiding and converging overhead.
 
 The plasma mesh keeps depth testing enabled and only disables depth writes. Opaque
 shell cubelets can therefore occlude the core correctly; it is visible through the
@@ -246,8 +254,11 @@ light.
 The release begins with a `0.15s` inward compression, like a plate loading against
 the reactor frame. The ordinary 103 plates then accelerate outward along directions
 that remain close to their radial normals, with deterministic tangent drift,
-rotation, speed, and up to `0.72s` of stagger. They scale away after reaching the
-distance field instead of passing close to the camera and obscuring the layout.
+rotation, speed, and up to `0.72s` of stagger. They remain full-size while readable.
+An instance is collapsed only after its projected center has left the viewport, it
+has passed the camera plane, or its camera distance has entered the nearly opaque
+end of the scene fog. A `4.4s` maximum flight is only a safety bound after the same
+accelerated path has already carried it beyond the visible composition.
 
 The signal plate owns a different route. After the same recoil, it follows one
 cubic Bezier path around the left side, rotates until its face is camera-aligned,
@@ -256,8 +267,9 @@ edge, the WebGL mesh fades while a fixed DOM card enters from the same side and
 settles downward into the lower-left composition. Its red arrival edge decays back
 to the established emerald interface palette. Existing technology badges fade out
 at this handoff so the new information surface has a clean landing area. The hero
-subtitle fades with them. The desktop card is `580px` wide and occupies most of the
-left layout strip while remaining responsive on narrow screens.
+subtitle fades with them. The card is now a true viewport-wide lower layout strip:
+it is anchored to all three lower edges, has no side radius, and uses the same
+responsive page gutters as the hero text.
 
 While the covering releases, the glass nucleus follows the old `1.7x -> 4.35x`
 expansion envelope only as a temporary demolition volume. Every face is divided
@@ -266,14 +278,23 @@ their borders briefly emit a blue breakup glow. The vessel is fully gone before 
 large final view, so a small-cube glass treatment is never enlarged into the main
 subject.
 
-The plasma raises its ray-march budget continuously from 34 to 54 samples only
-during this expansion. Its radial scale reaches `2.78x`, its vertical scale reaches
-`4.45x`, and its center moves down by `0.17` local units. The white, yellow, orange,
-red, and blue density layers receive progressively larger upward offsets and taper,
-turning the former sphere into a vertical teardrop flame rather than stretching one
-round mask uniformly. Its point-light reach expands with the same envelope. The
-result is not an empty reactor after the scaffold leaves: the generated source
-itself inherits the vacated volume, while the disposable vessel does not.
+The plasma raises its ray-march budget continuously from 38 to 80 samples only
+during this expansion. The visible lower source grows uniformly to `2.78x` and
+remains a real sphere; in particular, the white core is never scaled independently
+on Y. A separate invisible box proxy grows to `13.5x` vertically and shifts upward
+so its lower face stays aligned with the spherical bulb. It exists only to provide
+ray entry points and has no visible surface or Fresnel edge.
+
+Inside that proxy, the sphere cross-section and plume widths overlap across the
+upper hemisphere; this is the geometric bridge between the round source and the
+column. A broad two-scale advected field deforms that bridge and carries seven
+independent warm/white/blue streams plus two thin ribbon systems. Their offsets and
+widths narrow exponentially toward a two-frequency centerline, while ridged noise
+interrupts and reconnects them. A weak blue-grey mist occupies the remaining volume
+without closing it into one opaque silhouette. The proxy and density continue beyond
+the top of the viewport, so the flame never terminates in a rounded cap. The base
+center still moves down by `0.17` local units and the point-light reach expands with
+the same envelope.
 
 Development previews add `waves`, `signal`, `scatter`, and `card`. The empty
 `?plasma-preview` value now shows the settled interface handoff.

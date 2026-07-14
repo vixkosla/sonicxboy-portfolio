@@ -93,17 +93,47 @@ float gaussian(float value, float center, float width) {
   return exp(-normalized * normalized);
 }
 
+float ridged(float value) {
+  return 1.0 - abs(value * 2.0 - 1.0);
+}
+
 vec2 plumeCenter(float height, float time, float expansion) {
-  float join = smoothstep(0.24, 1.35, height);
+  float join = smoothstep(0.08, 1.15, height);
   vec2 slowCurve = vec2(
-    sin(height * 1.08 - time * 0.29) * (0.042 + height * 0.017),
-    cos(height * 0.91 + time * 0.21) * (0.031 + height * 0.012)
+    sin(height * 0.94 - time * 0.24) * (0.036 + height * 0.012),
+    cos(height * 0.82 + time * 0.18) * (0.029 + height * 0.009)
   );
   vec2 fineCurve = vec2(
-    sin(height * 3.7 + time * 0.17),
-    cos(height * 3.15 - time * 0.13)
-  ) * 0.014;
+    sin(height * 3.35 + time * 0.16),
+    cos(height * 2.88 - time * 0.12)
+  ) * 0.012;
   return (slowCurve + fineCurve) * join * expansion;
+}
+
+vec2 strandOffset(
+  float height,
+  float time,
+  float phase,
+  float spread,
+  float speed
+) {
+  float join = mix(0.26, 1.0, smoothstep(0.08, 0.92, height));
+  float narrowing = exp(-height * 0.27) * 0.92 + 0.08;
+  float travel = height * (1.05 + phase * 0.025) - time * speed + phase;
+  vec2 orbit = vec2(
+    sin(travel),
+    cos(travel * 0.87 + phase * 0.41)
+  );
+  vec2 secondary = vec2(
+    sin(height * 3.2 + phase * 1.73 + time * 0.19),
+    cos(height * 2.65 - phase * 1.21 - time * 0.16)
+  ) * 0.23;
+  return (orbit + secondary) * spread * narrowing * join;
+}
+
+float strandTube(vec2 point, vec2 center, float width) {
+  float normalized = length(point - center) / max(width, 0.0001);
+  return exp(-normalized * normalized * 1.85);
 }
 
 void main() {
@@ -119,6 +149,9 @@ void main() {
     sin(uTime * 0.79 + 1.4) * 0.018,
     cos(uTime * 0.97) * 0.025
   );
+  position += rayDirection * stepLength * hash31(
+    vec3(gl_FragCoord.xy * 0.071, 9.13)
+  );
 
   for (int stepIndex = 0; stepIndex < 80; stepIndex++) {
     if (float(stepIndex) >= uStepCount) break;
@@ -127,8 +160,6 @@ void main() {
     float height = max(plasmaPosition.y, 0.0);
     float baseFade = smoothstep(-1.035, -0.80, plasmaPosition.y);
 
-    vec2 centerline = plumeCenter(height, uTime, uExpansion);
-    vec2 plumeOffset = plasmaPosition.xz - centerline;
     float taper = exp(-height * 0.43);
 
     vec3 flowPosition = plasmaPosition * vec3(2.28, 1.72, 2.28);
@@ -141,6 +172,20 @@ void main() {
     float microNoise = noise3(
       flowPosition * 5.4 + vec3(-8.1, -uTime * 0.63, 5.7)
     );
+    float ridgeNoise = ridged(
+      noise3(flowPosition * 3.45 + vec3(7.4, -uTime * 0.91, 3.8))
+    );
+    float flowRidge = pow(ridged(detailNoise), 3.2);
+    vec2 flowWarp = vec2(detailNoise - 0.5, microNoise - 0.5) *
+      (0.15 * taper + 0.018);
+    flowWarp += vec2(
+      sin(height * 1.74 - uTime * 0.31 + broadNoise * 3.1),
+      cos(height * 1.46 + uTime * 0.23 + broadNoise * 2.7)
+    ) * (0.022 + taper * 0.026);
+
+    vec2 centerline = plumeCenter(height, uTime, uExpansion);
+    vec2 flowPoint = plasmaPosition.xz + flowWarp * uExpansion;
+    vec2 plumeOffset = flowPoint - centerline;
     float distortion =
       (broadNoise - 0.48) * 0.30 +
       (detailNoise - 0.5) * 0.085 +
@@ -177,17 +222,38 @@ void main() {
     );
     baseBlueShell *= 0.24 + shellBreakup * 0.76;
 
-    // Only the upper hemisphere becomes a plume. Its nested radii approach a
-    // moving line, like smoke rising through still air.
-    float plumeJoin = uExpansion * smoothstep(0.18, 0.88, plasmaPosition.y);
+    // The plume overlaps the upper hemisphere instead of starting above it. Its
+    // initial width follows the sphere cross-section, then hands over to an
+    // exponentially narrowing column. This removes the pinched seam between the
+    // round source and the rising flow.
+    float plumeJoin = uExpansion * smoothstep(-0.08, 0.56, plasmaPosition.y);
+    float crossSection = sqrt(max(1.0 - height * height, 0.0));
+    float columnBlend = smoothstep(0.22, 1.12, height);
     float plumeNoise =
-      (broadNoise - 0.5) * (0.065 * taper + 0.012) +
-      (detailNoise - 0.5) * 0.022;
+      (broadNoise - 0.5) * (0.10 * taper + 0.018 + height * 0.005) +
+      (detailNoise - 0.5) * 0.031 +
+      (ridgeNoise - 0.5) * 0.014;
     float plumeRadius = max(length(plumeOffset) - plumeNoise, 0.0);
-    float yellowWidth = 0.32 * taper + 0.009;
-    float orangeWidth = 0.49 * taper + 0.013;
-    float redWidth = 0.66 * taper + 0.018;
-    float blueWidth = 0.84 * taper + 0.026;
+    float yellowWidth = mix(
+      crossSection * 0.42 + 0.045,
+      0.285 * taper + 0.010,
+      columnBlend
+    );
+    float orangeWidth = mix(
+      crossSection * 0.64 + 0.055,
+      0.455 * taper + 0.015,
+      columnBlend
+    );
+    float redWidth = mix(
+      crossSection * 0.82 + 0.065,
+      0.625 * taper + 0.020,
+      columnBlend
+    );
+    float blueWidth = mix(
+      crossSection * 0.96 + 0.055,
+      0.79 * taper + 0.027,
+      columnBlend
+    );
     float tailYellow = 1.0 - smoothstep(
       0.68,
       1.02,
@@ -208,10 +274,61 @@ void main() {
       blueWidth,
       max(0.012, blueWidth * (0.085 + detailNoise * 0.035))
     );
-    tailBlueShell *= 0.28 + shellBreakup * 0.72;
+    tailBlueShell *=
+      0.08 + shellBreakup * 0.43 + ridgeNoise * 0.31 + flowRidge * 0.24;
+
+    // Seven independent material streams rise through the shared volume. They
+    // start together in the hot source, braid through the broad column, then
+    // converge into hair-thin lines high above it.
+    float strandWidth = 0.085 * taper + 0.0115;
+    vec2 strandCenter0 = centerline + strandOffset(
+      height, uTime, 0.35, 0.048, 0.54
+    ) * uExpansion;
+    vec2 strandCenter1 = centerline + strandOffset(
+      height, uTime, 1.72, 0.340, 0.42
+    ) * uExpansion;
+    vec2 strandCenter2 = centerline + strandOffset(
+      height, uTime, 3.08, 0.280, 0.49
+    ) * uExpansion;
+    vec2 strandCenter3 = centerline + strandOffset(
+      height, uTime, 4.46, 0.380, 0.37
+    ) * uExpansion;
+    vec2 strandCenter4 = centerline + strandOffset(
+      height, uTime, 5.84, 0.310, 0.58
+    ) * uExpansion;
+    vec2 strandCenter5 = centerline + strandOffset(
+      height, uTime, 7.18, 0.420, 0.45
+    ) * uExpansion;
+    vec2 strandCenter6 = centerline + strandOffset(
+      height, uTime, 8.52, 0.360, 0.62
+    ) * uExpansion;
+    float strand0 = strandTube(flowPoint, strandCenter0, strandWidth * 1.28);
+    float strand1 = strandTube(flowPoint, strandCenter1, strandWidth * 0.93);
+    float strand2 = strandTube(flowPoint, strandCenter2, strandWidth * 0.78);
+    float strand3 = strandTube(flowPoint, strandCenter3, strandWidth * 0.86);
+    float strand4 = strandTube(flowPoint, strandCenter4, strandWidth * 0.70);
+    float strand5 = strandTube(flowPoint, strandCenter5, strandWidth * 0.72);
+    float strand6 = strandTube(flowPoint, strandCenter6, strandWidth * 0.65);
+    float strandBreakup = 0.22 + 0.78 * smoothstep(
+      0.18,
+      0.83,
+      ridgeNoise * 0.66 + flowRidge * 0.58 + microNoise * 0.22
+    );
+    float strandField = (
+      strand0 * 1.18 + strand1 * 0.92 + strand2 * 0.78 +
+      strand3 * 0.84 + strand4 * 0.68 + strand5 * 0.73 + strand6 * 0.62
+    ) * strandBreakup;
+    float paleStrands = (
+      strand0 * 0.88 + strand1 * 0.67 + strand2 * 0.82 +
+      strand3 * 0.61 + strand4 * 0.58 + strand5 * 0.72 + strand6 * 0.55
+    ) * strandBreakup;
+    float blueStrands = (
+      strand1 * 0.72 + strand3 * 0.88 + strand4 * 0.42 +
+      strand5 * 0.58 + strand6 * 0.76
+    ) * (0.28 + ridgeNoise * 0.72);
 
     float upperReplacement =
-      1.0 - uExpansion * smoothstep(0.42, 1.03, plasmaPosition.y) * 0.88;
+      1.0 - uExpansion * smoothstep(0.28, 1.05, plasmaPosition.y) * 0.88;
     baseYellow *= sphereInside * upperReplacement;
     baseOrange *= sphereInside * upperReplacement;
     baseRed *= sphereInside * upperReplacement;
@@ -225,14 +342,28 @@ void main() {
     float filament = 0.5 + 0.5 * sin(
       angle * 3.0 - uTime * 2.25 + height * 7.5 + broadNoise * 4.6
     );
+    float ribbonA = pow(
+      0.5 + 0.5 * sin(
+        angle * 5.0 + height * 5.3 - uTime * 1.17 + broadNoise * 5.2
+      ),
+      7.0
+    );
+    float ribbonB = pow(
+      0.5 + 0.5 * sin(
+        angle * 8.0 - height * 3.85 + uTime * 0.83 + detailNoise * 4.1
+      ),
+      11.0
+    );
+    float ribbonField = (ribbonA * 0.72 + ribbonB * 0.48) *
+      (0.34 + ridgeNoise * 0.66);
     float pockets = smoothstep(
       0.28,
       0.74,
       broadNoise * 0.76 + detailNoise * 0.52
     );
     float outerTexture =
-      0.16 + pockets * 0.92 + filament * 0.38 +
-      microNoise * uExpansion * 0.24;
+      0.11 + pockets * 0.70 + filament * 0.24 +
+      ribbonField * 0.58 + microNoise * uExpansion * 0.18;
 
     float coreDensity =
       core * sphereInside * (2.25 + broadNoise * 1.25) * uCoreProgress;
@@ -242,14 +373,35 @@ void main() {
         outerTexture + wisp * (baseOrange + baseRed) * 0.34) *
       uWarmProgress;
     float tailOuterDensity =
-      (tailYellow * 0.30 + tailOrange * 0.24 + tailRed * 0.18) *
-      (0.34 + outerTexture * 0.66) * plumeJoin * uWarmProgress;
+      (tailYellow * 0.22 + tailOrange * 0.17 + tailRed * 0.12) *
+      (0.18 + outerTexture * 0.82) *
+      clamp(
+        0.18 + strandField * 0.29 + ribbonField * 0.43 + pockets * 0.17,
+        0.14,
+        1.18
+      ) * mix(1.0, 0.58, smoothstep(1.35, 5.2, height)) *
+      plumeJoin * uWarmProgress;
+    float streamDensity = strandField * (
+      0.16 + tailYellow * 0.42 + tailOrange * 0.28 + tailRed * 0.11
+    ) * plumeJoin * uWarmProgress;
+    float mistBand = smoothstep(
+      0.58,
+      0.91,
+      plumeRadius / max(blueWidth, 0.0001)
+    ) * (1.0 - smoothstep(
+      1.0,
+      1.28,
+      plumeRadius / max(blueWidth, 0.0001)
+    ));
+    float mistDensity = mistBand * plumeJoin *
+      (0.052 + broadNoise * 0.066 + ridgeNoise * 0.038) * uRimProgress;
     float bodyDensity =
-      (coreDensity + baseOuterDensity * gap + tailOuterDensity) * baseFade;
+      (coreDensity + baseOuterDensity * gap + tailOuterDensity + streamDensity) *
+      baseFade;
     float shellDensity =
       (baseBlueShell * sphereInside + tailBlueShell * plumeJoin) *
       baseFade * 0.38 * uRimProgress;
-    float density = bodyDensity + shellDensity;
+    float density = bodyDensity + shellDensity + mistDensity;
 
     vec3 bodyColor =
       vec3(1.0, 0.99, 0.95) * core * 2.25 * uCoreProgress +
@@ -262,14 +414,38 @@ void main() {
     vec3 shellColor =
       vec3(0.016, 0.19, 1.0) *
       (baseBlueShell + tailBlueShell * plumeJoin) * 2.45 * uRimProgress;
+    float spectralLift = smoothstep(0.72, 3.9, height);
+    vec3 strandPaleColor = mix(
+      vec3(1.0, 0.93, 0.68),
+      vec3(0.68, 0.84, 1.0),
+      spectralLift
+    );
+    float strandHeightFade = mix(1.0, 0.82, smoothstep(1.5, 7.5, height));
+    vec3 strandColor = (
+      strandPaleColor * paleStrands * 3.45 +
+      vec3(1.0, 0.24, 0.012) * strandField * 0.72 +
+      vec3(0.20, 0.48, 1.0) * blueStrands *
+        smoothstep(0.48, 1.55, height) * 2.05 * uRimProgress
+    ) * plumeJoin * uWarmProgress * strandHeightFade;
+    vec3 ribbonColor = mix(
+      vec3(1.0, 0.18, 0.008),
+      vec3(0.58, 0.77, 1.0),
+      spectralLift * 0.78
+    ) * ribbonField *
+      (tailOrange * 0.72 + tailRed * 0.36) *
+      plumeJoin * uWarmProgress * 1.42;
+    vec3 mistColor = vec3(0.095, 0.22, 0.48) * mistDensity * 2.25;
     vec3 emission =
       bodyColor * (0.58 + detailNoise * 0.48) * (0.72 + filament * 0.28) +
-      shellColor;
+      shellColor + strandColor + ribbonColor + mistColor;
 
     float sampleAlpha = 1.0 - exp(-density * stepLength * 1.14);
     radiance += transmittance * emission * sampleAlpha;
+    radiance += transmittance *
+      (strandColor * 0.36 + ribbonColor * 0.085) * stepLength;
     coverage += transmittance * sampleAlpha;
     transmittance *= 1.0 - sampleAlpha;
+    if (transmittance < 0.012) break;
     position += rayDirection * stepLength;
   }
 
@@ -498,7 +674,7 @@ export function updatePlasmaMaterial(
   material.uniforms.uWarmProgress.value = warmProgress
   material.uniforms.uRimProgress.value = rimProgress
   material.uniforms.uExpansion.value = expansion
-  material.uniforms.uStepCount.value = 34 + expansion * 38
+  material.uniforms.uStepCount.value = 38 + expansion * 42
   material.uniforms.uCenter.value.copy(center)
   material.uniforms.uRadii.value.copy(radii)
 }

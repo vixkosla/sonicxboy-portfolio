@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-13
+Updated: 2026-07-14
 
 ## Start here
 
@@ -148,8 +148,9 @@ front of unrelated cubelets.
 
 The replacement is a real three-dimensional volume inside the center cube:
 
-- one sphere mesh with a 34-step ray-marched density shader;
-- three-octave advected value noise for deterministic plasma flow;
+- one invisible ray proxy with a 38-step initial density integration;
+- three-octave advected value noise plus a ridged detail field for deterministic
+  plasma flow;
 - white core, warm filament layers, a density gap, and an electric blue rim;
 - custom premultiplied-style blending with depth testing preserved;
 - a separate glass edge/Fresnel cube rendered after the volume;
@@ -217,16 +218,17 @@ The previously deferred closing beat is now implemented:
   red three times;
 - the other 103 plates recoil, then eject near their radial normals with up to
   `0.72s` of deterministic stagger, tangent drift, and spin;
-- distant plates scale away early enough not to cross and block the text plane.
+- plates keep their physical size until scene fog, a viewport exit, or passage
+  behind the camera has already concealed them; only then is the instance collapsed.
 
 The signal plate begins its own release at `17.545s` of main-spin time. It follows a
 world-space cubic Bezier route toward the lower-left viewport, rotates face-on, and
 widens before fading at the left edge. At `18.965s`, a DOM card enters from the same
 edge with the same red signal accent, then settles into the emerald layout palette.
 The existing tech badges and hero subtitle fade at that point to prevent overlap.
-The desktop card is now `580px` wide with a `208px` minimum height, filling most of
-the left layout strip while remaining fluid on mobile. Placeholder Russian copy
-currently describes interactive WebGL systems.
+The card is a viewport-wide bottom strip with responsive hero gutters and a
+`220px..292px` responsive minimum height. It has no side/bottom border or radius.
+Placeholder Russian copy currently describes interactive WebGL systems.
 
 The final source expansion overlaps the release. The glass frame still follows the
 `4.35x` scale envelope, but only as a transient demolition volume: a deterministic
@@ -234,11 +236,16 @@ The final source expansion overlaps the release. The glass frame still follows t
 flash, leaving no oversized glass cube in the settled composition.
 
 The plasma changes quality and anatomy with the same progress. Ray-march samples
-rise from 34 to 54 only in the enlarged state. Radial scale reaches `2.78x`, vertical
-scale `4.45x`, and the world-space volume shifts down by `0.17` local units. Its
-white, yellow, orange, red, and blue layers receive distinct upward offsets and
-tapers, producing a natural vertical teardrop flame instead of a uniformly enlarged
-sphere. Light distance rises with the expansion.
+rise from 38 to 80 only in the enlarged state. The visible base and white core stay
+spherical and grow uniformly to `2.78x`; a surface-less `BoxGeometry` ray proxy
+extends to `13.5x` vertically and above the viewport. The plume now overlaps the
+upper hemisphere using the sphere's own cross-section before narrowing
+exponentially, so the source and column have no pinched seam. A shared domain-warped
+medium contains seven independent tube streams, two thin angular ribbon families,
+and a low-density blue-grey mist. The streams launch from different points in the
+upper source, braid at separate speeds, break and reconnect through ridged noise,
+then converge toward the two-frequency wandering centerline. The base shifts down
+by `0.17` local units and light distance rises with the expansion.
 
 Development previews add `waves`, `signal`, `scatter`, and `card`; an empty value
 shows the fully settled final composition.
@@ -259,9 +266,13 @@ The current three-polyhedron model was sampled at 600 FPS with two checks:
 - Reactor morph, first division, 104-tile covering, and resumed stable rotation were
   captured in Firefox/BiDi with no additional runtime or shader errors.
 - The corrected emerald base plates, blue wave frames, red signal handoff, staggered
-  glass breakup, adaptive teardrop flame, enlarged DOM card, and settled final
-  composition were captured in Firefox/BiDi. Only the same upstream `Clock` and
-  shadow-map deprecation warnings were emitted.
+  glass breakup, fog/viewport-gated plate removal, spherical core with an offscreen
+  plume, full-width DOM strip, and settled final composition were captured in
+  Firefox/BiDi. Only the same upstream `Clock` and shadow-map deprecation warnings
+  were emitted.
+- The upgraded plasma was captured as four consecutive final-state frames. The
+  spherical core stays intact while its seven warm/white/blue streams move
+  independently inside the shared plume; Firefox reported no GLSL errors.
 
 These values are coupled to class axes, radii, speeds, symmetry quaternions, capture
 offsets, easing functions, and scale envelopes. Rerun equivalent validation after
