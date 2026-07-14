@@ -278,8 +278,8 @@ changing any of them.
 
 Do not allocate Three.js objects inside `useFrame`. Keep the main 26-instance mesh,
 the detached 26-instance mesh, the reactor 104-instance mesh, the standalone signal
-plate, and the normal nucleus meshes. The current directory is not itself a Git
-repository, so do not assume local `git status` is available here.
+plate, and the normal nucleus meshes. The directory is a Git repository (branch
+`main`); the baseline of the approved animation is the initial commit.
 
 ## Next session
 
