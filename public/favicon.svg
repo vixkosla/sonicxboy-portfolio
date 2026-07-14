@@ -6,9 +6,9 @@
       <stop offset="1" stop-color="#0a7a4c"/>
     </linearGradient>
   </defs>
-  <rect width="64" height="64" rx="12" fill="#050907"/>
+  <path d="M11 2 H53 L62 11 V53 L53 62 H11 L2 53 V11 Z" fill="#050907" stroke="url(#g)" stroke-width="2.5"/>
   <g fill="url(#g)">
-    <rect x="27.5" y="6" width="9" height="52" rx="2" transform="rotate(45 32 32)"/>
-    <rect x="27.5" y="6" width="9" height="52" rx="2" transform="rotate(-45 32 32)"/>
+    <rect x="28.5" y="12" width="7" height="40" rx="1.5" transform="rotate(45 32 32)"/>
+    <rect x="28.5" y="12" width="7" height="40" rx="1.5" transform="rotate(-45 32 32)"/>
   </g>
 </svg>

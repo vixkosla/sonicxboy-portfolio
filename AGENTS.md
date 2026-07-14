@@ -23,6 +23,11 @@ pnpm preview    # serve the built site locally
 For agent work prefer running the dev server in the background so it doesn't block:
 `astro dev --background`, then `astro dev status` / `astro dev logs` / `astro dev stop`.
 
+Gotcha: the Vite watcher on this machine misses **full-file rewrites** (Write-tool
+style replaces) — the dev server keeps serving the old compiled CSS/JS for that
+module while picking up small in-place edits fine. If the browser shows stale
+styles/markup after a rewrite, restart: `astro dev stop && astro dev --background`.
+
 ## File map
 
 ```
