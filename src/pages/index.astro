@@ -1,0 +1,274 @@
+---
+import HeroScene from '../components/HeroScene.tsx'
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>WebGL Developer — Three.js, React Three Fiber</title>
+    <meta name="description" content="Interactive 3D experiences for the web" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        color: #fff;
+        background: #050907;
+        overflow-x: hidden;
+      }
+
+      :global(.hero-scene) {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+      }
+
+      :global(.reactor-card) {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 3;
+        width: 100vw;
+        min-height: clamp(220px, 25vh, 292px);
+        padding:
+          1.55rem clamp(1.5rem, 8vw, 9rem)
+          1.45rem;
+        overflow: hidden;
+        color: #eafff5;
+        background:
+          linear-gradient(135deg, rgba(15, 42, 32, 0.88), rgba(4, 12, 9, 0.94)),
+          rgba(5, 9, 7, 0.9);
+        border: 1px solid rgba(24, 211, 131, 0.48);
+        border-right: 0;
+        border-bottom: 0;
+        border-left: 0;
+        border-radius: 0;
+        box-shadow:
+          0 24px 70px rgba(0, 0, 0, 0.44),
+          inset 0 0 34px rgba(24, 211, 131, 0.055);
+        backdrop-filter: blur(16px) saturate(125%);
+        opacity: 0;
+        filter: blur(7px);
+        transform: translate3d(-100%, -2.8rem, 0) scale(0.18, 0.38);
+        transform-origin: left center;
+        transition:
+          transform 1.16s cubic-bezier(0.16, 1, 0.3, 1),
+          opacity 0.18s ease-out,
+          filter 0.72s ease-out;
+        pointer-events: none;
+        will-change: transform, opacity, filter;
+      }
+
+      :global(.reactor-card::after) {
+        content: '';
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          linear-gradient(90deg, rgba(255, 53, 44, 0.08), transparent 32%),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 34px,
+            rgba(139, 255, 211, 0.025) 35px
+          );
+        opacity: 0.9;
+      }
+
+      :global(.reactor-card.is-visible) {
+        opacity: 1;
+        filter: blur(0);
+        transform: translate3d(0, 0, 0) scale(1);
+        animation: reactor-card-arrival 1.8s ease-out both;
+      }
+
+      :global(.reactor-card__signal) {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 3px;
+        background: #ff352c;
+        box-shadow:
+          0 0 12px rgba(255, 53, 44, 0.92),
+          0 0 34px rgba(255, 53, 44, 0.42);
+      }
+
+      :global(.reactor-card__signal::after) {
+        content: '';
+        position: absolute;
+        left: 8px;
+        top: 15px;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ff5a52;
+        box-shadow: 0 0 14px #ff352c;
+        animation: reactor-signal 2.4s ease-in-out infinite;
+      }
+
+      :global(.reactor-card__meta) {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        color: rgba(156, 255, 211, 0.72);
+        font: 600 0.66rem/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.14em;
+      }
+
+      :global(.reactor-card h2) {
+        position: relative;
+        z-index: 1;
+        margin: 0 0 0.55rem;
+        font-size: clamp(1.35rem, 2.15vw, 1.68rem);
+        font-weight: 650;
+        letter-spacing: -0.025em;
+      }
+
+      :global(.reactor-card p) {
+        position: relative;
+        z-index: 1;
+        max-width: 62ch;
+        color: rgba(218, 238, 229, 0.68);
+        font-size: 0.9rem;
+        line-height: 1.5;
+      }
+
+      :global(.reactor-card__stack) {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        gap: 0.85rem;
+        margin-top: 1rem;
+        color: #18d383;
+        font: 600 0.65rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: 0.12em;
+      }
+
+      @keyframes reactor-card-arrival {
+        0%, 18% {
+          border-color: rgba(255, 53, 44, 0.72);
+          box-shadow:
+            0 0 28px rgba(255, 53, 44, 0.38),
+            0 24px 70px rgba(0, 0, 0, 0.44);
+        }
+        100% {
+          border-color: rgba(24, 211, 131, 0.48);
+          box-shadow:
+            0 24px 70px rgba(0, 0, 0, 0.44),
+            inset 0 0 34px rgba(24, 211, 131, 0.055);
+        }
+      }
+
+      @keyframes reactor-signal {
+        0%, 100% { opacity: 0.36; transform: scale(0.82); }
+        50% { opacity: 1; transform: scale(1.18); }
+      }
+      
+      main {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        text-align: left;
+        padding: 2rem clamp(1.5rem, 8vw, 9rem);
+        pointer-events: none;
+      }
+      
+      h1 {
+        font-size: clamp(2rem, 5vw, 4rem);
+        font-weight: 700;
+        margin-bottom: 1rem;
+        max-width: 560px;
+      }
+      
+      p {
+        font-size: clamp(1rem, 2vw, 1.5rem);
+        color: #a0a0a0;
+        max-width: 600px;
+        transition:
+          opacity 0.32s ease,
+          transform 0.58s cubic-bezier(0.16, 1, 0.3, 1),
+          filter 0.42s ease;
+      }
+
+      :global(body.reactor-card-visible) main > p {
+        opacity: 0;
+        filter: blur(5px);
+        transform: translate3d(-1.5rem, 0.75rem, 0) scale(0.96);
+      }
+      
+      .tech-stack {
+        margin-top: 2rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        transition:
+          opacity 0.32s ease,
+          transform 0.58s cubic-bezier(0.16, 1, 0.3, 1),
+          filter 0.42s ease;
+      }
+
+      :global(body.reactor-card-visible) .tech-stack {
+        opacity: 0;
+        filter: blur(5px);
+        transform: translate3d(-1.5rem, 0.75rem, 0) scale(0.94);
+      }
+      
+      .tech-badge {
+        padding: 0.5rem 1rem;
+        background: rgba(16, 185, 129, 0.1);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #10b981;
+      }
+
+      @media (max-width: 720px) {
+        main {
+          justify-content: flex-end;
+          padding-bottom: 15.5rem;
+        }
+
+        .tech-stack {
+          gap: 0.6rem;
+        }
+
+        :global(.reactor-card) {
+          left: 0;
+          right: 0;
+          bottom: 0;
+          width: 100vw;
+          min-height: 220px;
+          padding: 1.25rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <HeroScene client:load />
+    
+    <main>
+      <h1>WebGL Developer</h1>
+      <p>Building interactive 3D experiences for the web</p>
+      
+      <div class="tech-stack">
+        <span class="tech-badge">Three.js</span>
+        <span class="tech-badge">React Three Fiber</span>
+        <span class="tech-badge">WebGL</span>
+        <span class="tech-badge">GLSL</span>
+      </div>
+    </main>
+  </body>
+</html>
