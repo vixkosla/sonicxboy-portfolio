@@ -1,0 +1,79 @@
+---
+import '@fontsource-variable/unbounded'
+import '@fontsource/nabla'
+import '@fontsource/rubik-iso'
+import '@fontsource/monoton'
+import '@fontsource/faster-one'
+import '@fontsource-variable/tourney'
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>headline type preview</title>
+    <style>
+      body {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3.2rem 4rem;
+        padding: 3rem;
+        background: #050907;
+        color: #e8f5ee;
+      }
+      .v {
+        display: grid;
+        gap: 0.8rem;
+      }
+      .v h1 {
+        margin: 0;
+        font-size: 3.4rem;
+        font-weight: 800;
+        line-height: 1;
+        text-transform: uppercase;
+        letter-spacing: -0.01em;
+      }
+      .v h1 span {
+        display: block;
+      }
+      .v small {
+        font-family: monospace;
+        color: #5a7a6b;
+        font-size: 0.85rem;
+      }
+      .nabla h1 { font-family: 'Nabla', system-ui; font-weight: 400; }
+      .iso h1 { font-family: 'Rubik Iso', system-ui; font-weight: 400; }
+      .monoton h1 { font-family: 'Monoton', system-ui; font-weight: 400; }
+      .faster h1 { font-family: 'Faster One', system-ui; font-weight: 400; }
+      .tourney h1 { font-family: 'Tourney Variable', system-ui; font-weight: 900; }
+      .unbounded h1 { font-family: 'Unbounded Variable', system-ui; }
+    </style>
+  </head>
+  <body>
+    <div class="v nabla">
+      <h1><span>WebGL</span><span>Developer</span></h1>
+      <small>Nabla — 3D-выдавленный цветной (COLRv1)</small>
+    </div>
+    <div class="v iso">
+      <h1><span>WebGL</span><span>Developer</span></h1>
+      <small>Rubik Iso — изометрический каркас</small>
+    </div>
+    <div class="v monoton">
+      <h1><span>WebGL</span><span>Developer</span></h1>
+      <small>Monoton — неоновые линии</small>
+    </div>
+    <div class="v faster">
+      <h1><span>WebGL</span><span>Developer</span></h1>
+      <small>Faster One — скорость / гонки</small>
+    </div>
+    <div class="v tourney">
+      <h1><span>WebGL</span><span>Developer</span></h1>
+      <small>Tourney — хромовый каркас, variable</small>
+    </div>
+    <div class="v unbounded">
+      <h1><span>WebGL</span><span>Developer</span></h1>
+      <small>Unbounded — текущий (для сравнения)</small>
+    </div>
+  </body>
+</html>

@@ -20,9 +20,24 @@ importers:
       '@fontsource-variable/tektur':
         specifier: ^5.2.7
         version: 5.2.7
+      '@fontsource-variable/tourney':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@fontsource-variable/unbounded':
         specifier: ^5.2.8
         version: 5.2.8
+      '@fontsource/faster-one':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/monoton':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/nabla':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource/rubik-iso':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@fontsource/rubik-mono-one':
         specifier: ^5.2.8
         version: 5.2.8
@@ -466,8 +481,23 @@ packages:
   '@fontsource-variable/tektur@5.2.7':
     resolution: {integrity: sha512-92E8eW304n+Viub8LRN/D1ONUw/eX857SHl81yBz3q4Lk3BqR/SiJHHHOLBVDsAqpLFpgHKUdVePEzbmmXEBEQ==}
 
+  '@fontsource-variable/tourney@5.2.8':
+    resolution: {integrity: sha512-jCKjAoSZGylpe8a3GWL5f94pUGDJf2wwvNCleLOPXNE63HOQz6wWis/YJs9sT6Qm0dgLLlBT5712mOLFj0YsSw==}
+
   '@fontsource-variable/unbounded@5.2.8':
     resolution: {integrity: sha512-DWC/HEdNNbjMH6ngeeCAPExKMsedoY+pV3ZnRXzFcAzXuGHB6dEwsXNVQ4fiuuYMGguq9TSAEUat4Oy5prdwWQ==}
+
+  '@fontsource/faster-one@5.2.7':
+    resolution: {integrity: sha512-hTltpJDXj7hbB2+fG+FuCh0Q4dbbJ1wUeWq4C65nqq6U4Ns32W+38yWwmglNPKCtGyqX9gG/DIklpSoDuvMmyw==}
+
+  '@fontsource/monoton@5.2.7':
+    resolution: {integrity: sha512-Gp5yUntyJdOsEDfYncnIufUZqN1v9ScEzWEY8gF9+s/mmGN8J+75InTmwxmJU0bk7x8eXKxiBBFKzVelJxlIRA==}
+
+  '@fontsource/nabla@5.2.9':
+    resolution: {integrity: sha512-iNUYlQjVAjpGz9aQL+Wy/MAx4GCUh8IlCM97/8DS4il2sAeJAXrkrWBzQJJOCVOv4xWUPpCLnlYNcxChoDciHw==}
+
+  '@fontsource/rubik-iso@5.2.7':
+    resolution: {integrity: sha512-i6Q1rMOvv5iGeTwzAL247WfFWV4HM04qew/qEbqJtvykHSC7ffZsVM9GW09olL9DpTc9TVa7pNIIbp+upRqDcQ==}
 
   '@fontsource/rubik-mono-one@5.2.8':
     resolution: {integrity: sha512-+TVynJCT2ADs/caB2iTMjcfuihc9yz069GLN8PxGeaECSq6+6M1dmzTkdJdHCokf9Oe4UCGxJ2nBe3Ia5Z67qQ==}
@@ -2326,7 +2356,17 @@ snapshots:
 
   '@fontsource-variable/tektur@5.2.7': {}
 
+  '@fontsource-variable/tourney@5.2.8': {}
+
   '@fontsource-variable/unbounded@5.2.8': {}
+
+  '@fontsource/faster-one@5.2.7': {}
+
+  '@fontsource/monoton@5.2.7': {}
+
+  '@fontsource/nabla@5.2.9': {}
+
+  '@fontsource/rubik-iso@5.2.7': {}
 
   '@fontsource/rubik-mono-one@5.2.8': {}
 

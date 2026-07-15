@@ -2,6 +2,9 @@
 // SonicXBoy badge: dense blockbuster-title lockup (SONIC / giant X / BOY)
 // inside an angular emblem frame. The X spans the full plate width; hairline
 // rules separate the rows. Scales with parent font-size.
+// Set in Tektur (not the site display font) so the X reads distinctly
+// from other X-brands (x.com etc.).
+import '@fontsource-variable/tektur'
 ---
 
 <a class="brand-mark" href="/" aria-label="SonicXBoy — на главную">
@@ -21,7 +24,7 @@
     --cut: 0.5em;
     position: relative;
     display: inline-block;
-    font-family: var(--font-display, 'Unbounded Variable', system-ui, sans-serif);
+    font-family: 'Tektur Variable', system-ui, sans-serif;
     line-height: 1;
     color: var(--ink, #e8f5ee);
     text-decoration: none;
