@@ -28,6 +28,11 @@ style replaces) — the dev server keeps serving the old compiled CSS/JS for tha
 module while picking up small in-place edits fine. If the browser shows stale
 styles/markup after a rewrite, restart: `astro dev stop && astro dev --background`.
 
+Gotcha: Astro-scoped selectors in `index.astro` never reach the React-rendered
+markup of `HeroScene.tsx` (no `data-astro-cid` there). Any style meant for the
+reactor card or other island markup — including universal resets like
+`* { box-sizing: border-box }` — must be wrapped in `:global()`.
+
 ## File map
 
 ```

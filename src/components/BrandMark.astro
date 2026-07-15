@@ -1,10 +1,10 @@
 ---
-// SonicXBoy badge: dense blockbuster-title lockup (SONIC / giant X / BOY)
-// inside an angular emblem frame. The X spans the full plate width; hairline
-// rules separate the rows. Scales with parent font-size.
-// Set in Tektur (not the site display font) so the X reads distinctly
-// from other X-brands (x.com etc.).
+// SonicXBoy badge: dense lockup (SONIC / giant X / BOY) inside an angular
+// emblem frame. The X is Tektur (notched, reads distinctly from other
+// X-brands); the small lines are JetBrains Mono for legibility at badge
+// sizes. Scales with parent font-size.
 import '@fontsource-variable/tektur'
+import '@fontsource-variable/jetbrains-mono'
 ---
 
 <a class="brand-mark" href="/" aria-label="SonicXBoy — на главную">
@@ -24,7 +24,6 @@ import '@fontsource-variable/tektur'
     --cut: 0.5em;
     position: relative;
     display: inline-block;
-    font-family: 'Tektur Variable', system-ui, sans-serif;
     line-height: 1;
     color: var(--ink, #e8f5ee);
     text-decoration: none;
@@ -63,8 +62,8 @@ import '@fontsource-variable/tektur'
   .brand-mark__plate {
     display: inline-grid;
     justify-items: center;
-    row-gap: 0.14em;
-    padding: 0.48em 0.5em 0.52em;
+    row-gap: 0.16em;
+    padding: 0.5em 0.52em 0.55em;
     background:
       repeating-linear-gradient(
         0deg,
@@ -75,26 +74,25 @@ import '@fontsource-variable/tektur'
       linear-gradient(165deg, rgba(9, 26, 19, 0.97), rgba(4, 11, 8, 0.99));
   }
 
+  /* Small lines: mono for guaranteed legibility at tiny sizes */
   .brand-mark__line {
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
     font-weight: 800;
-    line-height: 0.92;
+    line-height: 1;
     white-space: nowrap;
   }
 
-  /* Tracking tuned so both lines match the X width;
+  /* Tracking tuned so both lines match the lockup width;
      negative margin compensates the trailing letter-space. */
   .brand-mark__line--top {
-    letter-spacing: 0.02em;
-    margin-right: -0.02em;
+    letter-spacing: 0.1em;
+    margin-right: -0.1em;
   }
 
-  /* BOY is larger with tighter tracking: at badge sizes a small
-     Tektur Y loses its stem and reads as V. */
   .brand-mark__line--bottom {
-    font-size: 1.3em;
-    font-weight: 900;
-    letter-spacing: 0.36em;
-    margin-right: -0.36em;
+    font-size: 1.14em;
+    letter-spacing: 0.55em;
+    margin-right: -0.55em;
   }
 
   /* Full-width hairline rules between the rows */
@@ -110,10 +108,11 @@ import '@fontsource-variable/tektur'
   }
 
   .brand-mark__x {
-    font-size: 3.9em;
+    font-family: 'Tektur Variable', system-ui, sans-serif;
+    font-size: 4.35em;
     font-weight: 900;
     line-height: 0.8;
-    transform: scaleX(1.19);
+    transform: scaleX(1.24);
     background: linear-gradient(160deg, #7dffc7 8%, #18d383 46%, #0a7a4c 92%);
     -webkit-background-clip: text;
     background-clip: text;
