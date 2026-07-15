@@ -1,22 +1,24 @@
 ---
-// SonicXBoy badge: blockbuster-title lockup (SONIC / giant X / BOY)
-// inside an angular emblem frame with a top gem. Scales with parent font-size.
+// SonicXBoy badge: dense blockbuster-title lockup (SONIC / giant X / BOY)
+// inside an angular emblem frame. The X spans the full plate width; hairline
+// rules separate the rows. Scales with parent font-size.
 ---
 
 <a class="brand-mark" href="/" aria-label="SonicXBoy — на главную">
   <span class="brand-mark__frame">
     <span class="brand-mark__plate">
       <span class="brand-mark__line brand-mark__line--top">Sonic</span>
+      <span class="brand-mark__rule" aria-hidden="true"></span>
       <span class="brand-mark__x">X</span>
+      <span class="brand-mark__rule" aria-hidden="true"></span>
       <span class="brand-mark__line brand-mark__line--bottom">Boy</span>
     </span>
   </span>
-  <span class="brand-mark__gem" aria-hidden="true"></span>
 </a>
 
 <style>
   .brand-mark {
-    --cut: 0.62em;
+    --cut: 0.5em;
     position: relative;
     display: inline-block;
     font-family: var(--font-display, 'Unbounded Variable', system-ui, sans-serif);
@@ -58,8 +60,8 @@
   .brand-mark__plate {
     display: inline-grid;
     justify-items: center;
-    row-gap: 0.3em;
-    padding: 0.95em 1.05em 1.05em;
+    row-gap: 0.14em;
+    padding: 0.48em 0.5em 0.52em;
     background:
       repeating-linear-gradient(
         0deg,
@@ -70,40 +72,41 @@
       linear-gradient(165deg, rgba(9, 26, 19, 0.97), rgba(4, 11, 8, 0.99));
   }
 
-  /* Top gem, sitting on the frame edge like a badge jewel */
-  .brand-mark__gem {
-    position: absolute;
-    top: -0.3em;
-    left: 50%;
-    width: 0.56em;
-    height: 0.56em;
-    transform: translateX(-50%) rotate(45deg);
-    background: linear-gradient(135deg, #7dffc7, #18d383 55%, #0a7a4c);
-    border: 1px solid #050907;
-    box-shadow: 0 0 0.55em rgba(24, 211, 131, 0.65);
-  }
-
   .brand-mark__line {
-    font-weight: 640;
+    font-weight: 800;
+    line-height: 0.92;
     white-space: nowrap;
   }
 
-  /* Tracking tuned so both lines match the lockup width;
+  /* Tracking tuned so both lines match the X width;
      negative margin compensates the trailing letter-space. */
   .brand-mark__line--top {
-    letter-spacing: 0.34em;
-    margin-right: -0.34em;
+    letter-spacing: 0.02em;
+    margin-right: -0.02em;
   }
 
   .brand-mark__line--bottom {
-    letter-spacing: 1.3em;
-    margin-right: -1.3em;
+    letter-spacing: 0.62em;
+    margin-right: -0.62em;
+  }
+
+  /* Full-width hairline rules between the rows */
+  .brand-mark__rule {
+    justify-self: stretch;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(24, 211, 131, 0.6) 18% 82%,
+      transparent
+    );
   }
 
   .brand-mark__x {
-    position: relative;
-    font-size: 2.7em;
+    font-size: 3.9em;
     font-weight: 900;
+    line-height: 0.8;
+    transform: scaleX(1.19);
     background: linear-gradient(160deg, #7dffc7 8%, #18d383 46%, #0a7a4c 92%);
     -webkit-background-clip: text;
     background-clip: text;
@@ -111,27 +114,5 @@
     filter:
       drop-shadow(0 0 0.09em rgba(24, 211, 131, 0.55))
       drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.3));
-  }
-
-  /* Thin film-title rules flanking the X */
-  .brand-mark__x::before,
-  .brand-mark__x::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    width: 0.42em;
-    height: 1px;
-  }
-
-  .brand-mark__x::before {
-    right: 100%;
-    margin-right: 0.12em;
-    background: linear-gradient(90deg, transparent, rgba(24, 211, 131, 0.65));
-  }
-
-  .brand-mark__x::after {
-    left: 100%;
-    margin-left: 0.12em;
-    background: linear-gradient(90deg, rgba(24, 211, 131, 0.65), transparent);
   }
 </style>

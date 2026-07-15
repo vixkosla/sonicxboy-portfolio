@@ -17,7 +17,13 @@ importers:
       '@fontsource-variable/onest':
         specifier: ^5.2.11
         version: 5.2.11
+      '@fontsource-variable/tektur':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@fontsource-variable/unbounded':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/rubik-mono-one':
         specifier: ^5.2.8
         version: 5.2.8
       '@react-spring/three':
@@ -457,8 +463,14 @@ packages:
   '@fontsource-variable/onest@5.2.11':
     resolution: {integrity: sha512-knJww1KxK4g66+qu90q3CPBvl4zhL5oDRi3/JMkYMmlhW3OgyRgT4MMfgd6jg2lvho7bLPAXfsYPh59h0yzwUA==}
 
+  '@fontsource-variable/tektur@5.2.7':
+    resolution: {integrity: sha512-92E8eW304n+Viub8LRN/D1ONUw/eX857SHl81yBz3q4Lk3BqR/SiJHHHOLBVDsAqpLFpgHKUdVePEzbmmXEBEQ==}
+
   '@fontsource-variable/unbounded@5.2.8':
     resolution: {integrity: sha512-DWC/HEdNNbjMH6ngeeCAPExKMsedoY+pV3ZnRXzFcAzXuGHB6dEwsXNVQ4fiuuYMGguq9TSAEUat4Oy5prdwWQ==}
+
+  '@fontsource/rubik-mono-one@5.2.8':
+    resolution: {integrity: sha512-+TVynJCT2ADs/caB2iTMjcfuihc9yz069GLN8PxGeaECSq6+6M1dmzTkdJdHCokf9Oe4UCGxJ2nBe3Ia5Z67qQ==}
 
   '@img/colour@1.1.0':
     resolution: {integrity: sha512-Td76q7j57o/tLVdgS746cYARfSyxk8iEfRxewL9h4OMzYhbW4TAcppl0mT4eyqXddh6L/jwoM75mo7ixa/pCeQ==}
@@ -2312,7 +2324,11 @@ snapshots:
 
   '@fontsource-variable/onest@5.2.11': {}
 
+  '@fontsource-variable/tektur@5.2.7': {}
+
   '@fontsource-variable/unbounded@5.2.8': {}
+
+  '@fontsource/rubik-mono-one@5.2.8': {}
 
   '@img/colour@1.1.0':
     optional: true
