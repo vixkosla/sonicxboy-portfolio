@@ -5,6 +5,7 @@ import type { RefObject } from 'react'
 import {
   Color,
   Euler,
+  Matrix4,
   MeshPhysicalMaterial,
   MeshStandardMaterial,
   Object3D,
@@ -20,6 +21,7 @@ import {
 } from '../lib/LayeredAssembly'
 import {
   FLASH_GEOMETRY,
+  PLASMA_EXPANDED_GEOMETRY,
   PLASMA_GEOMETRY,
   PLASMA_RADIUS,
   createFlashMaterial,
@@ -38,9 +40,8 @@ import {
 
 const EMERALD = new Color('#18d383')
 const WAVE_BLUE = new Color('#244cff')
-const SIGNAL_RED = new Color('#ff352c')
+const SIGNAL_RED = new Color('#f2383f')
 const UP = new Vector3(0, 1, 0)
-const PLATE_NORMAL = new Vector3(0, 0, 1)
 const ROLL_AXIS = new Vector3(0, 0, 1)
 const PRECESSION_AXIS = new Vector3(1, 0, 0)
 const IDENTITY_ORIENTATION = new Quaternion()
@@ -86,9 +87,17 @@ const PLASMA_RIM_DURATION = 1.25
 const IGNITION_FLASH_ATTACK = 0.07
 const IGNITION_FLASH_HOLD = 0.09
 const IGNITION_FLASH_DECAY = 0.86
+const ORBIT_APERTURE_START = PLASMA_CORE_START - 0.62
+const ORBIT_APERTURE_DURATION = 0.82
+const ORBIT_APERTURE_ROLL_SCALE = 0.72
 const REACTOR_INSTANCE_COUNT = CUBELET_COUNT * 4
-const REACTOR_TRANSFORM_START = ORBIT_END + 0.55
+const REACTOR_TRANSFORM_START = ORBIT_END + 0.18
 const REACTOR_MORPH_DURATION = 0.9
+const REACTOR_APERTURE_START =
+  REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION * 0.52
+const REACTOR_APERTURE_DURATION = 0.68
+const REACTOR_APERTURE_ROLL_SPEED = 0.24
+const REACTOR_APERTURE_SAMPLE_COUNT = 4096
 const REACTOR_DIVIDE_ONE_START =
   REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION + 0.18
 const REACTOR_DIVIDE_ONE_DURATION = 1.05
@@ -97,11 +106,11 @@ const REACTOR_DIVIDE_TWO_START =
 const REACTOR_DIVIDE_TWO_DURATION = 1.2
 const REACTOR_TRANSFORM_END =
   REACTOR_DIVIDE_TWO_START + REACTOR_DIVIDE_TWO_DURATION
-const REACTOR_PARENT_WIDTH = 0.43
-const REACTOR_PARENT_THICKNESS = 0.12
-const REACTOR_LINEAGE_WIDTH = 0.35
+const REACTOR_PARENT_WIDTH = 0.3
+const REACTOR_PARENT_THICKNESS = 0.1
+const REACTOR_LINEAGE_WIDTH = 0.285
 const REACTOR_LINEAGE_THICKNESS = 0.08
-const REACTOR_TILE_WIDTH = 0.28
+const REACTOR_TILE_WIDTH = 0.27
 const REACTOR_TILE_THICKNESS = 0.055
 const REACTOR_WAVE_ONE_START = REACTOR_TRANSFORM_END + 0.7
 const REACTOR_WAVE_DURATION = 0.72
@@ -127,6 +136,7 @@ const NUCLEUS_FINAL_EXPAND_START = REACTOR_SCATTER_START + 0.08
 const NUCLEUS_FINAL_EXPAND_DURATION = 2.45
 const NUCLEUS_REACTOR_SCALE = 4.35
 const PLASMA_REACTOR_RADIAL_SCALE = 2.78
+const PLASMA_REACTOR_PROXY_RADIAL_SCALE = 6.05
 const PLASMA_REACTOR_PROXY_VERTICAL_SCALE = 13.5
 const PLASMA_REACTOR_DROP = 0.17
 const WAVE_AXIS_A = new Vector3(0.14, 0.98, 0.1).normalize()
@@ -161,6 +171,16 @@ interface ReactorTileProfile {
 function deterministicNoise(index: number, salt: number) {
   const value = Math.sin((index + 1) * 12.9898 + salt * 78.233) * 43758.5453
   return value - Math.floor(value)
+}
+
+function createRadialPlateOrientation(direction: Vector3) {
+  const normal = direction.clone().normalize()
+  const tangent = new Vector3().crossVectors(UP, normal)
+  if (tangent.lengthSq() < 1e-6) tangent.set(1, 0, 0)
+  tangent.normalize()
+  const bitangent = new Vector3().crossVectors(normal, tangent).normalize()
+  const basis = new Matrix4().makeBasis(tangent, bitangent, normal)
+  return new Quaternion().setFromRotationMatrix(basis)
 }
 
 function createReactorTileProfiles(families: readonly ReactorFamily[]) {
@@ -285,20 +305,65 @@ function createReactorFamilies(parentTargets: readonly Vector3[]) {
 
     return {
       parentDirection,
-      parentOrientation: new Quaternion().setFromUnitVectors(
-        PLATE_NORMAL,
-        parentDirection,
-      ),
+      parentOrientation: createRadialPlateOrientation(parentDirection),
       lineageDirections,
       lineageOrientations: lineageDirections.map((direction) =>
-        new Quaternion().setFromUnitVectors(PLATE_NORMAL, direction),
+        createRadialPlateOrientation(direction),
       ),
       targetDirections,
       targetOrientations: targetDirections.map((direction) =>
-        new Quaternion().setFromUnitVectors(PLATE_NORMAL, direction),
+        createRadialPlateOrientation(direction),
       ),
     }
   })
+}
+
+interface ReactorApertureDirections {
+  parent: Vector3
+  lineage: Vector3
+  target: Vector3
+}
+
+function findLargestSphericalGap(
+  directions: readonly Vector3[],
+  candidates: readonly Vector3[],
+) {
+  let bestDirection = candidates[0]
+  let bestNearestDot = Number.POSITIVE_INFINITY
+
+  for (const candidate of candidates) {
+    let nearestDot = Number.NEGATIVE_INFINITY
+    for (const direction of directions) {
+      nearestDot = Math.max(nearestDot, candidate.dot(direction))
+    }
+    if (nearestDot < bestNearestDot) {
+      bestNearestDot = nearestDot
+      bestDirection = candidate
+    }
+  }
+
+  return bestDirection.clone()
+}
+
+function createReactorApertureDirections(
+  families: readonly ReactorFamily[],
+): ReactorApertureDirections {
+  const parentDirections: Vector3[] = []
+  const lineageDirections: Vector3[] = []
+  const targetDirections: Vector3[] = []
+
+  for (const family of families) {
+    parentDirections.push(family.parentDirection)
+    lineageDirections.push(...family.lineageDirections)
+    targetDirections.push(...family.targetDirections)
+  }
+
+  const candidates = createFibonacciDirections(REACTOR_APERTURE_SAMPLE_COUNT)
+  return {
+    parent: findLargestSphericalGap(parentDirections, candidates),
+    lineage: findLargestSphericalGap(lineageDirections, candidates),
+    target: findLargestSphericalGap(targetDirections, candidates),
+  }
 }
 
 interface OrbitGroup {
@@ -309,6 +374,8 @@ interface OrbitGroup {
   start: number
   speed: number
   captureOffset: number
+  apertureDirection: Vector3
+  aperturePhase: number
 }
 
 function createOrbitGroup(
@@ -319,6 +386,8 @@ function createOrbitGroup(
   start: number,
   speed: number,
   captureOffset: number,
+  apertureDirection: Vector3,
+  aperturePhase: number,
 ): OrbitGroup {
   return {
     indices,
@@ -328,6 +397,8 @@ function createOrbitGroup(
     start,
     speed,
     captureOffset,
+    apertureDirection: apertureDirection.normalize(),
+    aperturePhase,
   }
 }
 
@@ -340,6 +411,8 @@ const ORBIT_GROUPS = [
     0.45,
     Math.PI * 0.28,
     0,
+    new Vector3(0, 0, 1),
+    0,
   ),
   createOrbitGroup(
     [6, 7, 8, 9, 10, 11, 13, 14, 15, 17, 16, 12],
@@ -349,6 +422,8 @@ const ORBIT_GROUPS = [
     1.45,
     -Math.PI * 0.24,
     0.15,
+    new Vector3(0, 0, 1),
+    Math.PI * 0.27,
   ),
   createOrbitGroup(
     [0, 1, 3, 2, 4, 5],
@@ -358,8 +433,31 @@ const ORBIT_GROUPS = [
     2.45,
     Math.PI * 0.32,
     0.3,
+    new Vector3(1, 1, 1),
+    -Math.PI * 0.19,
   ),
 ]
+
+// The title receives one paint pass at each horizontal crossing of the widest
+// orbit. Starting at pi/2 gives three visible crossings before capture instead
+// of skipping the first approach; every stage name is unique so CSS restarts.
+const TITLE_ORBIT = ORBIT_GROUPS[0]
+const TITLE_WAVE_FIRST_PHASE = Math.PI * 0.5
+const TITLE_WAVE_PHASE_STEP = Math.PI
+const TITLE_WAVE_TIMES = [
+  TITLE_ORBIT.start + TITLE_WAVE_FIRST_PHASE / Math.abs(TITLE_ORBIT.speed),
+  TITLE_ORBIT.start +
+    (TITLE_WAVE_FIRST_PHASE + TITLE_WAVE_PHASE_STEP) /
+      Math.abs(TITLE_ORBIT.speed),
+  TITLE_ORBIT.start +
+    (TITLE_WAVE_FIRST_PHASE + TITLE_WAVE_PHASE_STEP * 2) /
+      Math.abs(TITLE_ORBIT.speed),
+] as const
+const TITLE_WAVE_STAGES = [
+  'outer-approach',
+  'outer-near',
+  'outer-return',
+] as const
 
 const ORBIT_GROUP_BY_INDEX = new Map<number, OrbitGroup>()
 for (const group of ORBIT_GROUPS) {
@@ -508,8 +606,10 @@ function travelingWave(
   if (progress < 0 || progress > 1) return 0
   const coordinate = direction.dot(axis) * 0.5 + 0.5
   const arrival = reverse ? 1 - coordinate : coordinate
+  const waveCenter =
+    -REACTOR_WAVE_WIDTH + progress * (1 + REACTOR_WAVE_WIDTH * 2)
   return smootherstep(
-    1 - Math.abs(progress - arrival) / REACTOR_WAVE_WIDTH,
+    1 - Math.abs(waveCenter - arrival) / REACTOR_WAVE_WIDTH,
   )
 }
 
@@ -551,6 +651,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const selectedPlateIndex = useRef(-1)
   const heroLaunchCaptured = useRef(false)
   const cardRevealed = useRef(false)
+  const titleWaveStep = useRef(0)
+  const reactorApertureFrozen = useRef(false)
   const transform = useMemo(() => new Object3D(), [])
   const orbitTransform = useMemo(() => new Object3D(), [])
   const reactorTransform = useMemo(() => new Object3D(), [])
@@ -600,6 +702,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   )
   const reactorTiles = useMemo(
     () => createReactorTileProfiles(reactorFamilies),
+    [reactorFamilies],
+  )
+  const reactorApertureDirections = useMemo(
+    () => createReactorApertureDirections(reactorFamilies),
     [reactorFamilies],
   )
   const spin = useMemo(() => {
@@ -686,6 +792,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const classOrbitOrientation = useMemo(() => new Quaternion(), [])
   const classShapeOrientation = useMemo(() => new Quaternion(), [])
   const classTargetOrientation = useMemo(() => new Quaternion(), [])
+  const apertureAlignOrientation = useMemo(() => new Quaternion(), [])
+  const apertureRollOrientation = useMemo(() => new Quaternion(), [])
+  const apertureTargetOrientation = useMemo(() => new Quaternion(), [])
+  const reactorApertureDirection = useMemo(() => new Vector3(), [])
+  const reactorLocalViewDirection = useMemo(() => new Vector3(), [])
+  const reactorInverseGroupOrientation = useMemo(() => new Quaternion(), [])
+  const reactorApertureAlignOrientation = useMemo(() => new Quaternion(), [])
+  const reactorApertureRollOrientation = useMemo(() => new Quaternion(), [])
+  const reactorApertureTargetOrientation = useMemo(() => new Quaternion(), [])
+  const reactorApertureOrientation = useMemo(() => new Quaternion(), [])
   const orbitSpinOrientation = useMemo(() => new Quaternion(), [])
   const orbitOrientationScratch = useMemo(
     () => Array.from({ length: 5 }, () => new Quaternion()),
@@ -724,9 +840,18 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     mesh.instanceMatrix.needsUpdate = true
   }
 
-  const syncOrbiters = (group: Group, mainElapsed: number) => {
+  const syncOrbiters = (
+    group: Group,
+    camera: Camera,
+    mainElapsed: number,
+  ) => {
     const mesh = orbitMeshRef.current
     if (!mesh) return
+
+    const apertureProgress = smootherstep(
+      (mainElapsed - ORBIT_APERTURE_START) / ORBIT_APERTURE_DURATION,
+    )
+    centerToCamera.copy(camera.position).sub(group.position).normalize()
 
     for (const orbitGroup of ORBIT_GROUPS) {
       const orbitRadius = contactHalfExtent * orbitGroup.radiusScale
@@ -741,6 +866,29 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       classOrbitOrientation
         .setFromAxisAngle(orbitGroup.axis, localTime * orbitGroup.speed)
         .multiply(group.quaternion)
+
+      // Once ignition begins, steer each rigid symmetry class toward a
+      // camera-facing aperture. The follow-up roll is around the view ray,
+      // so projected clearance around the core stays constant while the
+      // polyhedron visibly keeps orbiting. Opposite pairs remain opposite.
+      if (apertureProgress > 0) {
+        apertureAlignOrientation.setFromUnitVectors(
+          orbitGroup.apertureDirection,
+          centerToCamera,
+        )
+        apertureRollOrientation.setFromAxisAngle(
+          centerToCamera,
+          localTime * orbitGroup.speed * ORBIT_APERTURE_ROLL_SCALE +
+            orbitGroup.aperturePhase,
+        )
+        apertureTargetOrientation
+          .copy(apertureRollOrientation)
+          .multiply(apertureAlignOrientation)
+        classOrbitOrientation.slerp(
+          apertureTargetOrientation,
+          apertureProgress,
+        )
+      }
 
       if (localTime < ORBIT_DEPART_DURATION) {
         const departEnvelope = smootherstep(
@@ -833,6 +981,81 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     mesh.instanceMatrix.needsUpdate = true
   }
 
+  const updateReactorAperture = (
+    group: Group,
+    camera: Camera,
+    mainElapsed: number,
+  ) => {
+    if (reactorApertureFrozen.current) return
+
+    if (mainElapsed < REACTOR_APERTURE_START) {
+      reactorApertureOrientation.copy(IDENTITY_ORIENTATION)
+      return
+    }
+
+    if (mainElapsed < REACTOR_DIVIDE_ONE_START) {
+      reactorApertureDirection.copy(reactorApertureDirections.parent)
+    } else if (mainElapsed < REACTOR_DIVIDE_TWO_START) {
+      const progress = smootherstep(
+        (mainElapsed - REACTOR_DIVIDE_ONE_START) /
+          REACTOR_DIVIDE_ONE_DURATION,
+      )
+      reactorApertureDirection
+        .lerpVectors(
+          reactorApertureDirections.parent,
+          reactorApertureDirections.lineage,
+          progress,
+        )
+        .normalize()
+    } else {
+      const progress = smootherstep(
+        (mainElapsed - REACTOR_DIVIDE_TWO_START) /
+          REACTOR_DIVIDE_TWO_DURATION,
+      )
+      reactorApertureDirection
+        .lerpVectors(
+          reactorApertureDirections.lineage,
+          reactorApertureDirections.target,
+          progress,
+        )
+        .normalize()
+    }
+
+    reactorLocalViewDirection
+      .copy(camera.position)
+      .sub(group.position)
+      .normalize()
+    reactorInverseGroupOrientation.copy(group.quaternion).invert()
+    reactorLocalViewDirection
+      .applyQuaternion(reactorInverseGroupOrientation)
+      .normalize()
+
+    reactorApertureAlignOrientation.setFromUnitVectors(
+      reactorApertureDirection,
+      reactorLocalViewDirection,
+    )
+    const rollElapsed =
+      Math.min(mainElapsed, REACTOR_SCATTER_START) - REACTOR_TRANSFORM_START
+    reactorApertureRollOrientation.setFromAxisAngle(
+      reactorLocalViewDirection,
+      rollElapsed * REACTOR_APERTURE_ROLL_SPEED,
+    )
+    reactorApertureTargetOrientation
+      .copy(reactorApertureRollOrientation)
+      .multiply(reactorApertureAlignOrientation)
+    reactorApertureOrientation.slerpQuaternions(
+      IDENTITY_ORIENTATION,
+      reactorApertureTargetOrientation,
+      smootherstep(
+        (mainElapsed - REACTOR_APERTURE_START) /
+        REACTOR_APERTURE_DURATION,
+      ),
+    )
+    if (mainElapsed >= REACTOR_SCATTER_START) {
+      reactorApertureFrozen.current = true
+    }
+  }
+
   const selectHeroPlate = (
     group: Group,
     camera: Camera,
@@ -847,20 +1070,24 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
     centerToCamera.copy(camera.position).sub(group.position).normalize()
     cameraRight.setFromMatrixColumn(camera.matrixWorld, 0).normalize()
+    cameraUp.setFromMatrixColumn(camera.matrixWorld, 1).normalize()
     let bestIndex = 0
     let bestScore = Number.NEGATIVE_INFINITY
 
     for (let index = 0; index < reactorTiles.length; index += 1) {
       selectionWorldDirection
         .copy(reactorTiles[index].direction)
+        .applyQuaternion(reactorApertureOrientation)
         .applyQuaternion(group.quaternion)
         .normalize()
       const facing = selectionWorldDirection.dot(centerToCamera)
       const left = -selectionWorldDirection.dot(cameraRight)
+      const vertical = selectionWorldDirection.dot(cameraUp)
       const score =
-        left * 0.76 - Math.abs(facing - 0.48) * 0.58 +
-        selectionWorldDirection.y * 0.08
-      if (facing > 0.08 && score > bestScore) {
+        left * 0.74 -
+        Math.abs(facing - 0.46) * 0.54 -
+        Math.abs(vertical + 0.3) * 0.46
+      if (facing > 0.08 && vertical < 0.16 && score > bestScore) {
         bestIndex = index
         bestScore = score
       }
@@ -897,9 +1124,13 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     heroPlate.position
       .copy(tile.direction)
       .multiplyScalar((SHELL_RADIUS + wavePulse * 0.085) * sceneScale)
+      .applyQuaternion(reactorApertureOrientation)
       .applyQuaternion(group.quaternion)
       .add(group.position)
-    heroPlate.quaternion.copy(group.quaternion).multiply(tile.orientation)
+    heroPlate.quaternion
+      .copy(group.quaternion)
+      .multiply(reactorApertureOrientation)
+      .multiply(tile.orientation)
     heroPlate.scale.set(
       REACTOR_TILE_WIDTH * sceneScale * (1 + wavePulse * 0.18),
       REACTOR_TILE_WIDTH * sceneScale * (1 + wavePulse * 0.18),
@@ -943,14 +1174,28 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       const signalPulse =
         (0.5 - 0.5 * Math.cos(signalProgress * Math.PI * 6)) *
         signalEnvelope
+      const signalGlow = smootherstep(signalPulse)
+      const signalScale = 1 + signalGlow * 0.14
+      heroPlate.scale.x *= signalScale
+      heroPlate.scale.y *= signalScale
+      heroPlate.scale.z *= 1 + signalGlow * 0.72
+      selectionWorldDirection
+        .copy(tile.direction)
+        .applyQuaternion(reactorApertureOrientation)
+        .applyQuaternion(group.quaternion)
+        .normalize()
+      heroPlate.position.addScaledVector(
+        selectionWorldDirection,
+        signalGlow * 0.048,
+      )
       heroPlateMaterial.color
         .copy(EMERALD)
-        .lerp(SIGNAL_RED, 0.22 + signalPulse * 0.78)
-      heroPlateMaterial.emissiveIntensity = 0.15 + signalPulse * 3.2
+        .lerp(SIGNAL_RED, 0.12 + signalEnvelope * 0.88)
+      heroPlateMaterial.emissiveIntensity = 0.04 + signalGlow * 1.25
       heroPlateMaterial.opacity = 1
       if (heroLight) {
         heroLight.position.copy(heroPlate.position)
-        heroLight.intensity = signalPulse * 7.5
+        heroLight.intensity = signalGlow * 3.4
       }
       return
     }
@@ -961,6 +1206,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       heroStartOrientation.copy(heroPlate.quaternion)
       heroStartNormal
         .copy(tile.direction)
+        .applyQuaternion(reactorApertureOrientation)
         .applyQuaternion(group.quaternion)
         .normalize()
       camera.getWorldDirection(cameraForward)
@@ -969,18 +1215,18 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       heroControlA
         .copy(heroStartPosition)
         .addScaledVector(heroStartNormal, 0.78)
-        .addScaledVector(cameraUp, 0.22)
+        .addScaledVector(cameraUp, -0.08)
         .addScaledVector(cameraRight, -0.12)
       heroControlB
         .copy(camera.position)
         .addScaledVector(cameraForward, 5.15)
         .addScaledVector(cameraRight, -3.05)
-        .addScaledVector(cameraUp, -0.68)
+        .addScaledVector(cameraUp, -0.92)
       heroEndPosition
         .copy(camera.position)
         .addScaledVector(cameraForward, 4.55)
         .addScaledVector(cameraRight, -5.2)
-        .addScaledVector(cameraUp, -1.32)
+        .addScaledVector(cameraUp, -1.48)
       heroFacingTransform.position.copy(heroEndPosition)
       heroFacingTransform.up.copy(cameraUp)
       heroFacingTransform.lookAt(camera.position)
@@ -1000,8 +1246,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         REACTOR_TILE_WIDTH * sceneScale * (1 + compression * 0.08),
         REACTOR_TILE_THICKNESS * sceneScale * (1 - compression * 0.28),
       )
-      heroPlateMaterial.color.copy(SIGNAL_RED)
-      heroPlateMaterial.emissiveIntensity = 2.4
+      heroPlateMaterial.color.copy(EMERALD).lerp(SIGNAL_RED, 0.92)
+      heroPlateMaterial.emissiveIntensity = 1.35
       heroPlateMaterial.opacity = 1
     } else {
       const rawFlightProgress = Math.min(
@@ -1034,16 +1280,17 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         REACTOR_TILE_THICKNESS * sceneScale * fade,
       )
       heroPlateMaterial.color
-        .copy(SIGNAL_RED)
-        .lerp(EMERALD, cardMorph * 0.48)
-      heroPlateMaterial.emissiveIntensity = (2.2 - cardMorph * 1.5) * fade
+        .copy(EMERALD)
+        .lerp(SIGNAL_RED, 0.88 * (1 - cardMorph * 0.9))
+      heroPlateMaterial.emissiveIntensity =
+        (1.35 - cardMorph * 1.02) * fade
       heroPlateMaterial.opacity = fade
     }
 
     if (heroLight) {
       heroLight.position.copy(heroPlate.position)
       heroLight.intensity =
-        4.2 * (1 - smootherstep(launchElapsed / 1.35))
+        3 * (1 - smootherstep(launchElapsed / 1.35))
     }
 
     if (mainElapsed >= HERO_CARD_REVEAL && !cardRevealed.current) {
@@ -1062,9 +1309,17 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const mesh = reactorMeshRef.current
     if (!mesh) return
 
-    const morphProgress = smootherstep(
-      (mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
+    const morphRaw = Math.min(
+      1,
+      Math.max(
+        0,
+        (mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
+      ),
     )
+    // Keep a readable cube first: shrink it uniformly, then flatten it into a
+    // plate. The camera-facing aperture begins only after flattening is visible.
+    const morphShrinkProgress = smootherstep(morphRaw / 0.24)
+    const morphFlattenProgress = smootherstep((morphRaw - 0.18) / 0.82)
     const divideOneRaw = Math.min(
       1,
       Math.max(
@@ -1073,7 +1328,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           REACTOR_DIVIDE_ONE_DURATION,
       ),
     )
-    const divideOneProgress = smootherstep(divideOneRaw)
+    const divideOneSeparation = smootherstep(
+      (divideOneRaw - 0.02) / 0.66,
+    )
+    const divideOneSizeProgress = smootherstep(divideOneRaw / 0.62)
     const divideTwoRaw = Math.min(
       1,
       Math.max(
@@ -1082,7 +1340,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           REACTOR_DIVIDE_TWO_DURATION,
       ),
     )
-    const divideTwoProgress = smootherstep(divideTwoRaw)
+    const divideTwoSeparation = smootherstep(
+      (divideTwoRaw - 0.02) / 0.64,
+    )
+    const divideTwoSizeProgress = smootherstep(divideTwoRaw / 0.6)
 
     for (
       let familyIndex = 0;
@@ -1107,15 +1368,17 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
               reactorTransform.quaternion.slerpQuaternions(
                 IDENTITY_ORIENTATION,
                 family.parentOrientation,
-                morphProgress,
+                morphFlattenProgress,
               )
               reactorTransform.scale.set(
                 CUBE_SIZE +
-                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphProgress,
+                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphShrinkProgress,
                 CUBE_SIZE +
-                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphProgress,
+                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphShrinkProgress,
                 CUBE_SIZE +
-                  (REACTOR_PARENT_THICKNESS - CUBE_SIZE) * morphProgress,
+                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphShrinkProgress +
+                  (REACTOR_PARENT_THICKNESS - REACTOR_PARENT_WIDTH) *
+                    morphFlattenProgress,
               )
             }
           } else if (mainElapsed < REACTOR_DIVIDE_TWO_START) {
@@ -1124,28 +1387,28 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
               const birthProgress =
                 slot === 0
                   ? 1
-                  : smootherstep((divideOneRaw - 0.12) / 0.7)
+                  : smootherstep((divideOneRaw - 0.3) / 0.5)
               const plateWidth =
                 REACTOR_PARENT_WIDTH +
                 (REACTOR_LINEAGE_WIDTH - REACTOR_PARENT_WIDTH) *
-                  divideOneProgress
+                  divideOneSizeProgress
               const plateThickness =
                 REACTOR_PARENT_THICKNESS +
                 (REACTOR_LINEAGE_THICKNESS - REACTOR_PARENT_THICKNESS) *
-                  divideOneProgress
+                  divideOneSizeProgress
 
               reactorTransform.position
                 .copy(family.parentDirection)
                 .lerp(
                   family.lineageDirections[lineageIndex],
-                  divideOneProgress,
+                  divideOneSeparation,
                 )
                 .normalize()
                 .multiplyScalar(SHELL_RADIUS)
               reactorTransform.quaternion.slerpQuaternions(
                 family.parentOrientation,
                 family.lineageOrientations[lineageIndex],
-                divideOneProgress,
+                divideOneSeparation,
               )
               reactorTransform.scale.set(
                 plateWidth * birthProgress,
@@ -1158,25 +1421,25 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             const birthProgress =
               slot % 2 === 0
                 ? 1
-                : smootherstep((divideTwoRaw - 0.12) / 0.7)
+                : smootherstep((divideTwoRaw - 0.34) / 0.48)
             const plateWidth =
               REACTOR_LINEAGE_WIDTH +
               (REACTOR_TILE_WIDTH - REACTOR_LINEAGE_WIDTH) *
-                divideTwoProgress
+                divideTwoSizeProgress
             const plateThickness =
               REACTOR_LINEAGE_THICKNESS +
               (REACTOR_TILE_THICKNESS - REACTOR_LINEAGE_THICKNESS) *
-                divideTwoProgress
+                divideTwoSizeProgress
 
             reactorTransform.position
               .copy(family.lineageDirections[lineageIndex])
-              .lerp(family.targetDirections[slot], divideTwoProgress)
+              .lerp(family.targetDirections[slot], divideTwoSeparation)
               .normalize()
               .multiplyScalar(SHELL_RADIUS)
             reactorTransform.quaternion.slerpQuaternions(
               family.lineageOrientations[lineageIndex],
               family.targetOrientations[slot],
-              divideTwoProgress,
+              divideTwoSeparation,
             )
             reactorTransform.scale.set(
               plateWidth * birthProgress,
@@ -1268,6 +1531,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                   if (group && camera) {
                     reactorWorldPosition
                       .copy(reactorTransform.position)
+                      .applyQuaternion(reactorApertureOrientation)
                       .multiplyScalar(sceneScale)
                       .applyQuaternion(group.quaternion)
                       .add(group.position)
@@ -1304,6 +1568,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           }
         }
 
+        if (mainElapsed >= REACTOR_TRANSFORM_START) {
+          reactorTransform.position.applyQuaternion(
+            reactorApertureOrientation,
+          )
+          reactorTransform.quaternion.premultiply(
+            reactorApertureOrientation,
+          )
+        }
         reactorTransform.updateMatrix()
         mesh.setMatrixAt(instanceIndex, reactorTransform.matrix)
         mesh.setColorAt(instanceIndex, reactorColor)
@@ -1333,6 +1605,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     cardRef.current?.classList.remove('is-visible')
     cardRef.current?.setAttribute('aria-hidden', 'true')
     document.body.classList.remove('reactor-card-visible')
+    document.body.removeAttribute('data-orbit-title-wave')
+    titleWaveStep.current = 0
+    reactorApertureFrozen.current = false
     selectedPlateIndex.current = -1
     heroLaunchCaptured.current = false
     cardRevealed.current = false
@@ -1341,6 +1616,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       cardRef.current?.classList.remove('is-visible')
       cardRef.current?.setAttribute('aria-hidden', 'true')
       document.body.classList.remove('reactor-card-visible')
+      document.body.removeAttribute('data-orbit-title-wave')
     }
   }, [
     assembly,
@@ -1366,6 +1642,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       ? 0
       : assembly.time - Math.max(previousAssemblyTime, assembly.endTime)
     spin.update(spinDelta)
+
+    while (
+      titleWaveStep.current < TITLE_WAVE_TIMES.length &&
+      spin.mainElapsed >= TITLE_WAVE_TIMES[titleWaveStep.current]
+    ) {
+      document.body.dataset.orbitTitleWave =
+        TITLE_WAVE_STAGES[titleWaveStep.current]
+      titleWaveStep.current += 1
+    }
+
     syncInstances(spin.mainElapsed)
     const reactorSurfaceProgress = smootherstep(
       (spin.mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
@@ -1408,16 +1694,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         smoothstep(spin.mainElapsed / 0.72) *
         (1 - smoothstep((spin.mainElapsed - 10.05) / 1.05))
       let rotationElapsed = spin.mainElapsed
-      if (spin.mainElapsed > REACTOR_TRANSFORM_START) {
+      if (spin.mainElapsed > REACTOR_APERTURE_START) {
         rotationElapsed =
           spin.mainElapsed < REACTOR_TRANSFORM_END
-            ? REACTOR_TRANSFORM_START
-            : REACTOR_TRANSFORM_START +
+            ? REACTOR_APERTURE_START
+            : REACTOR_APERTURE_START +
               (spin.mainElapsed - REACTOR_TRANSFORM_END)
       }
       if (spin.mainElapsed > REACTOR_WAVE_ONE_START) {
         const rotationAtBrake =
-          REACTOR_TRANSFORM_START +
+          REACTOR_APERTURE_START +
           (REACTOR_WAVE_ONE_START - REACTOR_TRANSFORM_END)
         const brakeProgress = Math.min(
           1,
@@ -1449,9 +1735,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       group.quaternion.copy(tiltOrientation)
     }
 
+    updateReactorAperture(group, camera, spin.mainElapsed)
     selectHeroPlate(group, camera, spin.mainElapsed)
     syncReactor(spin.mainElapsed, group, camera)
-    syncOrbiters(group, spin.mainElapsed)
+    syncOrbiters(group, camera, spin.mainElapsed)
     updateHeroPlate(group, camera, spin.mainElapsed)
 
     const gridProgress = smootherstep(
@@ -1481,6 +1768,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       (NUCLEUS_REACTOR_SCALE - initialNucleusScale) * finalExpandProgress
     const plasmaRadialScale =
       1 + (PLASMA_REACTOR_RADIAL_SCALE - 1) * finalExpandProgress
+    const plasmaProxyRadialScale =
+      1 +
+      (PLASMA_REACTOR_PROXY_RADIAL_SCALE - 1) * finalExpandProgress
     const plasmaProxyVerticalScale =
       1 +
       (PLASMA_REACTOR_PROXY_VERTICAL_SCALE - 1) * finalExpandProgress
@@ -1499,14 +1789,18 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     plasmaProxyCenter.y +=
       PLASMA_RADIUS *
       sceneScale *
-      (plasmaProxyVerticalScale - plasmaRadialScale)
+      (plasmaProxyVerticalScale - plasmaProxyRadialScale)
     if (plasma) {
+      plasma.geometry =
+        finalExpandProgress < 0.35
+          ? PLASMA_GEOMETRY
+          : PLASMA_EXPANDED_GEOMETRY
       plasma.position.copy(plasmaProxyCenter)
       plasma.quaternion.copy(IDENTITY_ORIENTATION)
       plasma.scale.set(
-        sceneScale * plasmaRadialScale,
+        sceneScale * plasmaProxyRadialScale,
         sceneScale * plasmaProxyVerticalScale,
-        sceneScale * plasmaRadialScale,
+        sceneScale * plasmaProxyRadialScale,
       )
     }
 
@@ -1640,7 +1934,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
       <pointLight
         ref={heroPlateLightRef}
-        color="#ff352c"
+        color="#f2383f"
         intensity={0}
         distance={2.4}
         decay={2}
@@ -1696,27 +1990,78 @@ export default function HeroScene() {
         className="reactor-card"
       >
         <div className="reactor-card__signal" aria-hidden="true" />
-        <div className="reactor-card__meta">
-          <span>REACTOR NODE</span>
-          <span>01 / ACTIVE</span>
+        <div className="reactor-card__content">
+          <div className="reactor-card__meta">
+            <span>REACTOR NODE</span>
+            <span>01 / ACTIVE</span>
+          </div>
+          <h2>Интерактивная 3D-графика для веба</h2>
+          <div className="reactor-card__body">
+            <p>
+              Я люблю дизайн и стиль: придумывать работающие системы и делать
+              их красивыми. Вкус у меня есть, и я не стесняюсь его применять —
+              сцена на этой странице собрана с нуля, от математики траекторий
+              до шейдеров плазмы.
+            </p>
+            <p>
+              Упор держу на производительность (спасибо, СДВГ) и эстетику
+              (спасибо, перфекционизм): кастомные GLSL-шейдеры, постобработка,
+              стабильные 60–120 FPS на десктопе и мобильных. Делаю
+              конфигураторы, иммерсивные лендинги, картографию на Mapbox,
+              визуализации данных и браузерные движки — вплоть до
+              Minecraft-реплеера.
+            </p>
+            <p>
+              Веду проект целиком: концепция → прототип → продакшен. Открыт к
+              ИИ-инструментам, смотрю в сторону WebGPU. Чем страннее задача,
+              тем интереснее — неформат приветствуется. Санкт-Петербург,
+              работаю удалённо.
+            </p>
+          </div>
         </div>
-        <h2>Интерактивная 3D-графика для веба</h2>
-        <p>
-          Делаю анимации, конфигураторы и визуализации на Three.js, которые
-          работают прямо в браузере. Сцена на этой странице собрана с нуля — от
-          математики траекторий до шейдеров плазмы.
-        </p>
-        <p>
-          Веду проект целиком: концепция, прототип, продакшен, оптимизация — вы
-          общаетесь напрямую с тем, кто пишет код. База — МГТУ им. Баумана и
-          Школа 21. Санкт-Петербург, работаю удалённо.
-        </p>
-        <div className="reactor-card__stack">
-          <span>THREE.JS</span>
-          <span>R3F</span>
-          <span>GLSL</span>
-          <span>TYPESCRIPT</span>
-        </div>
+        <nav className="reactor-card__actions" aria-label="Соцсети и контакты">
+          <a
+            className="reactor-card__icon"
+            href="https://x.com/vixkosla"
+            target="_blank"
+            rel="noopener"
+            aria-label="X (Twitter)"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+            </svg>
+          </a>
+          <a
+            className="reactor-card__icon"
+            href="https://www.upwork.com/freelancers/askerovt"
+            target="_blank"
+            rel="noopener"
+            aria-label="Upwork"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06a2.705 2.705 0 0 1 2.703 2.703c-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z" />
+            </svg>
+          </a>
+          <a
+            className="reactor-card__icon"
+            href="https://t.me/vixkosla"
+            target="_blank"
+            rel="noopener"
+            aria-label="Telegram"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+            </svg>
+          </a>
+          <a
+            className="reactor-card__cta"
+            href="https://t.me/vixkosla"
+            target="_blank"
+            rel="noopener"
+          >
+            Написать в Telegram
+          </a>
+        </nav>
       </article>
     </>
   )

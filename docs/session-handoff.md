@@ -150,15 +150,16 @@ front of unrelated cubelets.
 The replacement is a real three-dimensional volume inside the center cube:
 
 - one invisible ray proxy with a 38-step initial density integration;
-- three-octave advected value noise plus a ridged detail field for deterministic
-  plasma flow;
+- two-octave broad FBM plus separate detail, micro, and ridged fields for
+  deterministic plasma flow;
 - white core, warm filament layers, a density gap, and an electric blue rim;
 - custom premultiplied-style blending with depth testing preserved;
-- a separate six-cell-per-axis grid cage rendered after the volume;
+- a separate four-cell-per-axis grid cage rendered after the volume, with
+  derivative-based line antialiasing and dimmed rear faces;
 - one warm point light whose intensity flickers without allocating in `useFrame`.
 
 The nucleus now changes during orbital departure. At `0.65s` of main spin time the
-solid cube crossfades into a surface-less `6 x 6` face grid whose main color is the
+solid cube crossfades into a surface-less `4 x 4` face grid whose main color is the
 same `#18d383` used by the reactor plates. Expansion begins at `2.45s`, synchronized
 with launch of the closest
 octahedral/face-center class, and reaches `1.7x` (`0.85` side length) over `2.5s`.
@@ -171,6 +172,15 @@ Plasma is staged rather than faded in as one finished asset:
 - a short isolated pulse state for the white core;
 - warm filament ignition at `7.55s`;
 - blue ionization-rim ignition at `8.8s`.
+
+From `PLASMA_CORE_START - 0.62s`, all three rigid orbit classes steer toward a
+camera-relative aperture and then roll around the camera-to-core ray. This keeps
+the core readable while preserving each class, opposite pairs, and shared radii;
+the normal capture slerp remains responsible for the final handoff. Heading color
+is synchronized to the widest orbit instead of ignition: its horizontal phases at
+about `5.81s` and `9.38s` drive two long diagonal waves through only the lower
+outlined `DEVELOPER` line (emerald, then ion blue), after which the white outline
+returns.
 
 Development URL `/?plasma-preview` jumps to the final state and freezes rotation.
 Values `grid`, `flash`, `core`, and `warm` preview the intermediate beats; numeric
@@ -200,6 +210,20 @@ The main precession is held at a fixed angle during the complete morph/division 
 continues only after all final tiles have formed. Preview values `reactor`, `divide`,
 and `tiles` expose these stages.
 
+The camera aperture now survives the cube-to-reactor handoff. A deterministic
+4096-sample spherical search finds the largest empty direction for the active 26,
+52, and 104 element distributions. Those directions interpolate with the two
+division envelopes while one global quaternion aligns the opening with the camera
+and rolls slowly around the view ray. The handoff begins at identity and eases over
+`0.68s`; no individual plate is displaced, and the orientation freezes before
+scatter. This keeps the plasma visible during morph, both divisions, and the signal
+pulse without damaging family structure.
+
+Plate roll is now deterministic as well as plate normal. Parent, lineage, and final
+orientations are built from one spherical tangent/bitangent/normal frame, so nearby
+square edges follow the same curvature instead of acquiring unrelated in-plane
+angles around the aperture.
+
 The shared reactor material must remain neutral white because the visible emerald is
 stored per instance. Three.js multiplies `material.color * instanceColor`; using
 emerald for both was the cause of the unintended dark-green mutation seen in the
@@ -215,19 +239,22 @@ The previously deferred closing beat is now implemented:
 - two `0.72s` spectator waves travel around different axes and directions;
 - each wave combines radial lift, scale/thickness response, and a restrained blend
   toward the saturated blue of the plasma's outer ionization layer;
+- each wave center begins one pulse-width before its first pole and exits one
+  pulse-width past the last pole, eliminating the old final-row cutoff;
 - precession decelerates with an integrated smoothstep velocity envelope and is
   stationary before release;
-- one camera-relative left-front plate is handed to a standalone mesh and pulses
-  red three times;
+- one camera-relative left-front-lower plate is handed to a standalone mesh, eases
+  to saturated `#f2383f`, breathes outward, and pulses three times without covering
+  the source;
 - the other 103 plates recoil, then eject near their radial normals with up to
   `0.72s` of deterministic stagger, tangent drift, and spin;
 - plates keep their physical size until scene fog, a viewport exit, or passage
   behind the camera has already concealed them; only then is the instance collapsed.
 
 The signal plate begins its own release at `17.545s` of main-spin time. It follows a
-world-space cubic Bezier route toward the lower-left viewport, rotates face-on, and
-widens before fading at the left edge. At `18.965s`, a DOM card enters from the same
-edge with the same red signal accent, then settles into the emerald layout palette.
+lower world-space cubic Bezier route toward the lower-left viewport, rotates face-on,
+and widens before fading at the left edge. At `18.965s`, a DOM card enters from the
+same edge, then settles into the emerald layout palette.
 The existing tech badges and hero subtitle fade at that point to prevent overlap.
 The card is a viewport-wide bottom strip with responsive hero gutters and a
 `220px..292px` responsive minimum height. It has no side/bottom border or radius.
@@ -238,20 +265,37 @@ three pulses its vertical signal edge settles to emerald over `2.4s`.
 
 The final source expansion overlaps the release. The grid cage still follows the
 `4.35x` scale envelope, but only as a transient demolition volume: its deterministic
-`6 x 6` face cells disappear with staggered timing and a short blue line flash,
+`4 x 4` face cells disappear with staggered timing and a short blue line flash,
 leaving no oversized cage in the settled composition.
 
 The plasma changes quality and anatomy with the same progress. Ray-march samples
-rise from 38 to 80 only in the enlarged state. The visible base and white core stay
-spherical and grow uniformly to `2.78x`; a surface-less `BoxGeometry` ray proxy
-extends to `13.5x` vertically and above the viewport. The plume now overlaps the
-upper hemisphere using the sphere's own cross-section before narrowing
-exponentially, so the source and column have no pinched seam. A shared domain-warped
+rise from 38 to 64 only in the enlarged state. The visible warm base and white core
+stay spherical and grow uniformly to `2.78x`; the blue ionization envelope expands
+independently to `1.95x` that radius. The compact `BoxGeometry` proxy is retained
+through 35% of final expansion, then the existing mesh switches to a preallocated
+24-segment `LatheGeometry` silhouette reaching the same `6.05x` radial and `13.5x`
+vertical extent. Warm and blue plume layers overlap their own spherical
+cross-sections over a long upper-hemisphere interval before narrowing
+exponentially, removing the pinched seam without stretching the round core. A
+shared domain-warped
 medium contains seven independent tube streams, two thin angular ribbon families,
 and a low-density blue-grey mist. The streams launch from different points in the
 upper source, braid at separate speeds, break and reconnect through ridged noise,
 then converge toward the two-frequency wandering centerline. The base shifts down
 by `0.17` local units and light distance rises with the expansion.
+
+The performance pass keeps that anatomy while reducing wasted fragment work. A
+coarse sphere/plume bounds test now runs before the noise stack, broad FBM uses two
+octaves, all seven secondary strand oscillations share four trigonometric values via
+angle-addition constants, and ribbon powers use exact multiplication chains. In a
+`1400 x 1000` Chromium software-WebGL run, the settled preview improved from about
+`225.7 ms/frame` (`4.4 FPS`) to `33.5 ms/frame` (`29.8 FPS`). The later approved
+upper-envelope widening deliberately spends part of that margin: the current final
+shape measures about `41.5 ms/frame` (`24.1 FPS`) in the same `1400 x 1000`
+SwiftShader run, still roughly `5.4x` faster than the original shader. At
+`1856 x 1080` the narrower optimized baseline measured about `55 ms/frame`
+(`18.2 FPS`). The compact source, expanded source, proxy handoff, and current broad
+blue envelope were visually checked with no clipping or visible silhouette edge.
 
 Development previews add `waves`, `signal`, `scatter`, and `card`; an empty value
 shows the fully settled final composition.
@@ -279,6 +323,17 @@ The current three-polyhedron model was sampled at 600 FPS with two checks:
 - The upgraded plasma was captured as four consecutive final-state frames. The
   spherical core stays intact while its seven warm/white/blue streams move
   independently inside the shared plume; Firefox reported no GLSL errors.
+- The tangent-framed second division was captured at `14.58s`, the lower saturated
+  signal handoff at `17.0s`, and the enlarged plasma at `20.5s` and `23.1s` in a
+  `1856 x 1080` Chromium viewport. The three upper aperture plates follow one
+  coherent spherical frame, the core remains unobstructed, the final blue envelope
+  matches the annotated right-side volume, and all ordinary plates are already
+  concealed before their instances collapse. `pnpm build` and `git diff --check`
+  pass after these changes.
+- The plasma performance pass was measured in Chromium/SwiftShader before and after
+  the shader/proxy changes. It produced roughly a `6.7x` frame-time improvement at
+  `1400 x 1000`; shader compilation and the compact-to-lathed proxy handoff were also
+  captured without new WebGL errors or visible clipping.
 
 These values are coupled to class axes, radii, speeds, symmetry quaternions, capture
 offsets, easing functions, and scale envelopes. Rerun equivalent validation after
@@ -298,13 +353,58 @@ the detached 26-instance mesh, the reactor 104-instance mesh, the standalone sig
 plate, and the normal nucleus meshes. The directory is a Git repository (branch
 `main`); the baseline of the approved animation is the initial commit.
 
-## Next session
+## Completed final pass before the next mini-task
 
-1. Begin with the user's visual feedback on the blue-wave amplitude, selected-plate
-   route, card landing position, and final flame silhouette.
-2. If the signal plate needs another route, preserve the exact instance-to-mesh
-   handoff and the world-space cubic continuity; change its camera-relative scoring
-   or controls instead of adding a correction segment.
-3. Treat the DOM card as the first reusable information surface. Replace placeholder
-   copy and add interactions only after its motion is approved.
-4. Keep the server running in Astro background mode for rapid visual iteration.
+### Approved baseline
+
+- The enlarged plasma shape shown at the end of the current sequence is approved.
+  Keep the spherical source, wide blue envelope, seven rising streams, and the
+  silhouette-proxy performance pass as the starting point.
+- The final approved broad-envelope version measures approximately
+  `225.7 -> 41.5 ms/frame` (`4.4 -> 24.1 FPS`) against the original shader in a
+  `1400 x 1000` SwiftShader run. Keep the GLSL loop's static upper bound at `80`
+  while `uStepCount` tops out at `64`: a direct A/B test showed that changing the
+  static bound to `64` made this driver's compiler almost twice as slow.
+- The typography/copy in `src/pages/index.astro` is parallel Fable work. Preserve it
+  unless the next task explicitly targets the title animation or page layout.
+
+### Title waves — completed
+
+The lower `DEVELOPER` line now receives three distinct one-shot paint waves at the
+widest orbit's consecutive horizontal-plane crossings: phases `pi/2`, `3pi/2`, and
+`5pi/2`. The dataset values are `outer-approach`, `outer-near`, and `outer-return`,
+so every CSS animation reliably retriggers. The passes use emerald/mint, cyan, and
+ion-blue accents, remain restricted to the lower line, and restore its original
+outlined state before reactor morphing starts.
+
+### Cube-to-plate handoff — completed
+
+`REACTOR_TRANSFORM_START` now follows capture by only `0.18s`. The morph first
+performs a fast, symmetric size reduction over the first 24% and only then flattens
+the geometry. Camera-facing aperture steering waits until 52% of the morph, when the
+objects already read as plates. This preserves the spherical voxel shell, avoids a
+new invented intermediate solid, and removes the former full-size arbitrary pile
+around the nucleus.
+
+### Division clearance — completed
+
+Both division stages now separate before their children become visually large.
+Direction/orientation interpolation uses a dedicated early separation curve, parent
+sizes fall immediately, and child birth is delayed (`0.30` in division one, `0.34`
+in division two). This systemic ordering removes the repeated three-plate compressed
+cluster without per-instance offsets and keeps tangent-facing lineage motion.
+
+### Final blue plasma contour — completed and intentional
+
+Reference:
+`/home/vixkosla/Pictures/Screenshots/Screenshot from 2026-07-15 15-54-49.png`.
+The upper blue ionization envelope is deliberately broader than the warm interior:
+its lathed proxy shoulder radii are widened, the expanded cross-section uses a
+`1.70x` column scale, and the transition into the narrowing column is spread across
+heights `1.10..3.40`. The white core remains round and the warm streams retain their
+own proportions. Do not narrow this upper blue volume or reinterpret it as a
+separate plume in the next session; the extra breadth is the approved composition.
+
+The production build and `git diff --check` pass after this final set. The next
+session should begin with the user's remaining mini-task rather than reopening these
+four completed corrections.

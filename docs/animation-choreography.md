@@ -144,7 +144,10 @@ cube directions at `SHELL_RADIUS = 1.22`.
 
 The nucleus transformation begins during orbital departure rather than after the
 handoff. At `0.65s` of main spin time its opaque material starts dissolving into an
-emissive `6 x 6` grid on every face. The grid uses the same `#18d383` base color as
+emissive `4 x 4` grid on every face. The larger cells expose more of the source.
+Each line has an antialiased bright core plus a restrained emissive shoulder, and
+rear faces are deliberately dimmed so overlapping sides do not turn into moire.
+The grid uses the same `#18d383` base color as
 the reactor plates, with a brighter same-hue highlight rather than a separate
 translucent palette. Expansion waits until `2.45s`, when the last and closest octahedral class
 launches, then grows the grid cube to `1.7x` over `2.5s`.
@@ -162,14 +165,26 @@ Ignition is deliberately staged after the grid has reached full size:
 - `7.55s`: yellow, orange, and red filaments begin forming during capture;
 - `8.8s`: the noisy blue ionization rim closes around the warm volume.
 
+Just before core ignition, each rigid orbital symmetry class eases into a
+camera-relative aperture orientation. The view ray passes through a polyhedral
+face gap rather than a cubelet center; continued rotation happens around that same
+view ray, so the projected clearance remains open without any per-cube correction.
+The existing capture curve still blends the whole class into its final cube-group
+orientation. The heading response is tied to the widest orbit itself rather than to
+ignition: its horizontal phase at `3pi/2`, and the return crossing one half-turn
+later, launch two broad diagonal paint waves at about `5.81s` and `9.38s`. Only the
+lower outlined `DEVELOPER` line is filled, first with reactor emerald and then with
+ion blue. Each pass remains readable for roughly two seconds and fades back to the
+original white outline.
+
 The conversion itself uses cold emerald/white energy, not yellow. Warm light only
 appears once the warm plasma layer exists.
 
 The core is not a billboard. A fragment shader ray-marches 38 samples through a
 small sphere (`PLASMA_RADIUS = 0.235`) and integrates a flowing three-dimensional
-density field. Three octaves of value noise advect upward through the volume; a
-ridged detail field opens narrow channels and breaks continuous layers into flowing
-material. The intended anatomy is:
+density field. Two broad FBM octaves advect upward through the volume; separate
+detail, micro, and ridged fields preserve narrow channels and flowing breakup
+without paying for a third broad octave at every sample. The intended anatomy is:
 
 - a moving amorphous white-hot center;
 - translucent yellow, orange, and red plasma filaments;
@@ -206,13 +221,27 @@ invisible.
 Over `0.9s`, each replacement cube rotates until its local normal is radial and its
 radial dimension flattens from `0.5` to `0.12`. Tangential dimensions settle near
 `0.43`, producing a square reactor shield plate as a direct geometric descendant of
-the cube. Metalness rises while roughness falls on the same morph envelope.
+the cube. Every plate receives the same deterministic spherical tangent/bitangent
+frame, rather than only aligning its normal and inheriting an arbitrary in-plane
+roll. Neighbouring squares therefore follow the curvature coherently, including the
+three plates bordering the upper camera aperture. Metalness rises while roughness
+falls on the same morph envelope.
 
 The plates then divide like cells in two generations:
 
 - generation one: `26 -> 52` over `1.05s`;
 - generation two: `52 -> 104` over `1.2s`;
 - final tiles measure `0.28 x 0.28 x 0.055`.
+
+The core aperture continues across this mesh handoff. At the first morph frame the
+reactor orientation is still identity, then over `0.68s` the covering turns as one
+rigid object so its largest natural gap faces the camera. The gap direction is
+computed separately for the 26 parent cells, 52 lineages, and 104 final tiles from a
+4096-direction spherical search, then interpolated with the division envelopes.
+A slow roll around the camera-to-core ray keeps the covering visibly moving without
+closing the opening. This is a single global orientation, not per-tile correction,
+so family geometry and the cell-division paths remain intact. It freezes before
+scatter so detached trajectories stay inertial.
 
 Final directions are a 104-point Fibonacci sphere. Assignment is capacity-balanced:
 each original cube owns exactly four nearby final directions. Each family is paired
@@ -240,19 +269,24 @@ not just a tint: each plate lifts up to `0.085` along its radial normal, grows
 tangentially by 18%, thickens briefly, and shifts from emerald toward the saturated
 blue of the plasma's ionization rim. Each traversal lasts `0.72s`, with a `0.14s`
 gap. The color response is intentionally restrained so it reads as energy passing
-through the existing material rather than a replacement green palette.
+through the existing material rather than a replacement green palette. The pulse
+center travels from one wave-width before the first pole to one wave-width beyond
+the opposite pole; the last row therefore fades behind the sphere instead of being
+cut off on the final active frame.
 
 Stable precession brakes throughout both waves. Its time mapping integrates a
 smoothstep velocity envelope, so angular speed is continuous at the start and
 reaches exactly zero at the end. This makes the subsequent release inertial rather
 than making detached plates continue to orbit with a rotating parent.
 
-During the second wave, one plate is selected from the visible left-front quadrant
-relative to the current camera. Selection favors a face that can be read by the
-viewer while leaving room for a leftward maneuver. At `16.495s` of main-spin time,
-that instance is handed to one standalone mesh at the exact same world transform.
-It emits three soft red signal pulses over `1.15s`, using a small matching point
-light.
+During the second wave, one plate is selected from the visible left-front-lower
+quadrant relative to the current camera. Selection favors a face that can be read by
+the viewer while leaving both the source and a leftward maneuver unobstructed. At
+`16.495s` of main-spin time, that instance is handed to one standalone mesh at the
+exact same world transform. It eases from emerald to saturated warning crimson
+`#f2383f`, breathes outward along its normal, grows and thickens three times over
+`1.15s`, and uses a restrained matching point light. Brightness pulses no longer
+wash the surface into pale coral.
 
 The release begins with a `0.15s` inward compression, like a plate loading against
 the reactor frame. The ordinary 103 plates then accelerate outward along directions
@@ -267,7 +301,7 @@ The signal plate owns a different route. After the same recoil, it follows one
 cubic Bezier path around the left side, rotates until its face is camera-aligned,
 and stretches toward the proportions of an interface panel. Near the left viewport
 edge, the WebGL mesh fades while a fixed DOM card enters from the same side and
-settles downward into the lower-left composition. Its red arrival edge decays back
+settles downward into the lower-left composition. Its coral-red arrival edge decays back
 to the established emerald interface palette. Existing technology badges fade out
 at this handoff so the new information surface has a clean landing area. The hero
 subtitle fades with them. The card is now a true viewport-wide lower layout strip:
@@ -281,20 +315,25 @@ after three pulses rather than becoming a permanent third accent.
 
 While the covering releases, the grid nucleus follows the old `1.7x -> 4.35x`
 expansion envelope only as a temporary demolition volume. Every face is already
-divided into a deterministic `6 x 6` grid; cells disappear at staggered thresholds
+divided into a deterministic `4 x 4` grid; cells disappear at staggered thresholds
 while their lines briefly emit a blue breakup glow. The cage is fully gone before
 the large final view, so it never competes with the plasma as the main subject.
 
-The plasma raises its ray-march budget continuously from 38 to 80 samples only
-during this expansion. The visible lower source grows uniformly to `2.78x` and
+The plasma raises its ray-march budget continuously from 38 to 64 samples only
+during this expansion. The visible warm lower source grows uniformly to `2.78x` and
 remains a real sphere; in particular, the white core is never scaled independently
-on Y. A separate invisible box proxy grows to `13.5x` vertically and shifts upward
-so its lower face stays aligned with the spherical bulb. It exists only to provide
-ray entry points and has no visible surface or Fresnel edge.
+on Y. The blue ionization envelope is a separate field and expands to `1.95x` the
+warm source radius. Until 35% of final expansion the ray-entry proxy is the compact
+source box. It then switches to a preallocated 24-segment lathed flame silhouette,
+scaled to the same `6.05x` radial and `13.5x` vertical reach. That surface shifts
+upward with the plume, has no visible material or Fresnel edge, and eliminates most
+empty corner fragments from the former enlarged box.
 
-Inside that proxy, the sphere cross-section and plume widths overlap across the
-upper hemisphere; this is the geometric bridge between the round source and the
-column. A broad two-scale advected field deforms that bridge and carries seven
+Inside that proxy, the warm and blue layers each use their own spherical
+cross-section. Those sections overlap their plume widths deep across the upper
+hemisphere and fade over a long shared interval; this is the geometric bridge
+between the round source and the column, without a narrow throat or a mushroom-like
+seam. A broad two-scale advected field deforms that bridge and carries seven
 independent warm/white/blue streams plus two thin ribbon systems. Their offsets and
 widths narrow exponentially toward a two-frequency centerline, while ridged noise
 interrupts and reconnects them. A weak blue-grey mist occupies the remaining volume
@@ -341,13 +380,39 @@ motion.
   Three.js objects inside `useFrame`.
 - The external Drei `Environment` preset was removed because HDR loading delayed the
   first visible frame. Lighting is local.
+- The final plasma uses a silhouette-shaped ray-entry proxy rather than rasterizing
+  a viewport-sized box. Each ray-march step first performs a cheap sphere/plume
+  bounds test and skips FBM outside both fields. The seven strand trajectories are
+  unchanged, but their secondary sine/cosine terms are shared through angle-addition
+  identities, and integer ribbon powers use multiplication chains.
+- A software-WebGL Chromium benchmark at `1400 x 1000` improved from about
+  `225.7 ms/frame` (`4.4 FPS`) to `33.5 ms/frame` (`29.8 FPS`) before the final
+  contour widening. The approved wider upper blue envelope currently measures about
+  `41.5 ms/frame` (`24.1 FPS`) in that CPU renderer, still about `5.4x` faster than
+  the original. At `1856 x 1080` the narrower optimized state measured about
+  `55 ms/frame` (`18.2 FPS`); real GPU WebGL is expected to be substantially faster.
 - Mobile uses `sceneScale = 0.82`; desktop uses `1.3`.
 
-## Next-session handoff
+## Completed handoff corrections
 
-1. Visually inspect whether the nested cube, cuboctahedron, and octahedron read as
-   familiar forms without making the animation feel like a geometry demonstration.
-2. If capture reads as a correction, change the whole-class quaternion curve. Do not
-   add a per-cube docking segment; that would destroy the symmetry invariant.
-3. Keep the core principle: exact constraints are allowed; visibly exact behavior is
-   not the goal.
+The last pass resolved the four items that were previously queued for another
+session:
+
+1. The shell enters reactor morph only `0.18s` after capture. It shrinks
+   symmetrically during the first 24% before flattening, while aperture steering is
+   delayed until 52% of `REACTOR_MORPH_DURATION`. The result keeps the spherical
+   arrangement but removes the unattractive full-size cube pile.
+2. Both divisions now move along their target directions before child plates become
+   large. Separate early-clearance and delayed-birth envelopes eliminate the three
+   compressed plates after the second division without bespoke instance offsets.
+3. The lower `DEVELOPER` line receives three emerald/cyan/ion-blue paint passes at
+   consecutive horizontal crossings of the widest orbit (`pi/2`, `3pi/2`, `5pi/2`),
+   then returns to its outlined state before morphing.
+4. The final blue plasma envelope has the broader upper volume marked in
+   `Screenshot from 2026-07-15 15-54-49.png`: widened proxy shoulders, a `1.70x`
+   expanded column scale, and a long `1.10..3.40` blend into the rising column. The
+   round white core and warm interior are not stretched with it.
+
+This shape and timing are the approved baseline for the user's remaining mini-task.
+Do not narrow the upper blue plasma, reintroduce early aperture steering, or replace
+the division fix with hand-authored offsets.
