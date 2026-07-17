@@ -3,19 +3,24 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import {
+  BackSide,
   BoxGeometry,
   Color,
   Euler,
   Matrix4,
+  Mesh,
+  MeshBasicMaterial,
   Object3D,
+  PlaneGeometry,
+  PMREMGenerator,
   Quaternion,
+  Scene,
   Vector3,
 } from 'three'
 import type {
   Camera,
   Group,
   InstancedMesh,
-  Mesh,
   PointLight,
   SpotLight,
 } from 'three'
@@ -2210,6 +2215,72 @@ function ReactorWarmSpotlight() {
   )
 }
 
+/**
+ * Procedural PBR environment: metallic surfaces (reactor plates, gold
+ * traces) need an environment map to produce real specular reflections —
+ * analytic lights alone leave metals flat. The panels mirror the analytic
+ * rig (cool key, blue rim, warm gold accent, emerald floor wash) so the
+ * reflections agree with the lighting story. Generated once via PMREM,
+ * no network fetch, ~15 ms.
+ */
+function StudioEnvironment() {
+  const gl = useThree((state) => state.gl)
+  const scene = useThree((state) => state.scene)
+
+  useLayoutEffect(() => {
+    const pmrem = new PMREMGenerator(gl)
+    const envScene = new Scene()
+
+    envScene.add(
+      new Mesh(
+        new BoxGeometry(40, 40, 40),
+        new MeshBasicMaterial({ color: new Color('#020504'), side: BackSide }),
+      ),
+    )
+
+    const addPanel = (
+      color: string,
+      intensity: number,
+      position: [number, number, number],
+      size: [number, number],
+    ) => {
+      const panel = new Mesh(
+        new PlaneGeometry(size[0], size[1]),
+        new MeshBasicMaterial({
+          color: new Color(color).multiplyScalar(intensity),
+        }),
+      )
+      panel.position.set(position[0], position[1], position[2])
+      panel.lookAt(0, 0, 0)
+      envScene.add(panel)
+    }
+
+    addPanel('#edfdf7', 5, [6, 8, 5], [7, 5])
+    addPanel('#39c8ff', 3.5, [-1, 5, -8], [9, 4])
+    addPanel('#ffb653', 4, [7, -2, 5], [4, 3])
+    addPanel('#18d383', 1.2, [0, -9, 1], [12, 12])
+
+    const renderTarget = pmrem.fromScene(envScene, 0.045)
+    scene.environment = renderTarget.texture
+    scene.environmentIntensity = 0.32
+
+    envScene.traverse((object) => {
+      if (object instanceof Mesh) {
+        object.geometry.dispose()
+        ;(object.material as MeshBasicMaterial).dispose()
+      }
+    })
+    pmrem.dispose()
+
+    return () => {
+      scene.environment = null
+      renderTarget.dispose()
+    }
+  }, [gl, scene])
+
+  return null
+}
+
 export interface HeroCardCopy {
   h2: string
   p1: string
@@ -2227,6 +2298,44 @@ const DEFAULT_CARD_COPY: HeroCardCopy = {
   cta: 'Написать в Telegram',
   ariaNav: 'Соцсети и контакты',
 }
+
+const CARD_CIRCUIT_PATHS = [
+  'M0 62H150V104H312V70H470',
+  'M112 0V44H246V86H390V132H520',
+  'M0 302H168V258H330V300H486V238H620',
+  'M540 360V316H694V270H836V318H970',
+  'M730 0V52H866V96H1004V54H1130',
+  'M1600 60H1474V108H1328V72H1192V132H1080',
+  'M1600 310H1456V264H1318V308H1170V252H1046',
+  'M1540 0V34H1380V168H1248V196H1120',
+] as const
+
+const CARD_CIRCUIT_PADS = [
+  [150, 104],
+  [312, 70],
+  [470, 70],
+  [246, 86],
+  [520, 132],
+  [168, 258],
+  [330, 300],
+  [620, 238],
+  [694, 270],
+  [836, 318],
+  [970, 318],
+  [866, 96],
+  [1004, 54],
+  [1130, 54],
+  [1474, 108],
+  [1328, 72],
+  [1080, 132],
+  [1456, 264],
+  [1318, 308],
+  [1170, 252],
+  [1046, 252],
+  [1380, 168],
+  [1248, 196],
+  [1120, 196],
+] as const
 
 export default function HeroScene({
   copy = DEFAULT_CARD_COPY,
@@ -2253,6 +2362,7 @@ export default function HeroScene({
         >
           <color attach="background" args={['#050907']} />
           <fog attach="fog" args={['#050907', 10, 20]} />
+          {!previewLightingBaseline && <StudioEnvironment />}
           <ambientLight intensity={previewLightingBaseline ? 0.48 : 0.1} />
           <hemisphereLight
             args={
@@ -2302,6 +2412,42 @@ export default function HeroScene({
         ref={cardRef}
         className="reactor-card"
       >
+        <svg
+          className="reactor-card__circuit"
+          viewBox="0 0 1600 360"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <rect
+            className="reactor-card__circuit-frame"
+            x="18"
+            y="18"
+            width="1564"
+            height="324"
+          />
+          <g className="reactor-card__circuit-grooves">
+            {CARD_CIRCUIT_PATHS.map((path) => (
+              <path key={`groove-${path}`} d={path} />
+            ))}
+          </g>
+          <g className="reactor-card__circuit-metal">
+            {CARD_CIRCUIT_PATHS.map((path) => (
+              <path key={`metal-${path}`} d={path} pathLength="1" />
+            ))}
+          </g>
+          <g className="reactor-card__circuit-pads">
+            {CARD_CIRCUIT_PADS.map(([x, y]) => (
+              <rect
+                key={`${x}-${y}`}
+                x={x - 6}
+                y={y - 6}
+                width="12"
+                height="12"
+              />
+            ))}
+          </g>
+        </svg>
         <div className="reactor-card__signal" aria-hidden="true" />
         <div className="reactor-card__content">
           <div className="reactor-card__meta">
@@ -2314,50 +2460,50 @@ export default function HeroScene({
             <p>{copy.p2}</p>
             <p>{copy.p3}</p>
           </div>
+          <nav className="reactor-card__actions" aria-label={copy.ariaNav}>
+            <a
+              className="reactor-card__icon"
+              href="https://x.com/vixkosla"
+              target="_blank"
+              rel="noopener"
+              aria-label="X (Twitter)"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
+              </svg>
+            </a>
+            <a
+              className="reactor-card__icon"
+              href="https://www.upwork.com/freelancers/askerovt"
+              target="_blank"
+              rel="noopener"
+              aria-label="Upwork"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06a2.705 2.705 0 0 1 2.703 2.703c-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z" />
+              </svg>
+            </a>
+            <a
+              className="reactor-card__icon"
+              href="https://t.me/vixkosla"
+              target="_blank"
+              rel="noopener"
+              aria-label="Telegram"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+              </svg>
+            </a>
+            <a
+              className="reactor-card__cta"
+              href="https://t.me/vixkosla"
+              target="_blank"
+              rel="noopener"
+            >
+              {copy.cta}
+            </a>
+          </nav>
         </div>
-        <nav className="reactor-card__actions" aria-label={copy.ariaNav}>
-          <a
-            className="reactor-card__icon"
-            href="https://x.com/vixkosla"
-            target="_blank"
-            rel="noopener"
-            aria-label="X (Twitter)"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932ZM17.61 20.644h2.039L6.486 3.24H4.298Z" />
-            </svg>
-          </a>
-          <a
-            className="reactor-card__icon"
-            href="https://www.upwork.com/freelancers/askerovt"
-            target="_blank"
-            rel="noopener"
-            aria-label="Upwork"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M18.561 13.158c-1.102 0-2.135-.467-3.074-1.227l.228-1.076.008-.042c.207-1.143.849-3.06 2.839-3.06a2.705 2.705 0 0 1 2.703 2.703c-.001 1.489-1.212 2.702-2.704 2.702zm0-8.14c-2.539 0-4.51 1.649-5.31 4.366-1.22-1.834-2.148-4.036-2.687-5.892H7.828v7.112c-.002 1.406-1.141 2.546-2.547 2.548-1.405-.002-2.543-1.143-2.545-2.548V3.492H0v7.112c0 2.914 2.37 5.303 5.281 5.303 2.913 0 5.283-2.389 5.283-5.303v-1.19c.529 1.107 1.182 2.229 1.974 3.221l-1.673 7.873h2.797l1.213-5.71c1.063.679 2.285 1.109 3.686 1.109 3 0 5.439-2.452 5.439-5.45 0-3-2.439-5.439-5.439-5.439z" />
-            </svg>
-          </a>
-          <a
-            className="reactor-card__icon"
-            href="https://t.me/vixkosla"
-            target="_blank"
-            rel="noopener"
-            aria-label="Telegram"
-          >
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-            </svg>
-          </a>
-          <a
-            className="reactor-card__cta"
-            href="https://t.me/vixkosla"
-            target="_blank"
-            rel="noopener"
-          >
-            {copy.cta}
-          </a>
-        </nav>
       </article>
     </>
   )

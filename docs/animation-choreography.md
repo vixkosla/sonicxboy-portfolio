@@ -417,7 +417,13 @@ motion.
 - All scratch vectors/quaternions/object transforms are preallocated. Do not allocate
   Three.js objects inside `useFrame`.
 - The external Drei `Environment` preset was removed because HDR loading delayed the
-  first visible frame. Lighting is local.
+  first visible frame. Lighting is local, plus one procedural PMREM studio
+  environment (`StudioEnvironment` in `HeroScene.tsx`): four emissive panels
+  mirroring the analytic rig (cool key, blue rim, warm gold accent, emerald floor
+  wash) rendered once at startup — no network fetch. It exists because metallic
+  surfaces (reactor plates, gold traces) need an environment map for real specular
+  response; `scene.environmentIntensity = 0.32` keeps the dark mood. Disabled under
+  `?lighting-baseline` so the A/B comparison stays meaningful.
 - The lighting lookdev proposal keeps the existing light count but changes its
   hierarchy: low ambient/hemisphere fill preserves dark gaps, a neutral upper
   directional light remains the shadow-casting key, the former emerald point light
