@@ -42,9 +42,100 @@ motion or reopening the two effects above unless a new visual regression is foun
 Useful development URLs are `/?assembly-glow-preview` for the pulse peak and
 `/?plasma-preview` for the settled final plasma.
 
-The implementation is currently an uncommitted working-tree change touching
-`HeroScene.tsx`, `FireEffect.ts`, `AssemblyGlow.ts`, and both animation documents.
-Preserve these files when the next session starts.
+### Materials prototype — plate circuit pass awaiting visual approval
+
+The first materials-only lookdev pass is now implemented without changing the
+lighting rig or choreography. `src/lib/ReactorMetamaterial.ts` treats the visible
+solid system as one programmable emerald composite:
+
+- distant cubelets begin darker, less metallic, and more matte;
+- crystallization raises the established `#18d383` surface while roughness falls;
+- orbital conductivity adds a restrained metal/emissive response;
+- reactor morph raises metalness from `0.38 -> 0.58` and lowers roughness from
+  `0.31 -> 0.22` continuously rather than swapping shaders;
+- the standalone signal plate sharpens while charged and softens slightly as it
+  becomes the DOM card.
+
+Cubelets and the solid nucleus use a small one-segment rounded-box bevel so the
+surface catches a readable edge highlight. Duplicate rounded-box vertices are
+merged (`324 -> 92`); the 104 reactor plates deliberately keep the original light
+unit-box geometry. A trial procedural roughness texture was removed: it was barely
+visible at the scene scale but pushed the large orbit/104-plate software-WebGL
+tests across the frame boundary.
+
+After review showed that PBR value changes alone left the plates too plain, the
+covering received a dedicated analytic circuit surface. It extends the existing
+`MeshStandardMaterial` through `onBeforeCompile`, preserving all current lighting
+and shadows while adding:
+
+- a subdued five-cell composite microgrid and inset frame;
+- recessed circuit paths with pale-gold ENIG-like inner conductors and square
+  terminal pads;
+- deterministic random layouts from `gl_InstanceID`: every plate receives its own
+  hub location, two-to-four orthogonal branches, endpoints, axis swap, and mirrors;
+- radial structure reveal during cube-to-plate morphing;
+- one slow emissive packet that inherits the current instance color, so it becomes
+  blue under the ionization wave and red on the selected signal plate;
+- a current-strength envelope that drops through shutdown and scattering.
+
+The surface uses only analytic UV math: no image textures, texture reads, geometry,
+draw calls, per-frame allocations, or per-instance materials were added. The same
+hook is shared by the 104-instance covering and standalone signal plate; the
+selected plate's instance index is copied to the standalone shader so its exact
+layout survives the handoff. Random parameters are evaluated in the vertex shader
+and sent with `flat` interpolation; this prevents pixel-level seed noise and avoids
+rehashing in every fragment. Orthogonal trace distance uses square-cap math without
+square roots. Cubelets keep their cheaper standard material.
+
+The upper `WEBGL` line receives a static dark-metal/emerald CSS gradient; the lower
+`DEVELOPER` line and its three orbit waves are unchanged. In development,
+`?material-baseline` restores the original box geometry, material values, and
+plain upper title. It can be combined with any existing preview, for example
+`/?plasma-preview=tiles&material-baseline`.
+
+A final same-session `1400 x 1000` headless Firefox A/B at the 104-tile stage
+measured `47.88 FPS` for the randomized gold circuit surface and `47.79 FPS` for
+`material-baseline` on the available GTX-980-class renderer. The absolute number
+varied with the headless environment during the session, while the paired result
+showed parity. The compact `500 x 759` viewport held `60.25 FPS`. Morph, tiles,
+blue-wave, signal, scatter, and compact captures produced no shader compile or
+scene errors. `pnpm build` passes. This pass remains a visual proposal until the
+user reviews it in the normal browser.
+
+### Lighting prototype — awaiting visual approval
+
+The material pass is now paired with a local reactor/studio rig; motion, material
+math, fog, background, plasma light, signal light, and shadow-casting behavior are
+unchanged:
+
+- ambient intensity falls from `0.48` to `0.10`;
+- hemisphere fill falls from `1.10` to `0.36`, using a muted cool sky and nearly
+  black ground so gaps between covering layers stay deep;
+- the shadow-casting directional key becomes neutral `#edfdf7`, intensity `2.45`,
+  at `[5.8, 7.8, 5.2]`;
+- the former emerald point light becomes a cyan rear contour at
+  `[0.5, 3, -3.4]`, intensity `44`;
+- the former cyan point light is replaced by one warm `#ffb653` spotlight at
+  `[5.4, -0.8, 4.6]`, intensity `72`, aimed once at `[2.8, 0.5, 0]` with angle
+  `0.52` and penumbra `0.78`.
+
+The shell's established rotation moves the gold conductors through the fixed warm
+beam, producing traveling highlights without light animation. The persistent light
+count is unchanged, no HDR/environment asset or post-processing pass was added, and
+the spotlight target is allocated once outside `useFrame`. In development,
+`?lighting-baseline` restores the previous ambient, hemisphere, directional, and
+two-point rig; it can be combined with `material-baseline`.
+
+A same-session `1400 x 1000` headless Firefox comparison at the finished tile stage
+measured `47.40 FPS` for the proposal and `47.29 FPS` for `lighting-baseline`.
+The compact `500 x 759` viewport held `60.25 FPS`. Assembly, orbit, morph, finished
+tiles, blue wave, and compact views were checked without new runtime or shader
+errors. This remains a visual proposal pending normal-browser review.
+
+The implementation is included in current `HEAD` (`0703b20`). The final
+session-close wording in `docs/session-handoff.md` and
+`docs/animation-choreography.md` is a small uncommitted follow-up; preserve or
+commit those two documentation edits when the next session starts.
 
 ## Collaboration contract
 

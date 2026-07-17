@@ -3,16 +3,24 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
 import type { RefObject } from 'react'
 import {
+  BoxGeometry,
   Color,
   Euler,
   Matrix4,
-  MeshPhysicalMaterial,
-  MeshStandardMaterial,
   Object3D,
   Quaternion,
   Vector3,
 } from 'three'
-import type { Camera, Group, InstancedMesh, Mesh, PointLight } from 'three'
+import type {
+  Camera,
+  Group,
+  InstancedMesh,
+  Mesh,
+  PointLight,
+  SpotLight,
+} from 'three'
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js'
+import { mergeVertices } from 'three/examples/jsm/utils/BufferGeometryUtils.js'
 import {
   CUBE_SIZE,
   CUBE_STEP,
@@ -42,6 +50,17 @@ import {
   MAIN_SPIN_START,
   SpinSimulation,
 } from '../lib/SpinSimulation'
+import {
+  CONDUCTIVE_METALNESS,
+  CONDUCTIVE_ROUGHNESS,
+  REACTOR_METALNESS,
+  REACTOR_ROUGHNESS,
+  createMetamaterial,
+  enableReactorCircuitSurface,
+  updateReactorCircuitSurface,
+  updateReactorMetamaterial,
+  updateStructuralMetamaterial,
+} from '../lib/ReactorMetamaterial'
 
 const EMERALD = new Color('#18d383')
 const WAVE_BLUE = new Color('#244cff')
@@ -60,6 +79,7 @@ const DIAMOND_ORIENTATION = new Quaternion()
   .multiply(new Quaternion().setFromUnitVectors(CORNER, UP))
 
 const INITIAL_X = 1.2
+const CUBE_EDGE_RADIUS = 0.0225
 const ASSEMBLY_OUTER_SIZE = CUBE_STEP * 2 + CUBE_SIZE
 const ASSEMBLY_SEAM_SIZE = ASSEMBLY_OUTER_SIZE + 0.006
 const ASSEMBLY_INNER_GLOW_SIZE = ASSEMBLY_OUTER_SIZE - 0.24
@@ -710,6 +730,20 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       new URLSearchParams(window.location.search).has('assembly-glow-preview'),
     [],
   )
+  const previewMaterialBaseline = useMemo(
+    () =>
+      import.meta.env.DEV &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('material-baseline'),
+    [],
+  )
+  const previewGridBaseline = useMemo(
+    () =>
+      import.meta.env.DEV &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('grid-baseline'),
+    [],
+  )
   const previewPlasma = previewStage !== null
   useLayoutEffect(() => {
     setDpr(
@@ -773,18 +807,29 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     }
     return simulation
   }, [previewPlasma, previewStage])
+  const cubeletMaterial = useMemo(
+    () =>
+      createMetamaterial(
+        previewMaterialBaseline
+          ? { color: '#18d383', metalness: 0.24, roughness: 0.28 }
+          : undefined,
+      ),
+    [previewMaterialBaseline],
+  )
   const nucleusMaterial = useMemo(
     () =>
-      new MeshPhysicalMaterial({
-        color: EMERALD,
-        metalness: 0.24,
-        roughness: 0.28,
-        transparent: true,
-        opacity: 1,
-        emissive: new Color('#6cf3b3'),
-        emissiveIntensity: 0,
-      }),
-    [],
+      createMetamaterial(
+        previewMaterialBaseline
+          ? {
+              color: '#18d383',
+              metalness: 0.24,
+              roughness: 0.28,
+              emissive: '#6cf3b3',
+              transparent: true,
+            }
+          : { emissive: '#6cf3b3', transparent: true },
+      ),
+    [previewMaterialBaseline],
   )
   const assemblySeamMaterial = useMemo(
     () => createAssemblySeamMaterial(),
@@ -798,28 +843,33 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
   const flashMaterial = useMemo(() => createFlashMaterial(), [])
   const reactorMaterial = useMemo(
-    () =>
-      new MeshStandardMaterial({
+    () => {
+      const material = createMetamaterial({
         color: '#ffffff',
-        metalness: 0.24,
-        roughness: 0.28,
-        emissive: new Color('#042b20'),
-        emissiveIntensity: 0,
-      }),
-    [],
+        metalness: previewMaterialBaseline ? 0.24 : CONDUCTIVE_METALNESS,
+        roughness: previewMaterialBaseline ? 0.28 : CONDUCTIVE_ROUGHNESS,
+        emissive: previewMaterialBaseline ? '#042b20' : '#063d2b',
+      })
+      return previewMaterialBaseline
+        ? material
+        : enableReactorCircuitSurface(material)
+    },
+    [previewMaterialBaseline],
   )
   const heroPlateMaterial = useMemo(
-    () =>
-      new MeshStandardMaterial({
-        color: EMERALD,
-        metalness: 0.42,
-        roughness: 0.18,
-        emissive: SIGNAL_RED,
-        emissiveIntensity: 0,
+    () => {
+      const material = createMetamaterial({
+        color: '#18d383',
+        metalness: previewMaterialBaseline ? 0.42 : REACTOR_METALNESS,
+        roughness: previewMaterialBaseline ? 0.18 : REACTOR_ROUGHNESS,
+        emissive: '#f2383f',
         transparent: true,
-        opacity: 1,
-      }),
-    [],
+      })
+      return previewMaterialBaseline
+        ? material
+        : enableReactorCircuitSurface(material)
+    },
+    [previewMaterialBaseline],
   )
   const spinOrientation = useMemo(() => new Quaternion(), [])
   const tiltOrientation = useMemo(() => new Quaternion(), [])
@@ -844,6 +894,25 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     [],
   )
   const orbitEuler = useMemo(() => new Euler(), [])
+  const cubeletGeometry = useMemo(
+    () =>
+      previewMaterialBaseline
+        ? new BoxGeometry(CUBE_SIZE, CUBE_SIZE, CUBE_SIZE)
+        : mergeVertices(
+            new RoundedBoxGeometry(
+              CUBE_SIZE,
+              CUBE_SIZE,
+              CUBE_SIZE,
+              1,
+              CUBE_EDGE_RADIUS,
+            ),
+          ),
+    [previewMaterialBaseline],
+  )
+  const reactorPlateGeometry = useMemo(
+    () => new BoxGeometry(1, 1, 1),
+    [],
+  )
 
   const syncInstances = (mainElapsed = -1) => {
     const mesh = meshRef.current
@@ -1194,6 +1263,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
     const tile = reactorTiles[selectedIndex]
     const launchElapsed = mainElapsed - HERO_PLATE_LAUNCH_START
+    const heroBaseMetalness = previewMaterialBaseline
+      ? 0.42
+      : REACTOR_METALNESS
+    const heroBaseRoughness = previewMaterialBaseline
+      ? 0.18
+      : REACTOR_ROUGHNESS
 
     if (launchElapsed < 0) {
       setHeroPlateAtShell(group, tile, mainElapsed)
@@ -1227,6 +1302,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       heroPlateMaterial.color
         .copy(EMERALD)
         .lerp(SIGNAL_RED, 0.12 + signalEnvelope * 0.88)
+      heroPlateMaterial.metalness = heroBaseMetalness
+      heroPlateMaterial.roughness =
+        heroBaseRoughness - signalGlow * 0.045
       heroPlateMaterial.emissiveIntensity = 0.04 + signalGlow * 1.25
       heroPlateMaterial.opacity = 1
       if (heroLight) {
@@ -1283,6 +1361,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         REACTOR_TILE_THICKNESS * sceneScale * (1 - compression * 0.28),
       )
       heroPlateMaterial.color.copy(EMERALD).lerp(SIGNAL_RED, 0.92)
+      heroPlateMaterial.metalness = heroBaseMetalness
+      heroPlateMaterial.roughness = heroBaseRoughness - 0.045
       heroPlateMaterial.emissiveIntensity = 1.35
       heroPlateMaterial.opacity = 1
     } else {
@@ -1318,6 +1398,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       heroPlateMaterial.color
         .copy(EMERALD)
         .lerp(SIGNAL_RED, 0.88 * (1 - cardMorph * 0.9))
+      heroPlateMaterial.metalness =
+        heroBaseMetalness - cardMorph * 0.12
+      heroPlateMaterial.roughness =
+        heroBaseRoughness + cardMorph * 0.08
       heroPlateMaterial.emissiveIntensity =
         (1.35 - cardMorph * 1.02) * fade
       heroPlateMaterial.opacity = fade
@@ -1642,6 +1726,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     cardRef.current?.setAttribute('aria-hidden', 'true')
     document.body.classList.remove('reactor-card-visible')
     document.body.removeAttribute('data-orbit-title-wave')
+    if (previewMaterialBaseline) {
+      document.body.setAttribute('data-material-baseline', '')
+    } else {
+      document.body.removeAttribute('data-material-baseline')
+    }
     titleWaveStep.current = 0
     reactorApertureFrozen.current = false
     selectedPlateIndex.current = -1
@@ -1653,18 +1742,20 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       cardRef.current?.setAttribute('aria-hidden', 'true')
       document.body.classList.remove('reactor-card-visible')
       document.body.removeAttribute('data-orbit-title-wave')
+      document.body.removeAttribute('data-material-baseline')
     }
   }, [
     assembly,
     cardRef,
     orbitTransform,
+    previewMaterialBaseline,
     reactorFamilies,
     reactorTiles,
     reactorTransform,
     transform,
   ])
 
-  useFrame(({ camera }, delta) => {
+  useFrame(({ camera, clock }, delta) => {
     const previousAssemblyTime = assembly.time
     if (!previewAssemblyGlow) assembly.update(delta)
 
@@ -1682,6 +1773,30 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const assemblyGlow = previewPlasma
       ? 0
       : assemblyGlowAttack * assemblyGlowRelease
+    const crystallization = smootherstep(
+      (assembly.time / assembly.endTime - 0.34) / 0.66,
+    )
+    const conductivity = smootherstep(
+      (spin.mainElapsed - ORBIT_GROUPS[0].start) /
+        (PLASMA_CORE_START - ORBIT_GROUPS[0].start),
+    )
+    if (previewMaterialBaseline) {
+      cubeletMaterial.color.copy(EMERALD)
+      cubeletMaterial.metalness = 0.24
+      cubeletMaterial.roughness = 0.28
+      cubeletMaterial.emissiveIntensity = 0
+    } else {
+      updateStructuralMetamaterial(
+        cubeletMaterial,
+        crystallization,
+        conductivity,
+        assemblyGlow,
+      )
+    }
+    nucleusMaterial.color.copy(cubeletMaterial.color)
+    nucleusMaterial.metalness = cubeletMaterial.metalness
+    nucleusMaterial.roughness = cubeletMaterial.roughness
+    nucleusMaterial.emissiveIntensity = cubeletMaterial.emissiveIntensity
     const assemblyGlowVisible = assemblyGlow > 0.001
     assemblySeamMaterial.visible = assemblyGlowVisible
     assemblyInnerMaterial.visible = assemblyGlowVisible
@@ -1716,9 +1831,34 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const reactorSurfaceProgress = smootherstep(
       (spin.mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
     )
-    reactorMaterial.metalness = 0.24 + reactorSurfaceProgress * 0.18
-    reactorMaterial.roughness = 0.28 - reactorSurfaceProgress * 0.1
-    reactorMaterial.emissiveIntensity = reactorSurfaceProgress * 0.14
+    if (previewMaterialBaseline) {
+      reactorMaterial.metalness = 0.24 + reactorSurfaceProgress * 0.18
+      reactorMaterial.roughness = 0.28 - reactorSurfaceProgress * 0.1
+      reactorMaterial.emissiveIntensity = reactorSurfaceProgress * 0.14
+    } else {
+      const reactorShutdown = smootherstep(
+        (spin.mainElapsed - REACTOR_WAVE_ONE_START) /
+          REACTOR_ROTATION_BRAKE_DURATION,
+      )
+      const reactorScatterFade = smootherstep(
+        (spin.mainElapsed - REACTOR_SCATTER_START) / 0.9,
+      )
+      const reactorEnergy =
+        (1 - reactorShutdown * 0.78) * (1 - reactorScatterFade)
+      updateReactorMetamaterial(
+        reactorMaterial,
+        reactorSurfaceProgress,
+        clock.elapsedTime,
+        reactorEnergy,
+      )
+      updateReactorCircuitSurface(
+        heroPlateMaterial,
+        1,
+        clock.elapsedTime,
+        1 - reactorScatterFade * 0.72,
+        selectedPlateIndex.current,
+      )
+    }
 
     if (spin.elapsed < EDGE_ROLL_DURATION) {
       const rollProgress = smoothstep(spin.elapsed / EDGE_ROLL_DURATION)
@@ -1820,6 +1960,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       (spin.mainElapsed - NUCLEUS_FINAL_EXPAND_START) /
         NUCLEUS_FINAL_EXPAND_DURATION,
     )
+    const gridShutdown = smootherstep(
+      (spin.mainElapsed - REACTOR_WAVE_ONE_START) /
+        REACTOR_ROTATION_BRAKE_DURATION,
+    )
     const plasmaOpacity = Math.max(coreProgress, warmProgress, rimProgress)
     const initialNucleusScale =
       1 + (NUCLEUS_MAX_SCALE - 1) * expandProgress
@@ -1867,13 +2011,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const conversionGlow = 4 * gridProgress * (1 - gridProgress)
     nucleusMaterial.depthWrite = gridProgress < 0.02
     nucleusMaterial.opacity = 1 - gridProgress
-    nucleusMaterial.emissiveIntensity = conversionGlow * 0.72
+    nucleusMaterial.emissiveIntensity =
+      cubeletMaterial.emissiveIntensity + conversionGlow * 0.72
     updateGridMaterial(
       gridMaterial,
       assembly.time,
       gridProgress,
       warmProgress,
       finalExpandProgress,
+      gridShutdown,
+      previewGridBaseline ? 0 : 1,
     )
     updatePlasmaMaterial(
       plasmaMaterial,
@@ -1924,9 +2071,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     <>
       <group ref={groupRef} position={[INITIAL_X, 0, 0]} scale={sceneScale}>
         <group ref={nucleusFrameRef}>
-          <mesh castShadow receiveShadow material={nucleusMaterial}>
-            <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
-          </mesh>
+          <mesh
+            geometry={cubeletGeometry}
+            castShadow
+            receiveShadow
+            material={nucleusMaterial}
+          />
 
           <mesh material={gridMaterial} renderOrder={2}>
             <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
@@ -1936,13 +2086,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         <instancedMesh
           ref={meshRef}
           args={[undefined, undefined, CUBELET_COUNT]}
+          geometry={cubeletGeometry}
+          material={cubeletMaterial}
           frustumCulled={false}
           castShadow
           receiveShadow
-        >
-          <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
-          <meshStandardMaterial color={EMERALD} metalness={0.24} roughness={0.28} />
-        </instancedMesh>
+        />
 
         <mesh
           material={assemblyInnerMaterial}
@@ -1971,13 +2120,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         <instancedMesh
           ref={reactorMeshRef}
           args={[undefined, undefined, REACTOR_INSTANCE_COUNT]}
+          geometry={reactorPlateGeometry}
           material={reactorMaterial}
           frustumCulled={false}
           castShadow
           receiveShadow
-        >
-          <boxGeometry args={[1, 1, 1]} />
-        </instancedMesh>
+        />
       </group>
 
       <mesh
@@ -1999,23 +2147,21 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       <instancedMesh
         ref={orbitMeshRef}
         args={[undefined, undefined, CUBELET_COUNT]}
+        geometry={cubeletGeometry}
+        material={cubeletMaterial}
         frustumCulled={false}
         castShadow
         receiveShadow
-      >
-        <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
-        <meshStandardMaterial color={EMERALD} metalness={0.24} roughness={0.28} />
-      </instancedMesh>
+      />
 
       <mesh
         ref={heroPlateRef}
+        geometry={reactorPlateGeometry}
         material={heroPlateMaterial}
         frustumCulled={false}
         castShadow
         receiveShadow
-      >
-        <boxGeometry args={[1, 1, 1]} />
-      </mesh>
+      />
 
       <pointLight
         ref={heroPlateLightRef}
@@ -2035,8 +2181,66 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   )
 }
 
-export default function HeroScene() {
+function ReactorWarmSpotlight() {
+  const lightRef = useRef<SpotLight>(null)
+  const target = useMemo(() => new Object3D(), [])
+  const scene = useThree((state) => state.scene)
+
+  useLayoutEffect(() => {
+    target.position.set(2.8, 0.5, 0)
+    scene.add(target)
+    if (lightRef.current) lightRef.current.target = target
+
+    return () => {
+      scene.remove(target)
+    }
+  }, [scene, target])
+
+  return (
+    <spotLight
+      ref={lightRef}
+      position={[5.4, -0.8, 4.6]}
+      intensity={72}
+      distance={11}
+      decay={2}
+      angle={0.52}
+      penumbra={0.78}
+      color="#ffb653"
+    />
+  )
+}
+
+export interface HeroCardCopy {
+  h2: string
+  p1: string
+  p2: string
+  p3: string
+  cta: string
+  ariaNav: string
+}
+
+const DEFAULT_CARD_COPY: HeroCardCopy = {
+  h2: 'Интерактивная 3D-графика для веба',
+  p1: 'Я люблю дизайн и стиль: придумывать работающие системы и делать их красивыми. Вкус у меня есть, и я не стесняюсь его применять — сцена на этой странице спроектирована с нуля: математика траекторий, физика волчка, шейдеры плазмы.',
+  p2: 'Упор держу на производительность (спасибо, СДВГ) и эстетику (спасибо, перфекционизм): кастомные GLSL-шейдеры, постобработка, стабильные 60–120 FPS на десктопе и мобильных. Делаю конфигураторы, иммерсивные лендинги, картографию на Mapbox, визуализации данных и браузерные движки — вплоть до Minecraft-реплеера.',
+  p3: 'Веду проект целиком и отвечаю за результат: концепция → прототип → продакшен. Инструменты подбираю по задаче — включая ИИ-инструменты; смотрю в сторону WebGPU. Чем страннее задача, тем интереснее — неформат приветствуется. Санкт-Петербург, работаю удалённо.',
+  cta: 'Написать в Telegram',
+  ariaNav: 'Соцсети и контакты',
+}
+
+export default function HeroScene({
+  copy = DEFAULT_CARD_COPY,
+}: {
+  copy?: HeroCardCopy
+}) {
   const cardRef = useRef<HTMLElement | null>(null)
+  const previewLightingBaseline = useMemo(
+    () =>
+      import.meta.env.DEV &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('lighting-baseline'),
+    [],
+  )
 
   return (
     <>
@@ -2049,16 +2253,40 @@ export default function HeroScene() {
         >
           <color attach="background" args={['#050907']} />
           <fog attach="fog" args={['#050907', 10, 20]} />
-          <ambientLight intensity={0.48} />
-          <hemisphereLight args={['#dfffee', '#07100c', 1.1]} />
+          <ambientLight intensity={previewLightingBaseline ? 0.48 : 0.1} />
+          <hemisphereLight
+            args={
+              previewLightingBaseline
+                ? ['#dfffee', '#07100c', 1.1]
+                : ['#789f9a', '#010403', 0.36]
+            }
+          />
           <directionalLight
-            position={[5, 7, 6]}
-            intensity={2.2}
-            color="#d7ffe9"
+            position={previewLightingBaseline ? [5, 7, 6] : [5.8, 7.8, 5.2]}
+            intensity={previewLightingBaseline ? 2.2 : 2.45}
+            color={previewLightingBaseline ? '#d7ffe9' : '#edfdf7'}
             castShadow
           />
-          <pointLight position={[-4, 1, 3]} intensity={14} distance={9} color="#0ef0a0" />
-          <pointLight position={[4, -2, 1]} intensity={8} distance={8} color="#4de1ff" />
+          <pointLight
+            position={
+              previewLightingBaseline ? [-4, 1, 3] : [0.5, 3, -3.4]
+            }
+            intensity={previewLightingBaseline ? 14 : 44}
+            distance={previewLightingBaseline ? 9 : 9.5}
+            decay={2}
+            color={previewLightingBaseline ? '#0ef0a0' : '#39c8ff'}
+          />
+          {previewLightingBaseline ? (
+            <pointLight
+              position={[4, -2, 1]}
+              intensity={8}
+              distance={8}
+              decay={2}
+              color="#4de1ff"
+            />
+          ) : (
+            <ReactorWarmSpotlight />
+          )}
           <AssemblyCube cardRef={cardRef} />
           <OrbitControls
             target={[1.2, 0, 0]}
@@ -2080,32 +2308,14 @@ export default function HeroScene() {
             <span>REACTOR NODE</span>
             <span>01 / ACTIVE</span>
           </div>
-          <h2>Интерактивная 3D-графика для веба</h2>
+          <h2>{copy.h2}</h2>
           <div className="reactor-card__body">
-            <p>
-              Я люблю дизайн и стиль: придумывать работающие системы и делать
-              их красивыми. Вкус у меня есть, и я не стесняюсь его применять —
-              сцена на этой странице спроектирована с нуля: математика
-              траекторий, физика волчка, шейдеры плазмы.
-            </p>
-            <p>
-              Упор держу на производительность (спасибо, СДВГ) и эстетику
-              (спасибо, перфекционизм): кастомные GLSL-шейдеры, постобработка,
-              стабильные 60–120 FPS на десктопе и мобильных. Делаю
-              конфигураторы, иммерсивные лендинги, картографию на Mapbox,
-              визуализации данных и браузерные движки — вплоть до
-              Minecraft-реплеера.
-            </p>
-            <p>
-              Веду проект целиком и отвечаю за результат: концепция → прототип
-              → продакшен. Инструменты подбираю по задаче — включая
-              ИИ-инструменты; смотрю в сторону WebGPU. Чем страннее задача, тем
-              интереснее — неформат приветствуется. Санкт-Петербург, работаю
-              удалённо.
-            </p>
+            <p>{copy.p1}</p>
+            <p>{copy.p2}</p>
+            <p>{copy.p3}</p>
           </div>
         </div>
-        <nav className="reactor-card__actions" aria-label="Соцсети и контакты">
+        <nav className="reactor-card__actions" aria-label={copy.ariaNav}>
           <a
             className="reactor-card__icon"
             href="https://x.com/vixkosla"
@@ -2145,7 +2355,7 @@ export default function HeroScene() {
             target="_blank"
             rel="noopener"
           >
-            Написать в Telegram
+            {copy.cta}
           </a>
         </nav>
       </article>

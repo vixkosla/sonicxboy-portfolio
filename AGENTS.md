@@ -37,8 +37,11 @@ reactor card or other island markup — including universal resets like
 
 ```
 src/
-  pages/index.astro            # page shell: <head>/styles, text overlay, mounts <HeroScene client:load>
-  components/HeroScene.tsx      # the r3f Canvas + AssemblyCube; drives everything via useFrame
+  layouts/HomePage.astro       # the real page shell: <head>/styles, overlay, lang switcher, mounts <HeroScene client:load copy={...}>
+  pages/index.astro            # thin wrapper: <HomePage lang="ru" /> → /
+  pages/en/index.astro         # thin wrapper: <HomePage lang="en" /> → /en/
+  i18n.ts                      # ru/en dictionary (page copy + reactor-card copy) + SITE url
+  components/HeroScene.tsx      # the r3f Canvas + AssemblyCube; drives everything via useFrame; card text comes via `copy` prop
   lib/LayeredAssembly.ts        # phase 1: cubelets fly in along precomputed bezier trajectories
   lib/SpinSimulation.ts         # phase 3: physics-based spinning-top simulation
   lib/trajectoryData.ts         # precomputed data: per-cubelet curve controls + velocity profiles

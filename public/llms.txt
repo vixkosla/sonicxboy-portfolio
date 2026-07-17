@@ -56,3 +56,17 @@ up and running with a prototype quickly." (Upwork)
 - Образование: МГТУ им. Н. Э. Баумана; Школа 21 (Сбер)
 - Локация: Санкт-Петербург, Россия; работа удалённо по всему миру
 - Резюме — по запросу
+- Версии сайта: русская — https://sonicxboy.vercel.app/ · английская — https://sonicxboy.vercel.app/en/
+
+## English summary
+
+SonicXBoy is an interactive 3D graphics developer for the web: Three.js,
+WebGL, GLSL, React Three Fiber, Mapbox cartography. Builds configurators,
+immersive landing pages, data visualizations, custom shaders and browser
+engines (including a Minecraft replay engine) at a steady 60–120 FPS on
+desktop and mobile. Runs projects end to end and owns the result — concept,
+prototype, production; picks tools to fit the task, AI tooling included.
+Unconventional and strange projects are especially welcome. Based in Saint
+Petersburg, works remotely worldwide. Contact: https://t.me/vixkosla
+(primary), https://x.com/vixkosla, https://www.upwork.com/freelancers/askerovt,
+https://github.com/vixkosla. English page: https://sonicxboy.vercel.app/en/

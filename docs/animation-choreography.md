@@ -390,6 +390,24 @@ motion.
 - Main shell: one 26-instance `InstancedMesh` inside the rotating group.
 - Detached particles: a second 26-instance mesh in world space.
 - Reactor covering: a third 104-instance mesh, hidden until the final handoff.
+- The solid cubelets now share one phase-driven emerald metamaterial. Their color,
+  metalness, roughness, and restrained emissive response move continuously from a
+  dormant composite through crystallization/conductivity into the reactor state.
+  The cube material remains an ordinary `MeshStandardMaterial`; the existing
+  main/orbit/reactor mesh handoffs remain.
+- The reactor plates extend `MeshStandardMaterial` once through `onBeforeCompile`.
+  Their UV-space surface is an analytic reactor circuit: a five-cell composite
+  microgrid, inset frame, recessed traces, pale-gold ENIG-like conductors, square
+  terminal pads, and one restrained traveling current. Each instance seed produces
+  a stable random hub position, two-to-four orthogonal branches, endpoints,
+  mirroring, and axis swap. The structure grows radially during the cube-to-plate
+  morph; its energy inherits each instance color during the blue shutdown wave and
+  loses most of its current as the covering releases. No image textures, new
+  geometry, extra draw calls, or per-instance materials are used.
+- Cubelets use a one-segment rounded box whose duplicate vertices are merged from
+  324 to 92. The 104 covering and standalone signal plate retain the original
+  lightweight unit box. The standalone plate shares the same circuit shader so its
+  conductors follow the established emerald-to-red signal transition.
 - Interface plate: one standalone unit-box mesh and one short-range red point light;
   both remain hidden until the selected reactor instance hands off.
 - Nucleus: one normal mesh.
@@ -400,6 +418,14 @@ motion.
   Three.js objects inside `useFrame`.
 - The external Drei `Environment` preset was removed because HDR loading delayed the
   first visible frame. Lighting is local.
+- The lighting lookdev proposal keeps the existing light count but changes its
+  hierarchy: low ambient/hemisphere fill preserves dark gaps, a neutral upper
+  directional light remains the shadow-casting key, the former emerald point light
+  becomes a restrained cyan rear contour, and the former cyan point light becomes
+  a warm soft-edged spotlight aimed at the reactor center. The fixed spotlight
+  creates moving gold highlights because the shell rotates through its beam; no
+  light animation, environment map, post-processing pass, or choreography change
+  is required. `?lighting-baseline` restores the previous local rig in development.
 - The final plasma uses a silhouette-shaped ray-entry proxy rather than rasterizing
   a viewport-sized box. Each ray-march step first performs a cheap sphere/plume
   bounds test and skips FBM outside both fields. The blue layer's source-relative
@@ -450,6 +476,7 @@ session:
    lower source remains the sizing reference, while the upper blue field reads as
    material emerging from it rather than an outer wrapping.
 
-This shape, the short assembly glow, and the existing timing are the current
-baseline. Do not reintroduce a smooth enveloping blue dome, early aperture steering,
-or hand-authored division offsets.
+This shape, the assembly glow fading through the unchanged edge roll, and the
+existing timing are the user-approved baseline for the next materials-and-lighting
+pass. Do not reintroduce a smooth enveloping blue dome, early aperture steering, or
+hand-authored division offsets.
