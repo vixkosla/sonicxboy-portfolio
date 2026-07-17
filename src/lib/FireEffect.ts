@@ -2,13 +2,19 @@ import {
   AddEquation,
   BoxGeometry,
   CustomBlending,
+  Data3DTexture,
   DoubleSide,
+  GLSL3,
   LatheGeometry,
+  LinearFilter,
   NormalBlending,
   OneFactor,
   OneMinusSrcAlphaFactor,
   PlaneGeometry,
+  RedFormat,
+  RepeatWrapping,
   ShaderMaterial,
+  UnsignedByteType,
   Vector2,
   Vector3,
 } from 'three'
@@ -41,8 +47,43 @@ export const PLASMA_EXPANDED_GEOMETRY = new LatheGeometry(
 )
 export const FLASH_GEOMETRY = new PlaneGeometry(2, 2)
 
+const NOISE_TEXTURE_SIZE = 32
+
+function createNoiseTexture() {
+  const voxelCount = NOISE_TEXTURE_SIZE ** 3
+  const data = new Uint8Array(voxelCount)
+  let state = 0x9e3779b9
+
+  for (let index = 0; index < voxelCount; index += 1) {
+    state ^= state << 13
+    state ^= state >>> 17
+    state ^= state << 5
+    data[index] = state >>> 24
+  }
+
+  const texture = new Data3DTexture(
+    data,
+    NOISE_TEXTURE_SIZE,
+    NOISE_TEXTURE_SIZE,
+    NOISE_TEXTURE_SIZE,
+  )
+  texture.name = 'plasma-noise'
+  texture.format = RedFormat
+  texture.type = UnsignedByteType
+  texture.minFilter = LinearFilter
+  texture.magFilter = LinearFilter
+  texture.wrapS = RepeatWrapping
+  texture.wrapT = RepeatWrapping
+  texture.wrapR = RepeatWrapping
+  texture.unpackAlignment = 1
+  texture.needsUpdate = true
+  return texture
+}
+
+const PLASMA_NOISE_TEXTURE = createNoiseTexture()
+
 const plasmaVertexShader = `
-varying vec3 vWorldPosition;
+out vec3 vWorldPosition;
 
 void main() {
   vec4 worldPosition = modelMatrix * vec4(position, 1.0);
@@ -63,8 +104,10 @@ uniform float uExpansion;
 uniform float uStepCount;
 uniform vec3 uCenter;
 uniform vec3 uRadii;
+uniform sampler3D uNoiseTexture;
 
-varying vec3 vWorldPosition;
+in vec3 vWorldPosition;
+out vec4 plasmaColor;
 
 float hash31(vec3 p) {
   p = fract(p * 0.1031);
@@ -73,28 +116,7 @@ float hash31(vec3 p) {
 }
 
 float noise3(vec3 p) {
-  vec3 cell = floor(p);
-  vec3 local = fract(p);
-  local = local * local * (3.0 - 2.0 * local);
-
-  float n000 = hash31(cell + vec3(0.0, 0.0, 0.0));
-  float n100 = hash31(cell + vec3(1.0, 0.0, 0.0));
-  float n010 = hash31(cell + vec3(0.0, 1.0, 0.0));
-  float n110 = hash31(cell + vec3(1.0, 1.0, 0.0));
-  float n001 = hash31(cell + vec3(0.0, 0.0, 1.0));
-  float n101 = hash31(cell + vec3(1.0, 0.0, 1.0));
-  float n011 = hash31(cell + vec3(0.0, 1.0, 1.0));
-  float n111 = hash31(cell + vec3(1.0, 1.0, 1.0));
-
-  float nearY0 = mix(n000, n100, local.x);
-  float nearY1 = mix(n010, n110, local.x);
-  float farY0 = mix(n001, n101, local.x);
-  float farY1 = mix(n011, n111, local.x);
-  return mix(
-    mix(nearY0, nearY1, local.y),
-    mix(farY0, farY1, local.y),
-    local.z
-  );
+  return texture(uNoiseTexture, p / ${NOISE_TEXTURE_SIZE.toFixed(1)}).r;
 }
 
 float fbm3(vec3 p) {
@@ -136,21 +158,24 @@ vec2 strandOffset(
   float phase,
   float spread,
   float speed,
-  vec2 secondary
+  vec2 secondary,
+  float envelope
 ) {
-  float join = mix(0.26, 1.0, smoothstep(0.08, 0.92, height));
-  float narrowing = exp(-height * 0.27) * 0.92 + 0.08;
   float travel = height * (1.05 + phase * 0.025) - time * speed + phase;
   vec2 orbit = vec2(
     sin(travel),
     cos(travel * 0.87 + phase * 0.41)
   );
-  return (orbit + secondary) * spread * narrowing * join;
+  return (orbit + secondary) * spread * envelope;
 }
 
-float strandTube(vec2 point, vec2 center, float width) {
-  float normalized = length(point - center) / max(width, 0.0001);
-  return exp(-normalized * normalized * 1.85);
+float strandTube(vec2 point, vec2 center, float inverseWidthSquared) {
+  vec2 delta = point - center;
+  float normalizedSquared = dot(delta, delta) * inverseWidthSquared;
+  float kernel = max(1.0 - normalizedSquared / 2.25, 0.0);
+  // This compact cubic follows the visible core of the previous Gaussian while
+  // avoiding one square root and one exponential for every strand.
+  return kernel * kernel * kernel;
 }
 
 float power7(float value) {
@@ -218,13 +243,16 @@ void main() {
 
     float broadNoise = fbm3(flowPosition);
     float detailNoise = noise3(flowPosition * 2.7 + vec3(4.3, uTime * 0.37, -2.1));
-    float microNoise = noise3(
-      flowPosition * 5.4 + vec3(-8.1, -uTime * 0.63, 5.7)
+    float microNoise = fract(
+      broadNoise * 1.618 + detailNoise * 2.414 +
+        dot(flowPosition, vec3(0.113, 0.071, 0.097))
     );
     float ridgeNoise = ridged(
-      noise3(flowPosition * 3.45 + vec3(7.4, -uTime * 0.91, 3.8))
+      fract(detailNoise * 1.731 + broadNoise * 0.917 + 0.137)
     );
-    float flowRidge = pow(ridged(detailNoise), 3.2);
+    float flowRidgeBase = ridged(detailNoise);
+    float flowRidge =
+      flowRidgeBase * flowRidgeBase * flowRidgeBase;
     vec2 flowWarp = vec2(detailNoise - 0.5, microNoise - 0.5) *
       (0.15 * taper + 0.018);
     flowWarp += vec2(
@@ -303,17 +331,20 @@ void main() {
       0.68 * taper + 0.024,
       columnBlend
     );
-    // The ionized envelope stays materially wider than the warm strands high
-    // above the source. Its slower vertical taper follows the annotated outer
-    // contour without stretching the spherical white/orange core.
+    // The upper ionized layer starts inside the lower sphere, matches its upper
+    // cross-section, and only then emerges into a separate rising plume. This
+    // keeps it from wrapping around the spherical source as a second outer shell.
     float blueColumnScale = mix(1.0, 1.70, uExpansion);
-    float blueSectionHeight = height * mix(1.0, 0.62, uExpansion);
+    float blueRiseOrigin = mix(0.0, 0.45, uExpansion);
+    float blueRiseHeight = max(height - blueRiseOrigin, 0.0);
+    float blueShoulderRadius = mix(1.0, 1.38, uExpansion);
+    float blueSectionHeight = blueRiseHeight * mix(1.0, 0.62, uExpansion);
     float blueCrossSection = sqrt(max(
-      blueEnvelopeScale * blueEnvelopeScale -
+      blueShoulderRadius * blueShoulderRadius -
         blueSectionHeight * blueSectionHeight,
       0.0
     ));
-    float blueColumnBlend = smoothstep(1.10, 3.40, height);
+    float blueColumnBlend = smoothstep(1.35, 3.10, height);
     float blueTaper = exp(-height * 0.31);
     float blueWidth = mix(
       blueCrossSection * mix(0.96, 0.985, uExpansion) +
@@ -321,6 +352,26 @@ void main() {
       (0.86 * blueTaper + 0.035) * blueColumnScale,
       blueColumnBlend
     );
+    float bluePlumeJoin =
+      uExpansion * smoothstep(0.35, 1.15, plasmaPosition.y);
+    float blueContourNoise =
+      (broadNoise - 0.5) * (0.22 * taper + 0.055) +
+      (detailNoise - 0.5) * 0.095 +
+      (ridgeNoise - 0.5) * 0.045 +
+      (microNoise - 0.5) * 0.03;
+    float bluePlumeRadius = max(
+      length(plumeOffset) - blueContourNoise,
+      0.0
+    );
+    bool insideFineSphere =
+      sphereRadius <= blueEnvelopeScale * 1.08;
+    bool insideFinePlume =
+      (plumeJoin > 0.001 || bluePlumeJoin > 0.001) &&
+      min(plumeRadius, bluePlumeRadius) <= blueWidth * 1.38 + stepLength;
+    if (!insideFineSphere && !insideFinePlume) {
+      position += rayDirection * stepLength;
+      continue;
+    }
     float tailYellow = 1.0 - smoothstep(
       0.68,
       1.02,
@@ -337,9 +388,12 @@ void main() {
       plumeRadius / redWidth
     );
     float tailBlueShell = gaussian(
-      plumeRadius,
+      bluePlumeRadius,
       blueWidth,
-      max(0.012, blueWidth * (0.085 + detailNoise * 0.035))
+      max(
+        stepLength * 0.42,
+        blueWidth * (0.085 + detailNoise * 0.035)
+      )
     );
     tailBlueShell *=
       0.08 + shellBreakup * 0.43 + ridgeNoise * 0.31 + flowRidge * 0.24;
@@ -348,6 +402,15 @@ void main() {
     // start together in the hot source, braid through the broad column, then
     // converge into hair-thin lines high above it.
     float strandWidth = 0.085 * taper + 0.0115;
+    float inverseStrandWidthSquared =
+      1.0 / max(strandWidth * strandWidth, 0.0001);
+    float strandJoin = mix(
+      0.26,
+      1.0,
+      smoothstep(0.08, 0.92, height)
+    );
+    float strandNarrowing = exp(-height * 0.27) * 0.92 + 0.08;
+    float strandEnvelope = strandNarrowing * strandJoin;
     float secondaryAngleX = height * 3.2 + uTime * 0.19;
     float secondaryAngleY = height * 2.65 - uTime * 0.16;
     float secondarySinX = sin(secondaryAngleX);
@@ -383,33 +446,47 @@ void main() {
       secondaryCosY * -0.63373669 + secondarySinY * -0.77354884
     ) * 0.23;
     vec2 strandCenter0 = centerline + strandOffset(
-      height, uTime, 0.35, 0.048, 0.54, secondary0
+      height, uTime, 0.35, 0.048, 0.54, secondary0, strandEnvelope
     ) * uExpansion;
     vec2 strandCenter1 = centerline + strandOffset(
-      height, uTime, 1.72, 0.340, 0.42, secondary1
+      height, uTime, 1.72, 0.340, 0.42, secondary1, strandEnvelope
     ) * uExpansion;
     vec2 strandCenter2 = centerline + strandOffset(
-      height, uTime, 3.08, 0.280, 0.49, secondary2
+      height, uTime, 3.08, 0.280, 0.49, secondary2, strandEnvelope
     ) * uExpansion;
     vec2 strandCenter3 = centerline + strandOffset(
-      height, uTime, 4.46, 0.380, 0.37, secondary3
+      height, uTime, 4.46, 0.380, 0.37, secondary3, strandEnvelope
     ) * uExpansion;
     vec2 strandCenter4 = centerline + strandOffset(
-      height, uTime, 5.84, 0.310, 0.58, secondary4
+      height, uTime, 5.84, 0.310, 0.58, secondary4, strandEnvelope
     ) * uExpansion;
     vec2 strandCenter5 = centerline + strandOffset(
-      height, uTime, 7.18, 0.420, 0.45, secondary5
+      height, uTime, 7.18, 0.420, 0.45, secondary5, strandEnvelope
     ) * uExpansion;
     vec2 strandCenter6 = centerline + strandOffset(
-      height, uTime, 8.52, 0.360, 0.62, secondary6
+      height, uTime, 8.52, 0.360, 0.62, secondary6, strandEnvelope
     ) * uExpansion;
-    float strand0 = strandTube(flowPoint, strandCenter0, strandWidth * 1.28);
-    float strand1 = strandTube(flowPoint, strandCenter1, strandWidth * 0.93);
-    float strand2 = strandTube(flowPoint, strandCenter2, strandWidth * 0.78);
-    float strand3 = strandTube(flowPoint, strandCenter3, strandWidth * 0.86);
-    float strand4 = strandTube(flowPoint, strandCenter4, strandWidth * 0.70);
-    float strand5 = strandTube(flowPoint, strandCenter5, strandWidth * 0.72);
-    float strand6 = strandTube(flowPoint, strandCenter6, strandWidth * 0.65);
+    float strand0 = strandTube(
+      flowPoint, strandCenter0, inverseStrandWidthSquared * 0.61035156
+    );
+    float strand1 = strandTube(
+      flowPoint, strandCenter1, inverseStrandWidthSquared * 1.15620303
+    );
+    float strand2 = strandTube(
+      flowPoint, strandCenter2, inverseStrandWidthSquared * 1.64365549
+    );
+    float strand3 = strandTube(
+      flowPoint, strandCenter3, inverseStrandWidthSquared * 1.35208221
+    );
+    float strand4 = strandTube(
+      flowPoint, strandCenter4, inverseStrandWidthSquared * 2.04081633
+    );
+    float strand5 = strandTube(
+      flowPoint, strandCenter5, inverseStrandWidthSquared * 1.92901235
+    );
+    float strand6 = strandTube(
+      flowPoint, strandCenter6, inverseStrandWidthSquared * 2.36686391
+    );
     float strandBreakup = 0.22 + 0.78 * smoothstep(
       0.18,
       0.83,
@@ -486,11 +563,11 @@ void main() {
     float mistBand = smoothstep(
       0.58,
       0.91,
-      plumeRadius / max(blueWidth, 0.0001)
+      bluePlumeRadius / max(blueWidth, 0.0001)
     ) * (1.0 - smoothstep(
       1.0,
       1.28,
-      plumeRadius / max(blueWidth, 0.0001)
+      bluePlumeRadius / max(blueWidth, 0.0001)
     ));
     float baseMistBand =
       smoothstep(0.78, 0.96, sphereRadius) *
@@ -500,7 +577,7 @@ void main() {
         sphereRadius
       ));
     float mistDensity = (
-      mistBand * plumeJoin *
+      mistBand * bluePlumeJoin *
         (0.052 + broadNoise * 0.066 + ridgeNoise * 0.038) +
       baseMistBand * uExpansion *
         (0.026 + broadNoise * 0.034 + ridgeNoise * 0.019)
@@ -509,7 +586,7 @@ void main() {
       (coreDensity + baseOuterDensity * gap + tailOuterDensity + streamDensity) *
       baseFade;
     float shellDensity =
-      (baseBlueShell * blueSphereInside + tailBlueShell * plumeJoin) *
+      (baseBlueShell * blueSphereInside + tailBlueShell * bluePlumeJoin) *
       baseFade * 0.38 * uRimProgress;
     float density = bodyDensity + shellDensity + mistDensity;
 
@@ -523,7 +600,7 @@ void main() {
         (baseRed + tailRed * plumeJoin) * 0.58 * uWarmProgress;
     vec3 shellColor =
       vec3(0.016, 0.19, 1.0) *
-      (baseBlueShell + tailBlueShell * plumeJoin) * 2.45 * uRimProgress;
+      (baseBlueShell + tailBlueShell * bluePlumeJoin) * 2.45 * uRimProgress;
     float spectralLift = smoothstep(0.72, 3.9, height);
     vec3 strandPaleColor = mix(
       vec3(1.0, 0.93, 0.68),
@@ -582,7 +659,7 @@ void main() {
     clamp(coverage, 0.0, 1.0),
     coreGlow * 0.34
   ) * uOpacity;
-  gl_FragColor = vec4(radiance * pulse * uOpacity, opacity);
+  plasmaColor = vec4(radiance * pulse * uOpacity, opacity);
 }
 `
 
@@ -770,9 +847,11 @@ export function createPlasmaMaterial() {
       uRadii: {
         value: new Vector3(PLASMA_RADIUS, PLASMA_RADIUS, PLASMA_RADIUS),
       },
+      uNoiseTexture: { value: PLASMA_NOISE_TEXTURE },
     },
     vertexShader: plasmaVertexShader,
     fragmentShader: plasmaFragmentShader,
+    glslVersion: GLSL3,
     transparent: true,
     blending: CustomBlending,
     blendEquation: AddEquation,
@@ -828,6 +907,7 @@ export function updatePlasmaMaterial(
   center: Vector3,
   radii: Vector3,
   expansion: number,
+  compact: boolean,
 ) {
   material.uniforms.uTime.value = time
   material.uniforms.uOpacity.value = opacity
@@ -835,7 +915,9 @@ export function updatePlasmaMaterial(
   material.uniforms.uWarmProgress.value = warmProgress
   material.uniforms.uRimProgress.value = rimProgress
   material.uniforms.uExpansion.value = expansion
-  material.uniforms.uStepCount.value = 38 + expansion * 26
+  material.uniforms.uStepCount.value = compact
+    ? 32
+    : 38 + expansion * 26
   material.uniforms.uCenter.value.copy(center)
   material.uniforms.uRadii.value.copy(radii)
 }

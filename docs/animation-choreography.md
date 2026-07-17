@@ -45,9 +45,19 @@ world units beyond the `0.5` cube side. At the runtime LUT resolution, the large
 direction change between adjacent path samples fell from about `35.1deg` in the old
 piecewise path to about `3.29deg`.
 
+During the last `0.10s` of assembly, a short cold-white synergy pulse appears in
+the contact gaps. A six-sided additive overlay traces the assembled cube's outer
+edge and its `3 x 3` face seams, while a dimmer inset box supplies light from behind
+the gaps. The attack lasts `0.12s`, the full-strength hint lasts `0.06s`, and the
+`0.46s` release follows the cube through the first `0.54s` of its existing edge
+roll. It is gone before the corner lift. Both overlay materials are hidden outside
+the `0.64s` envelope, so the beat adds no persistent draw calls. In development,
+`?assembly-glow-preview` freezes the cube at the pulse peak.
+
 ### 2. Edge roll and corner lift
 
-After assembly, the cube rolls right through a virtual contact edge for `0.72s`.
+Immediately after assembly, the cube rolls right through a virtual contact edge for
+`0.72s`.
 The center follows the no-slip relation:
 
 ```text
@@ -180,11 +190,14 @@ original white outline.
 The conversion itself uses cold emerald/white energy, not yellow. Warm light only
 appears once the warm plasma layer exists.
 
-The core is not a billboard. A fragment shader ray-marches 38 samples through a
-small sphere (`PLASMA_RADIUS = 0.235`) and integrates a flowing three-dimensional
-density field. Two broad FBM octaves advect upward through the volume; separate
-detail, micro, and ridged fields preserve narrow channels and flowing breakup
-without paying for a third broad octave at every sample. The intended anatomy is:
+The core is not a billboard. A fragment shader ray-marches 38 samples on desktop
+and 32 in the compact/mobile tier through a small sphere
+(`PLASMA_RADIUS = 0.235`) and integrates a flowing three-dimensional density field.
+Two broad FBM octaves and one detail read sample a deterministic repeating `32^3`
+noise texture through hardware trilinear filtering. Decorrelated micro and ridged
+fields are then derived arithmetically from those reads, preserving narrow channels
+without rebuilding trilinear value noise from eight hashes at every sample. The
+intended anatomy is:
 
 - a moving amorphous white-hot center;
 - translucent yellow, orange, and red plasma filaments;
@@ -319,28 +332,32 @@ divided into a deterministic `4 x 4` grid; cells disappear at staggered threshol
 while their lines briefly emit a blue breakup glow. The cage is fully gone before
 the large final view, so it never competes with the plasma as the main subject.
 
-The plasma raises its ray-march budget continuously from 38 to 64 samples only
-during this expansion. The visible warm lower source grows uniformly to `2.78x` and
-remains a real sphere; in particular, the white core is never scaled independently
-on Y. The blue ionization envelope is a separate field and expands to `1.95x` the
-warm source radius. Until 35% of final expansion the ray-entry proxy is the compact
-source box. It then switches to a preallocated 24-segment lathed flame silhouette,
-scaled to the same `6.05x` radial and `13.5x` vertical reach. That surface shifts
-upward with the plume, has no visible material or Fresnel edge, and eliminates most
-empty corner fragments from the former enlarged box.
+On desktop the plasma raises its ray-march budget continuously from 38 to 64 samples
+during this expansion; the compact/mobile tier stays at 32 samples with a
+step-aware minimum shell thickness. The visible warm lower source grows uniformly
+to `2.78x` and remains a real sphere; in particular, the white core is never scaled
+independently on Y. The blue ionization envelope is a separate field and expands to
+`1.95x` the warm source radius. Until 35% of final expansion the ray-entry proxy is
+the compact source box. It then switches to a preallocated 24-segment lathed flame
+silhouette, scaled to the same `6.05x` radial and `13.5x` vertical reach. That
+surface shifts upward with the plume, has no visible material or Fresnel edge, and
+eliminates most empty corner fragments from the former enlarged box.
 
-Inside that proxy, the warm and blue layers each use their own spherical
-cross-section. Those sections overlap their plume widths deep across the upper
-hemisphere and fade over a long shared interval; this is the geometric bridge
-between the round source and the column, without a narrow throat or a mushroom-like
-seam. A broad two-scale advected field deforms that bridge and carries seven
-independent warm/white/blue streams plus two thin ribbon systems. Their offsets and
-widths narrow exponentially toward a two-frequency centerline, while ridged noise
-interrupts and reconnects them. A weak blue-grey mist occupies the remaining volume
-without closing it into one opaque silhouette. The proxy and density continue beyond
-the top of the viewport, so the flame never terminates in a rounded cap. The base
-center still moves down by `0.17` local units and the point-light reach expands with
-the same envelope.
+Inside that proxy, the warm source keeps its spherical cross-section. The blue upper
+layer is now sized from that lower sphere: at full expansion its rise begins `0.45`
+normalized units inside the upper hemisphere, uses a restrained `1.38` shoulder,
+and blends into the rising column over heights `1.35..3.10`. It therefore grows out
+of the source instead of wrapping around it as a second shell. Broad, detail,
+ridged, and micro noise perturb the blue radial distance independently, so the
+upper silhouette inherits the lower plasma's irregular edge instead of becoming a
+straight lathed contour. Seven independent warm/white/blue streams and two thin
+ribbon systems continue through this shared medium. Their offsets and widths narrow
+exponentially toward a two-frequency centerline, while ridged noise interrupts and
+reconnects them. A weak blue-grey mist occupies the remaining volume without
+closing it into one opaque silhouette. The proxy and density continue beyond the
+top of the viewport, so the flame never terminates in a rounded cap. The base center
+still moves down by `0.17` local units and the point-light reach expands with the
+same envelope.
 
 Development previews add `waves`, `signal`, `scatter`, and `card`. The empty
 `?plasma-preview` value now shows the settled interface handoff.
@@ -376,22 +393,41 @@ motion.
 - Interface plate: one standalone unit-box mesh and one short-range red point light;
   both remain hidden until the selected reactor instance hands off.
 - Nucleus: one normal mesh.
+- Assembly pulse: one seam-overlay box and one inset additive box; both materials
+  are invisible outside the `0.64s` pulse envelope and therefore produce no
+  persistent draw calls.
 - All scratch vectors/quaternions/object transforms are preallocated. Do not allocate
   Three.js objects inside `useFrame`.
 - The external Drei `Environment` preset was removed because HDR loading delayed the
   first visible frame. Lighting is local.
 - The final plasma uses a silhouette-shaped ray-entry proxy rather than rasterizing
   a viewport-sized box. Each ray-march step first performs a cheap sphere/plume
-  bounds test and skips FBM outside both fields. The seven strand trajectories are
-  unchanged, but their secondary sine/cosine terms are shared through angle-addition
-  identities, and integer ribbon powers use multiplication chains.
+  bounds test and skips FBM outside both fields. The blue layer's source-relative
+  shoulder remains inside the conservative exponential plume bound; the former
+  profile/bound mismatch clipped the shell between normalized heights `1.25..2.25`
+  and caused the dark upper gap. A second fine bound uses the independently warped
+  blue radius to reject the remaining empty samples after the shared warp is known.
+  The seven strand trajectories are unchanged, but their secondary sine/cosine
+  terms are shared through angle-addition identities, their Gaussian tubes use a
+  compact cubic kernel, and integer powers use multiplication chains.
+- Procedural trilinear noise (`8 hashes` per read) was replaced by a deterministic
+  `32^3` single-channel 3D texture. The FBM still has two broad octaves plus one
+  detail read, but interpolation now runs in texture hardware. In a same-session
+  `1400 x 857` Chrome/ANGLE run on a GTX 1060, the settled texture-backed preview
+  moved from about `53.3 ms/frame` (`18.8 FPS`) to the `60 FPS` display cap
+  (`16.7 ms/frame`).
 - A software-WebGL Chromium benchmark at `1400 x 1000` improved from about
   `225.7 ms/frame` (`4.4 FPS`) to `33.5 ms/frame` (`29.8 FPS`) before the final
-  contour widening. The approved wider upper blue envelope currently measures about
+  contour widening. The pre-noise-texture wider-envelope baseline measured about
   `41.5 ms/frame` (`24.1 FPS`) in that CPU renderer, still about `5.4x` faster than
   the original. At `1856 x 1080` the narrower optimized state measured about
-  `55 ms/frame` (`18.2 FPS`); real GPU WebGL is expected to be substantially faster.
-- Mobile uses `sceneScale = 0.82`; desktop uses `1.3`.
+  `55 ms/frame` (`18.2 FPS`).
+- Mobile uses `sceneScale = 0.82`, renderer DPR `1`, and 32 ray steps. Desktop uses
+  scale `1.3`, DPR up to `1.5`, and the existing `38 -> 64` step ramp. DOM text stays
+  at the device's native resolution because only the WebGL canvas DPR is reduced.
+  With the source-relative contour, dropping the obsolete `0.16` coarse-cull padding
+  reduced one same-session compact `390 x 844` headless Chromium result from about
+  `40.1` to `19.4 ms/frame` without restoring the dark upper band.
 
 ## Completed handoff corrections
 
@@ -408,11 +444,12 @@ session:
 3. The lower `DEVELOPER` line receives three emerald/cyan/ion-blue paint passes at
    consecutive horizontal crossings of the widest orbit (`pi/2`, `3pi/2`, `5pi/2`),
    then returns to its outlined state before morphing.
-4. The final blue plasma envelope has the broader upper volume marked in
-   `Screenshot from 2026-07-15 15-54-49.png`: widened proxy shoulders, a `1.70x`
-   expanded column scale, and a long `1.10..3.40` blend into the rising column. The
-   round white core and warm interior are not stretched with it.
+4. The final blue plasma envelope follows the latest source-relative direction: it
+   begins inside the lower sphere, uses a `1.38` shoulder, blends over
+   `1.35..3.10`, and receives a stronger multi-band contour perturbation. The round
+   lower source remains the sizing reference, while the upper blue field reads as
+   material emerging from it rather than an outer wrapping.
 
-This shape and timing are the approved baseline for the user's remaining mini-task.
-Do not narrow the upper blue plasma, reintroduce early aperture steering, or replace
-the division fix with hand-authored offsets.
+This shape, the short assembly glow, and the existing timing are the current
+baseline. Do not reintroduce a smooth enveloping blue dome, early aperture steering,
+or hand-authored division offsets.

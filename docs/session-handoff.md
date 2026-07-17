@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-14
+Updated: 2026-07-17
 
 ## Start here
 
@@ -25,6 +25,27 @@ pnpm astro dev --background
 larger than 500 kB. Runtime logs also contain upstream Three.js deprecation warnings
 for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
+## Next session start point
+
+This visual-refinement pass is user-approved. Treat the following as the baseline:
+
+- the blue upper plasma grows out of the lower sphere and keeps its irregular noisy
+  contour; it must not return to a smooth enveloping dome;
+- the cold-white assembly pulse reaches its peak as the last cubelets lock, then
+  fades while the unchanged `0.72s` edge roll is already moving;
+- the pulse adds no pause, phase offset, or change to the roll/lift/spin behavior;
+- compact/mobile rendering stays at DPR `1` and 32 ray steps, with the current
+  texture-backed noise and culling bounds.
+
+The next planned art pass is materials and lighting. Begin there without retuning
+motion or reopening the two effects above unless a new visual regression is found.
+Useful development URLs are `/?assembly-glow-preview` for the pulse peak and
+`/?plasma-preview` for the settled final plasma.
+
+The implementation is currently an uncommitted working-tree change touching
+`HeroScene.tsx`, `FireEffect.ts`, `AssemblyGlow.ts`, and both animation documents.
+Preserve these files when the next session starts.
+
 ## Collaboration contract
 
 - The user art-directs and does not edit the code; the agent owns implementation.
@@ -41,7 +62,8 @@ for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
 ## Current visual sequence
 
-1. Twenty-six distant cubelets assemble around a static center into a 3x3x3 cube.
+1. Twenty-six distant cubelets assemble around a static center into a 3x3x3 cube;
+   their contact seams emit one short cold-white synergy pulse.
 2. The cube rolls over a virtual edge and lifts onto a corner.
 3. It receives a strong spin with precession and nutation, then brakes.
 4. The shell separates into three nested rotating polyhedra around the nucleus.
@@ -53,8 +75,8 @@ for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
    an interface card, the grid cage disintegrates, and an upright plasma flame
    fills the vacated reactor volume.
 
-The current closing stage now needs visual approval as one uninterrupted sequence.
-Do not redesign earlier approved plasma beats while tuning the release or card.
+The full sequence and the latest plasma/glow refinements are approved as the current
+baseline. The next session starts with materials and lighting.
 
 ## Phase 1: smooth assembly
 
@@ -76,12 +98,19 @@ Implementation: `src/lib/LayeredAssembly.ts` and `src/lib/trajectoryData.ts`.
 - At the runtime path sampling resolution, the largest adjacent tangent change fell
   from about `35.1deg` in the removed piecewise model to about `3.29deg`; the actual
   evaluated polynomial remains spatially continuous.
+- The final `0.10s` of assembly starts a `0.64s` cold-white additive pulse. A box
+  shader draws the outer edge plus the `3 x 3` face seams, and a dim inset box makes
+  those gaps read as energy from inside. The original roll begins immediately; the
+  pulse fades over its first `0.54s` and is gone before the corner lift.
+- The two pulse materials are invisible outside the envelope, avoiding permanent
+  draw calls. Development URL `/?assembly-glow-preview` freezes the peak frame.
 
 ## Roll, lift, and spin
 
 Implementation: `src/components/HeroScene.tsx` and `src/lib/SpinSimulation.ts`.
 
-- Edge roll duration: `0.72s` using the documented no-slip center relation.
+- Edge roll duration: `0.72s` using the documented no-slip center relation. The
+  assembly glow does not delay or otherwise alter it.
 - Corner lift duration: `0.84s`, using one relative quaternion axis transition.
 - Do not add an independent yaw during the lift.
 - Spin is a fixed-step angular simulation with drive torque and linear, quadratic,
@@ -149,9 +178,10 @@ front of unrelated cubelets.
 
 The replacement is a real three-dimensional volume inside the center cube:
 
-- one invisible ray proxy with a 38-step initial density integration;
-- two-octave broad FBM plus separate detail, micro, and ridged fields for
-  deterministic plasma flow;
+- one invisible ray proxy with a 38-step desktop / 32-step compact density
+  integration;
+- two-octave broad FBM plus one detail read from a deterministic `32^3` 3D noise
+  texture; micro and ridged fields are derived cheaply from those samples;
 - white core, warm filament layers, a density gap, and an electric blue rim;
 - custom premultiplied-style blending with depth testing preserved;
 - a separate four-cell-per-axis grid cage rendered after the volume, with
@@ -268,34 +298,55 @@ The final source expansion overlaps the release. The grid cage still follows the
 `4 x 4` face cells disappear with staggered timing and a short blue line flash,
 leaving no oversized cage in the settled composition.
 
-The plasma changes quality and anatomy with the same progress. Ray-march samples
-rise from 38 to 64 only in the enlarged state. The visible warm base and white core
-stay spherical and grow uniformly to `2.78x`; the blue ionization envelope expands
-independently to `1.95x` that radius. The compact `BoxGeometry` proxy is retained
-through 35% of final expansion, then the existing mesh switches to a preallocated
-24-segment `LatheGeometry` silhouette reaching the same `6.05x` radial and `13.5x`
-vertical extent. Warm and blue plume layers overlap their own spherical
-cross-sections over a long upper-hemisphere interval before narrowing
-exponentially, removing the pinched seam without stretching the round core. A
-shared domain-warped
-medium contains seven independent tube streams, two thin angular ribbon families,
-and a low-density blue-grey mist. The streams launch from different points in the
-upper source, braid at separate speeds, break and reconnect through ridged noise,
-then converge toward the two-frequency wandering centerline. The base shifts down
-by `0.17` local units and light distance rises with the expansion.
+The plasma changes quality and anatomy with the same progress. Desktop ray-march
+samples rise from 38 to 64 in the enlarged state; the compact/mobile tier remains
+at 32 and uses a step-aware minimum shell thickness. The visible warm base and white
+core stay spherical and grow uniformly to `2.78x`; the blue field is sized from
+that lower block rather than surrounding it. At full expansion the blue rise starts
+`0.45` normalized units inside the upper hemisphere, uses a `1.38` shoulder, and
+blends into its column over heights `1.35..3.10`. Independent broad/detail/ridged/
+micro perturbation breaks the radial contour, so the top stays plasma-like instead
+of following the smooth lathe silhouette. The compact `BoxGeometry` proxy is
+retained through 35% of final expansion, then the existing mesh switches to a
+preallocated 24-segment `LatheGeometry` silhouette reaching the same `6.05x` radial
+and `13.5x` vertical extent. A shared domain-warped medium contains seven independent
+tube streams, two thin angular ribbon families, and a low-density blue-grey mist.
+The streams launch from different points in the upper source, braid at separate
+speeds, break and reconnect through ridged noise, then converge toward the
+two-frequency wandering centerline. The base shifts down by `0.17` local units and
+light distance rises with the expansion.
 
-The performance pass keeps that anatomy while reducing wasted fragment work. A
-coarse sphere/plume bounds test now runs before the noise stack, broad FBM uses two
-octaves, all seven secondary strand oscillations share four trigonometric values via
-angle-addition constants, and ribbon powers use exact multiplication chains. In a
+The performance pass keeps that anatomy while reducing wasted fragment work. The
+source-relative blue shoulder stays inside the conservative exponential plume bound;
+the previous profile/bound mismatch clipped the shell between normalized heights
+`1.25..2.25` and caused the unintended dark upper gap. A second fine bound uses the
+independently perturbed blue radius to reject empty samples after the shared warp is
+known. Broad FBM uses two octaves,
+all seven secondary strand oscillations share four trigonometric values via
+angle-addition constants, Gaussian strand tubes use compact cubic kernels, and
+ribbon powers use exact multiplication chains. In a
 `1400 x 1000` Chromium software-WebGL run, the settled preview improved from about
 `225.7 ms/frame` (`4.4 FPS`) to `33.5 ms/frame` (`29.8 FPS`). The later approved
-upper-envelope widening deliberately spends part of that margin: the current final
-shape measures about `41.5 ms/frame` (`24.1 FPS`) in the same `1400 x 1000`
-SwiftShader run, still roughly `5.4x` faster than the original shader. At
+upper-envelope widening deliberately spent part of that margin: the
+pre-noise-texture final shape measured about `41.5 ms/frame` (`24.1 FPS`) in the
+same `1400 x 1000` SwiftShader run, still roughly `5.4x` faster than the original.
+At
 `1856 x 1080` the narrower optimized baseline measured about `55 ms/frame`
-(`18.2 FPS`). The compact source, expanded source, proxy handoff, and current broad
-blue envelope were visually checked with no clipping or visible silhouette edge.
+(`18.2 FPS`). The compact source, expanded source, proxy handoff, and the
+then-current broad blue envelope were visually checked with no clipping or visible
+silhouette edge; the latest source-relative contour is recorded in the validation
+section below.
+
+The latest pass replaces each procedural trilinear noise read (`8 hashes`) with a
+sample from a deterministic repeating `32^3` single-channel 3D texture. FBM anatomy
+is unchanged, but interpolation runs in texture hardware. In a same-session
+`1400 x 857` Chrome/ANGLE A/B on a GTX 1060, the settled preview improved from about
+`53.3 ms/frame` (`18.8 FPS`) to the `60 FPS` display cap (`16.7 ms/frame`). Compact
+viewports also set only the WebGL renderer to DPR `1` and use 32 steps; the DOM stays
+at native resolution. After the source-relative contour edit, removing its obsolete
+`0.16` coarse-bound safety padding changed the compact `390 x 844` preview from
+about `40.1` to `19.4 ms/frame` in one headless Chromium A/B, with no visible return
+of the clipped band.
 
 Development previews add `waves`, `signal`, `scatter`, and `card`; an empty value
 shows the fully settled final composition.
@@ -326,14 +377,26 @@ The current three-polyhedron model was sampled at 600 FPS with two checks:
 - The tangent-framed second division was captured at `14.58s`, the lower saturated
   signal handoff at `17.0s`, and the enlarged plasma at `20.5s` and `23.1s` in a
   `1856 x 1080` Chromium viewport. The three upper aperture plates follow one
-  coherent spherical frame, the core remains unobstructed, the final blue envelope
-  matches the annotated right-side volume, and all ordinary plates are already
-  concealed before their instances collapse. `pnpm build` and `git diff --check`
-  pass after these changes.
+  coherent spherical frame, the core remains unobstructed, and all ordinary plates
+  are already concealed before their instances collapse. `pnpm build` and
+  `git diff --check` pass after these changes.
 - The plasma performance pass was measured in Chromium/SwiftShader before and after
   the shader/proxy changes. It produced roughly a `6.7x` frame-time improvement at
   `1400 x 1000`; shader compilation and the compact-to-lathed proxy handoff were also
   captured without new WebGL errors or visible clipping.
+- The noise-texture/mobile-quality pass was captured in Chromium at the settled
+  desktop composition and the compact `warm` stage. GLSL 3 / `sampler3D` compiled
+  without runtime errors, the blue shoulder no longer contains the clipped
+  height band, the seven streams remain visible, and `pnpm build` passes.
+- The latest source-relative blue contour and the assembly seam pulse were captured
+  in Chromium. The upper layer emerges from inside the lower sphere with an
+  irregular edge, while the assembled cube briefly shows a readable cold-white
+  `3 x 3` grid and outer edge without a runtime shader error.
+- The final assembly timing was captured as an eight-frame Chromium sequence: the
+  grid peaks when the cube closes, remains attached while the original edge roll
+  starts immediately, fades through the roll, and is absent before corner lift.
+  The original spin-delta formula was restored exactly; no choreography phase was
+  delayed. Final `pnpm build` and `git diff --check` pass.
 
 These values are coupled to class axes, radii, speeds, symmetry quaternions, capture
 offsets, easing functions, and scale envelopes. Rerun equivalent validation after
@@ -342,6 +405,7 @@ changing any of them.
 ## Files and constraints
 
 - `src/components/HeroScene.tsx`: R3F scene and phases 2-8, plus the React card.
+- `src/lib/AssemblyGlow.ts`: transient six-face seam shader and inset assembly light.
 - `src/lib/LayeredAssembly.ts`: phase 1 path and time sampling.
 - `src/lib/trajectoryData.ts`: phase 1 curve and spacetime data.
 - `src/lib/SpinSimulation.ts`: angular physics.
@@ -353,18 +417,20 @@ the detached 26-instance mesh, the reactor 104-instance mesh, the standalone sig
 plate, and the normal nucleus meshes. The directory is a Git repository (branch
 `main`); the baseline of the approved animation is the initial commit.
 
-## Completed final pass before the next mini-task
+## Completed visual-refinement pass
 
-### Approved baseline
+### Current baseline
 
-- The enlarged plasma shape shown at the end of the current sequence is approved.
-  Keep the spherical source, wide blue envelope, seven rising streams, and the
-  silhouette-proxy performance pass as the starting point.
-- The final approved broad-envelope version measures approximately
-  `225.7 -> 41.5 ms/frame` (`4.4 -> 24.1 FPS`) against the original shader in a
-  `1400 x 1000` SwiftShader run. Keep the GLSL loop's static upper bound at `80`
-  while `uStepCount` tops out at `64`: a direct A/B test showed that changing the
-  static bound to `64` made this driver's compiler almost twice as slow.
+- Keep the spherical lower source, the blue layer emerging from its upper volume,
+  the irregular noisy silhouette, seven rising streams, and the silhouette-proxy
+  performance pass as the starting point.
+- Historical software-WebGL measurements improved from `225.7` to `41.5 ms/frame`
+  before the 3D-noise-texture pass; the texture-backed version subsequently reached
+  the `60 FPS` display cap on the local GTX 1060 test. Keep the GLSL loop's static
+  upper bound at `80`:
+  desktop `uStepCount` still tops out at `64`, while compact viewports use `32`.
+  A direct A/B test showed that changing the static loop bound to `64` made that
+  driver's compiler almost twice as slow.
 - The typography/copy in `src/pages/index.astro` is parallel Fable work. Preserve it
   unless the next task explicitly targets the title animation or page layout.
 
@@ -394,17 +460,37 @@ sizes fall immediately, and child birth is delayed (`0.30` in division one, `0.3
 in division two). This systemic ordering removes the repeated three-plate compressed
 cluster without per-instance offsets and keeps tangent-facing lineage motion.
 
-### Final blue plasma contour — completed and intentional
+### Assembly synergy pulse — completed
 
-Reference:
-`/home/vixkosla/Pictures/Screenshots/Screenshot from 2026-07-15 15-54-49.png`.
-The upper blue ionization envelope is deliberately broader than the warm interior:
-its lathed proxy shoulder radii are widened, the expanded cross-section uses a
-`1.70x` column scale, and the transition into the narrowing column is spread across
-heights `1.10..3.40`. The white core remains round and the warm streams retain their
-own proportions. Do not narrow this upper blue volume or reinterpret it as a
-separate plume in the next session; the extra breadth is the approved composition.
+Starting `0.10s` before the last cubelet locks, a cold-white additive box shader
+traces the `3 x 3` contact grid and the big cube's outer edges; a lower-opacity inset
+box makes the light read as coming from inside the gaps. The original roll begins
+without a pause or timing change. The `0.46s` release travels with the cube through
+the first `0.54s` of that roll, then disappears before corner lift. Both materials
+are marked invisible outside the `0.64s` envelope, so they do not add steady-state
+draw calls.
 
-The production build and `git diff --check` pass after this final set. The next
-session should begin with the user's remaining mini-task rather than reopening these
-four completed corrections.
+### Final blue plasma contour — source-relative
+
+The latest art direction supersedes the former smooth enveloping dome. The expanded
+blue rise begins `0.45` normalized units inside the lower sphere, uses a `1.38`
+shoulder based on that source, and transitions to the upper column over
+`1.35..3.10`. Its radial distance receives stronger broad, detail, ridged, and micro
+perturbations, so it inherits the lower plasma's organic contour instead of exposing
+the smooth lathe proxy. The white core and warm lower source remain spherical.
+
+### Plasma performance and upper-gap correction — completed
+
+The dark band in the upper blue shoulder was a culling defect caused by a visible
+profile/coarse-bound mismatch. The new source-relative shoulder remains inside the
+conservative exponential bound, while the fine cull compares the independently
+perturbed blue radius. This covers the formerly clipped `1.25..2.25` height band
+without evaluating FBM across the proxy's empty corners.
+
+The plasma material now uses GLSL 3 and a deterministic `32^3` `Data3DTexture` for
+hardware-filtered noise. Seven streams and the current source-relative silhouette
+remain. Compact
+viewports render the WebGL canvas at DPR `1` with 32 ray steps; desktop retains the
+`38 -> 64` ramp and DPR ceiling `1.5`. The production build and `git diff --check`
+pass after this set. The next visual stage can proceed to materials and lighting
+from this source-relative contour.

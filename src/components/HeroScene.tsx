@@ -20,6 +20,11 @@ import {
   LayeredAssembly,
 } from '../lib/LayeredAssembly'
 import {
+  createAssemblyInnerMaterial,
+  createAssemblySeamMaterial,
+  updateAssemblySeamMaterial,
+} from '../lib/AssemblyGlow'
+import {
   FLASH_GEOMETRY,
   PLASMA_EXPANDED_GEOMETRY,
   PLASMA_GEOMETRY,
@@ -55,6 +60,13 @@ const DIAMOND_ORIENTATION = new Quaternion()
   .multiply(new Quaternion().setFromUnitVectors(CORNER, UP))
 
 const INITIAL_X = 1.2
+const ASSEMBLY_OUTER_SIZE = CUBE_STEP * 2 + CUBE_SIZE
+const ASSEMBLY_SEAM_SIZE = ASSEMBLY_OUTER_SIZE + 0.006
+const ASSEMBLY_INNER_GLOW_SIZE = ASSEMBLY_OUTER_SIZE - 0.24
+const ASSEMBLY_GLOW_LEAD = 0.1
+const ASSEMBLY_GLOW_ATTACK = 0.12
+const ASSEMBLY_GLOW_HOLD = 0.06
+const ASSEMBLY_GLOW_RELEASE = 0.46
 const SHELL_RADIUS = 1.22
 const ORBIT_DEPART_DURATION = 2.05
 const ORBIT_CAPTURE_START = 7.15
@@ -677,6 +689,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const plasmaProxyCenter = useMemo(() => new Vector3(), [])
   const plasmaWorldRadii = useMemo(() => new Vector3(), [])
   const compact = useThree((state) => state.size.width < 720)
+  const setDpr = useThree((state) => state.setDpr)
   const sceneScale = compact ? 0.82 : 1.3
   const contactHalfExtent = (CUBE_SIZE / 2 + CUBE_STEP) * sceneScale
   const rollDistance = contactHalfExtent * 2
@@ -690,12 +703,27 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         : null,
     [],
   )
+  const previewAssemblyGlow = useMemo(
+    () =>
+      import.meta.env.DEV &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('assembly-glow-preview'),
+    [],
+  )
   const previewPlasma = previewStage !== null
+  useLayoutEffect(() => {
+    setDpr(
+      compact
+        ? 1
+        : Math.min(window.devicePixelRatio, 1.5),
+    )
+  }, [compact, setDpr])
   const assembly = useMemo(() => {
     const simulation = new LayeredAssembly()
-    if (previewPlasma) simulation.time = simulation.endTime + 0.1
+    if (previewAssemblyGlow) simulation.time = simulation.endTime + 0.04
+    else if (previewPlasma) simulation.time = simulation.endTime + 0.1
     return simulation
-  }, [previewPlasma])
+  }, [previewAssemblyGlow, previewPlasma])
   const reactorFamilies = useMemo(
     () => createReactorFamilies(assembly.motions.map((motion) => motion.target)),
     [assembly],
@@ -756,6 +784,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         emissive: new Color('#6cf3b3'),
         emissiveIntensity: 0,
       }),
+    [],
+  )
+  const assemblySeamMaterial = useMemo(
+    () => createAssemblySeamMaterial(),
+    [],
+  )
+  const assemblyInnerMaterial = useMemo(
+    () => createAssemblyInnerMaterial(),
     [],
   )
   const gridMaterial = useMemo(() => createGridMaterial(), [])
@@ -1630,7 +1666,31 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
   useFrame(({ camera }, delta) => {
     const previousAssemblyTime = assembly.time
-    assembly.update(delta)
+    if (!previewAssemblyGlow) assembly.update(delta)
+
+    const assemblyGlowElapsed =
+      assembly.time - (assembly.endTime - ASSEMBLY_GLOW_LEAD)
+    const assemblyGlowAttack = smootherstep(
+      assemblyGlowElapsed / ASSEMBLY_GLOW_ATTACK,
+    )
+    const assemblyGlowRelease =
+      1 -
+      smootherstep(
+        (assemblyGlowElapsed - ASSEMBLY_GLOW_ATTACK - ASSEMBLY_GLOW_HOLD) /
+          ASSEMBLY_GLOW_RELEASE,
+      )
+    const assemblyGlow = previewPlasma
+      ? 0
+      : assemblyGlowAttack * assemblyGlowRelease
+    const assemblyGlowVisible = assemblyGlow > 0.001
+    assemblySeamMaterial.visible = assemblyGlowVisible
+    assemblyInnerMaterial.visible = assemblyGlowVisible
+    updateAssemblySeamMaterial(
+      assemblySeamMaterial,
+      assembly.time,
+      assemblyGlow * 0.32,
+    )
+    assemblyInnerMaterial.opacity = assemblyGlow * 0.13
 
     const group = groupRef.current
     if (!group || !assembly.complete) {
@@ -1825,6 +1885,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       plasmaWorldCenter,
       plasmaWorldRadii,
       finalExpandProgress,
+      compact,
     )
 
     const flashElapsed = spin.mainElapsed - PLASMA_CORE_START
@@ -1882,6 +1943,30 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
           <meshStandardMaterial color={EMERALD} metalness={0.24} roughness={0.28} />
         </instancedMesh>
+
+        <mesh
+          material={assemblyInnerMaterial}
+          renderOrder={1}
+          frustumCulled={false}
+        >
+          <boxGeometry
+            args={[
+              ASSEMBLY_INNER_GLOW_SIZE,
+              ASSEMBLY_INNER_GLOW_SIZE,
+              ASSEMBLY_INNER_GLOW_SIZE,
+            ]}
+          />
+        </mesh>
+
+        <mesh
+          material={assemblySeamMaterial}
+          renderOrder={4}
+          frustumCulled={false}
+        >
+          <boxGeometry
+            args={[ASSEMBLY_SEAM_SIZE, ASSEMBLY_SEAM_SIZE, ASSEMBLY_SEAM_SIZE]}
+          />
+        </mesh>
 
         <instancedMesh
           ref={reactorMeshRef}
@@ -2000,8 +2085,8 @@ export default function HeroScene() {
             <p>
               Я люблю дизайн и стиль: придумывать работающие системы и делать
               их красивыми. Вкус у меня есть, и я не стесняюсь его применять —
-              сцена на этой странице собрана с нуля, от математики траекторий
-              до шейдеров плазмы.
+              сцена на этой странице спроектирована с нуля: математика
+              траекторий, физика волчка, шейдеры плазмы.
             </p>
             <p>
               Упор держу на производительность (спасибо, СДВГ) и эстетику
@@ -2012,10 +2097,11 @@ export default function HeroScene() {
               Minecraft-реплеера.
             </p>
             <p>
-              Веду проект целиком: концепция → прототип → продакшен. Открыт к
-              ИИ-инструментам, смотрю в сторону WebGPU. Чем страннее задача,
-              тем интереснее — неформат приветствуется. Санкт-Петербург,
-              работаю удалённо.
+              Веду проект целиком и отвечаю за результат: концепция → прототип
+              → продакшен. Инструменты подбираю по задаче — включая
+              ИИ-инструменты; смотрю в сторону WebGPU. Чем страннее задача, тем
+              интереснее — неформат приветствуется. Санкт-Петербург, работаю
+              удалённо.
             </p>
           </div>
         </div>
