@@ -43,10 +43,8 @@ import {
   PLASMA_GEOMETRY,
   PLASMA_RADIUS,
   createFlashMaterial,
-  createGridMaterial,
   createPlasmaMaterial,
   updateFlashMaterial,
-  updateGridMaterial,
   updatePlasmaMaterial,
 } from '../lib/FireEffect'
 import {
@@ -837,7 +835,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     () => createAssemblyInnerMaterial(),
     [],
   )
-  const gridMaterial = useMemo(() => createGridMaterial(), [])
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
   const flashMaterial = useMemo(() => createFlashMaterial(), [])
   const reactorMaterial = useMemo(
@@ -2010,13 +2007,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     nucleusMaterial.opacity = 1 - gridProgress
     nucleusMaterial.emissiveIntensity =
       cubeletMaterial.emissiveIntensity + conversionGlow * 0.72
-    updateGridMaterial(
-      gridMaterial,
-      assembly.time,
-      gridProgress,
-      warmProgress,
-      finalExpandProgress,
-    )
     updatePlasmaMaterial(
       plasmaMaterial,
       assembly.time,
@@ -2073,9 +2063,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             material={nucleusMaterial}
           />
 
-          <mesh material={gridMaterial} renderOrder={2}>
-            <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
-          </mesh>
         </group>
 
         <instancedMesh

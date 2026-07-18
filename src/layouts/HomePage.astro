@@ -756,9 +756,17 @@ const personSchema = {
       }
 
       @media (max-width: 720px) {
+        /* Mobile staging, act 1: the headline owns the top, the scene owns
+           the middle on its own, a thin subtitle + chip strip sits at the
+           bottom. Act 2: the reactor card covers the strip as a bottom
+           sheet; the strip fades under it. */
         main {
-          justify-content: flex-end;
-          padding-bottom: 15.5rem;
+          justify-content: flex-start;
+          padding: 7.6rem 1.25rem 0.9rem;
+        }
+
+        :global(body.reactor-card-visible) main {
+          padding-bottom: 0.9rem;
         }
 
         .brand {
@@ -769,8 +777,54 @@ const personSchema = {
           top: 1.2rem;
         }
 
+        .eyebrow {
+          font-size: 0.62rem;
+          letter-spacing: 0.18em;
+          margin-bottom: 0.7rem;
+        }
+
+        h1 {
+          font-size: min(12.4vw, 5.6vh);
+          margin-bottom: 0;
+        }
+
+        .subtitle {
+          margin-top: auto;
+          max-width: 100%;
+          font-size: 0.95rem;
+          line-height: 1.5;
+        }
+
         .tech-stack {
+          margin-top: 0.75rem;
+          max-width: none;
           gap: 0.45rem;
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          padding-bottom: 0.35rem;
+          pointer-events: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          mask-image: linear-gradient(90deg, #000 0, #000 86%, transparent 100%);
+          -webkit-mask-image: linear-gradient(90deg, #000 0, #000 86%, transparent 100%);
+        }
+
+        .tech-stack::-webkit-scrollbar {
+          display: none;
+        }
+
+        .tech-badge {
+          flex-shrink: 0;
+        }
+
+        .subtitle,
+        .tech-stack {
+          transition: opacity 0.4s ease;
+        }
+
+        :global(body.reactor-card-visible) .subtitle,
+        :global(body.reactor-card-visible) .tech-stack {
+          opacity: 0;
         }
 
         :global(.reactor-card) {
