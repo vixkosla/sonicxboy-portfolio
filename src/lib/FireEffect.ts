@@ -1,6 +1,5 @@
 import {
   AddEquation,
-  BoxGeometry,
   CustomBlending,
   Data3DTexture,
   FrontSide,
@@ -14,16 +13,17 @@ import {
   RedFormat,
   RepeatWrapping,
   ShaderMaterial,
+  SphereGeometry,
   UnsignedByteType,
   Vector2,
   Vector3,
 } from 'three'
 
 export const PLASMA_RADIUS = 0.235
-export const PLASMA_GEOMETRY = new BoxGeometry(
-  PLASMA_RADIUS * 2,
-  PLASMA_RADIUS * 2,
-  PLASMA_RADIUS * 2,
+export const PLASMA_GEOMETRY = new SphereGeometry(
+  PLASMA_RADIUS,
+  24,
+  16,
 )
 // This surface is only a ray-entry proxy. Its profile tightly encloses the
 // spherical source and the narrowing offscreen plume, avoiding the large empty

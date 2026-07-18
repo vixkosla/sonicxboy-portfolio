@@ -226,19 +226,47 @@ const personSchema = {
         pointer-events: none;
         background:
           linear-gradient(90deg, rgba(255, 96, 72, 0.08), transparent 32%),
+          radial-gradient(circle at 92% -20%, rgba(24, 211, 131, 0.07), transparent 28%),
+          radial-gradient(
+              circle at 9px 9px,
+              rgba(232, 197, 111, 0.052) 0 0.7px,
+              transparent 0.95px
+            )
+            0 0 / 18px 18px,
           repeating-linear-gradient(
             90deg,
             transparent 0,
-            transparent 35px,
-            rgba(24, 211, 131, 0.045) 36px
+            transparent 71px,
+            rgba(24, 211, 131, 0.045) 71px,
+            rgba(24, 211, 131, 0.045) 72px
           ),
           repeating-linear-gradient(
             0deg,
             transparent 0,
-            transparent 35px,
-            rgba(24, 211, 131, 0.038) 36px
+            transparent 71px,
+            rgba(24, 211, 131, 0.04) 71px,
+            rgba(24, 211, 131, 0.04) 72px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent 0,
+            transparent 17px,
+            rgba(24, 211, 131, 0.022) 17px,
+            rgba(24, 211, 131, 0.022) 18px
+          ),
+          repeating-linear-gradient(
+            0deg,
+            transparent 0,
+            transparent 17px,
+            rgba(24, 211, 131, 0.019) 17px,
+            rgba(24, 211, 131, 0.019) 18px
           );
-        opacity: 0.9;
+        opacity: 0;
+        clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+      }
+
+      :global(.reactor-card.is-visible::after) {
+        animation: reactor-board-etch 1.85s cubic-bezier(0.16, 1, 0.3, 1) 0.52s both;
       }
 
       :global(.reactor-card__circuit) {
@@ -253,46 +281,67 @@ const personSchema = {
 
       :global(.reactor-card__circuit-frame) {
         fill: none;
-        stroke: rgba(232, 197, 111, 0.09);
-        stroke-width: 1;
+        stroke: rgba(232, 197, 111, 0.075);
+        stroke-width: 0.7;
+        stroke-dasharray: 2 11;
         vector-effect: non-scaling-stroke;
       }
 
       :global(.reactor-card__circuit-grooves path) {
         fill: none;
-        stroke: rgba(0, 5, 3, 0.55);
-        stroke-width: 6;
-        stroke-linecap: square;
-        stroke-linejoin: miter;
-        vector-effect: non-scaling-stroke;
-      }
-
-      :global(.reactor-card__circuit-metal path) {
-        fill: none;
-        stroke: rgba(232, 197, 111, 0.28);
-        stroke-width: 1.35;
+        stroke: rgba(0, 5, 3, 0.64);
+        stroke-width: 3.1;
         stroke-linecap: square;
         stroke-linejoin: miter;
         stroke-dasharray: 1;
         stroke-dashoffset: 1;
         vector-effect: non-scaling-stroke;
-        filter: drop-shadow(0 0 3px rgba(232, 197, 111, 0.12));
+        opacity: 0;
+      }
+
+      :global(.reactor-card__circuit-metal path) {
+        fill: none;
+        stroke: rgba(232, 197, 111, 0.3);
+        stroke-width: 0.86;
+        stroke-linecap: square;
+        stroke-linejoin: miter;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        vector-effect: non-scaling-stroke;
+        filter: drop-shadow(0 0 2px rgba(232, 197, 111, 0.16));
+        opacity: 0;
+      }
+
+      :global(.reactor-card__circuit-metal path:nth-child(4n + 2)) {
+        stroke: rgba(243, 218, 154, 0.22);
+        stroke-width: 0.66;
+      }
+
+      :global(.reactor-card__circuit-grooves path:nth-child(3n)) {
+        stroke-width: 2.5;
       }
 
       :global(.reactor-card__circuit-pads rect) {
         fill: rgba(4, 20, 12, 0.92);
-        stroke: rgba(232, 197, 111, 0.32);
-        stroke-width: 1.25;
+        stroke: rgba(232, 197, 111, 0.34);
+        stroke-width: 0.72;
         vector-effect: non-scaling-stroke;
         opacity: 0;
       }
 
       :global(.reactor-card.is-visible .reactor-card__circuit-metal path) {
-        animation: reactor-circuit-draw 1.65s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+        animation: reactor-circuit-draw 1.05s cubic-bezier(0.16, 1, 0.3, 1)
+          calc(0.14s + var(--circuit-delay, 0s)) both;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__circuit-grooves path) {
+        animation: reactor-circuit-settle 0.9s cubic-bezier(0.16, 1, 0.3, 1)
+          calc(0.5s + var(--circuit-delay, 0s)) both;
       }
 
       :global(.reactor-card.is-visible .reactor-card__circuit-pads rect) {
-        animation: reactor-circuit-pad 0.55s ease-out 1.25s both;
+        animation: reactor-circuit-pad 0.42s ease-out
+          calc(0.72s + var(--pad-delay, 0s)) both;
       }
 
       :global(.reactor-card.is-visible) {
@@ -352,6 +401,7 @@ const personSchema = {
         color: rgba(108, 243, 179, 0.72);
         font: 600 0.66rem/1.2 var(--font-mono);
         letter-spacing: 0.14em;
+        text-shadow: 0 1px 8px rgba(2, 10, 7, 0.9);
       }
 
       :global(.reactor-card h2) {
@@ -362,6 +412,7 @@ const personSchema = {
         font-size: clamp(1.2rem, 2vw, 1.5rem);
         font-weight: 600;
         letter-spacing: 0.01em;
+        text-shadow: 0 1px 10px rgba(2, 10, 7, 0.92);
       }
 
       :global(.reactor-card__body) {
@@ -380,6 +431,7 @@ const personSchema = {
         font-size: clamp(0.86rem, 0.76vw, 0.94rem);
         line-height: 1.48;
         text-wrap: pretty;
+        text-shadow: 0 1px 8px rgba(2, 10, 7, 0.94);
       }
 
       :global(.reactor-card p + p) {
@@ -422,21 +474,47 @@ const personSchema = {
         100% { color: var(--reactor); }
       }
 
+      @keyframes reactor-board-etch {
+        0% {
+          opacity: 0;
+          clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+        }
+        42% {
+          opacity: 0.72;
+          clip-path: polygon(0 0, 58% 0, 40% 100%, 0 100%);
+        }
+        100% {
+          opacity: 0.82;
+          clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+        }
+      }
+
       @keyframes reactor-circuit-draw {
         0% {
           opacity: 0;
           stroke-dashoffset: 1;
         }
-        22% { opacity: 0.72; }
+        28% { opacity: 1; }
         100% {
           opacity: 1;
           stroke-dashoffset: 0;
         }
       }
 
+      @keyframes reactor-circuit-settle {
+        0% {
+          opacity: 0;
+          stroke-dashoffset: 1;
+        }
+        100% {
+          opacity: 0.82;
+          stroke-dashoffset: 0;
+        }
+      }
+
       @keyframes reactor-circuit-pad {
         0% { opacity: 0; }
-        60% { opacity: 0.85; }
+        60% { opacity: 0.72; }
         100% { opacity: 1; }
       }
 
@@ -719,6 +797,10 @@ const personSchema = {
           min-height: clamp(390px, 48vh, 520px);
         }
 
+        :global(.reactor-card__circuit) {
+          opacity: 0.78;
+        }
+
         :global(.reactor-card__body) {
           grid-template-columns: repeat(2, minmax(0, 1fr));
         }
@@ -737,11 +819,18 @@ const personSchema = {
 
         :global(.reactor-card__icon),
         :global(.reactor-card__cta),
+        :global(.reactor-card::after),
+        :global(.reactor-card__circuit-grooves path),
         :global(.reactor-card__circuit-metal path),
         :global(.reactor-card__circuit-pads rect) {
           animation: none !important;
           transition: none;
         }
+        :global(.reactor-card::after) {
+          opacity: 0.82;
+          clip-path: none;
+        }
+        :global(.reactor-card__circuit-grooves path),
         :global(.reactor-card__circuit-metal path) {
           opacity: 1;
           stroke-dashoffset: 0;
@@ -836,6 +925,10 @@ const personSchema = {
           max-height: 82dvh;
           padding: 1.25rem;
           overflow-y: auto;
+        }
+
+        :global(.reactor-card__circuit) {
+          opacity: 0.58;
         }
 
         :global(.reactor-card__body) {

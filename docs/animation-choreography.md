@@ -47,12 +47,13 @@ piecewise path to about `3.29deg`.
 
 During the last `0.10s` of assembly, a short cold-white synergy pulse appears in
 the contact gaps. A six-sided additive overlay traces the assembled cube's outer
-edge and its `3 x 3` face seams, while a dimmer inset box supplies light from behind
-the gaps. The attack lasts `0.12s`, the full-strength hint lasts `0.06s`, and the
-`0.46s` release follows the cube through the first `0.54s` of its existing edge
-roll. It is gone before the corner lift. Both overlay materials are hidden outside
-the `0.64s` envelope, so the beat adds no persistent draw calls. In development,
-`?assembly-glow-preview` freezes the cube at the pulse peak.
+edge and its `3 x 3` face seams. The former inset glow box was removed because it
+read as an extra cube inside the structure. The attack lasts `0.12s`, the
+full-strength hint lasts `0.06s`, and the `0.46s` release follows the cube through
+the first `0.54s` of its existing edge roll. It is gone before the corner lift. The
+overlay material is hidden outside the `0.64s` envelope, so the beat adds no
+persistent draw call. In development, `?assembly-glow-preview` freezes the cube at
+the pulse peak.
 
 ### 2. Edge roll and corner lift
 
@@ -322,9 +323,13 @@ it is anchored to all three lower edges, has no side radius, and uses the same
 responsive page gutters as the hero text.
 
 The stable palette is deliberately singular: plates, cage lines, card border,
-labels, and its `36px` layout grid all use `#18d383` or transparent/darker derivatives
-of it. The red signal remains a temporary launch state and transitions to emerald
-after three pulses rather than becoming a permanent third accent.
+labels, and its `18px` microgrid with restrained `72px` major lines all use
+`#18d383` or transparent/darker derivatives of it. The card circuit layer uses many
+short fine routes, small varied pads, and the same pale-gold conductor family as the
+plates. Gold paths draw with staggered starts, then their darker grooves and the
+diagonal resin-grid reveal settle behind them. The red signal remains a temporary
+launch state and transitions to emerald after three pulses rather than becoming a
+permanent third accent.
 
 While the covering releases, the grid nucleus follows the old `1.7x -> 4.35x`
 expansion envelope only as a temporary demolition volume. Every face is already
@@ -338,8 +343,10 @@ step-aware minimum shell thickness. The visible warm lower source grows uniforml
 to `2.78x` and remains a real sphere; in particular, the white core is never scaled
 independently on Y. The blue ionization envelope is a separate field and expands to
 `1.95x` the warm source radius. Until 35% of final expansion the ray-entry proxy is
-the compact source box. It then switches to a preallocated 24-segment lathed flame
-silhouette, scaled to the same `6.05x` radial and `13.5x` vertical reach. That
+a compact 24x16 sphere matching the early source. The former axis-aligned box was
+removed because its nearly transparent hull read as a second dark cube inside the
+rotating grid cage. The sphere then switches to a preallocated 24-segment lathed
+flame silhouette, scaled to the same `6.05x` radial and `13.5x` vertical reach. That
 surface shifts upward with the plume, has no visible material or Fresnel edge, and
 eliminates most empty corner fragments from the former enlarged box.
 
@@ -396,13 +403,16 @@ motion.
   The cube material remains an ordinary `MeshStandardMaterial`; the existing
   main/orbit/reactor mesh handoffs remain.
 - The reactor plates extend `MeshStandardMaterial` once through `onBeforeCompile`.
-  Their UV-space surface is an analytic reactor circuit: a five-cell composite
-  microgrid, inset frame, recessed traces, pale-gold ENIG-like conductors, square
-  terminal pads, and one restrained traveling current. Each instance seed produces
-  a stable random hub position, two-to-four orthogonal branches, endpoints,
-  mirroring, and axis swap. The structure grows radially during the cube-to-plate
-  morph; its energy inherits each instance color during the blue shutdown wave and
-  loses most of its current as the covering releases. No image textures, new
+  Their UV-space surface is an analytic reactor circuit: an `8..12`-cell composite
+  microgrid, fine inset frame, recessed traces, pale-gold ENIG-like conductors,
+  microvias, small module outlines, and a restrained traveling current. Instance
+  seeds select one of three routing families, then vary hub position, branch count,
+  endpoints, trace width, grid density, axis swap, and mirrors. A diagonal shell
+  wave reveals each plate at a different time; within a plate the gold conductor
+  grows out from its hub before the resin microstructure settles behind it. The
+  reveal overlaps morph and both divisions instead of adding a new choreography
+  pause. Energy still inherits each instance color during the blue shutdown wave
+  and loses most of its current as the covering releases. No image textures, new
   geometry, extra draw calls, or per-instance materials are used.
 - Cubelets use a one-segment rounded box whose duplicate vertices are merged from
   324 to 92. The 104 covering and standalone signal plate retain the original
@@ -411,9 +421,8 @@ motion.
 - Interface plate: one standalone unit-box mesh and one short-range red point light;
   both remain hidden until the selected reactor instance hands off.
 - Nucleus: one normal mesh.
-- Assembly pulse: one seam-overlay box and one inset additive box; both materials
-  are invisible outside the `0.64s` pulse envelope and therefore produce no
-  persistent draw calls.
+- Assembly pulse: one seam-overlay box, invisible outside the `0.64s` pulse
+  envelope and therefore adding no persistent draw call. There is no inset box.
 - All scratch vectors/quaternions/object transforms are preallocated. Do not allocate
   Three.js objects inside `useFrame`.
 - The external Drei `Environment` preset was removed because HDR loading delayed the
@@ -432,8 +441,9 @@ motion.
   creates moving gold highlights because the shell rotates through its beam; no
   light animation, environment map, post-processing pass, or choreography change
   is required. `?lighting-baseline` restores the previous local rig in development.
-- The final plasma uses a silhouette-shaped ray-entry proxy rather than rasterizing
-  a viewport-sized box. Each ray-march step first performs a cheap sphere/plume
+- The plasma starts on a compact spherical ray-entry proxy and expands onto a
+  silhouette-shaped proxy rather than rasterizing an axis-aligned or viewport-sized
+  box. Each ray-march step first performs a cheap sphere/plume
   bounds test and skips FBM outside both fields. The blue layer's source-relative
   shoulder remains inside the conservative exponential plume bound; the former
   profile/bound mismatch clipped the shell between normalized heights `1.25..2.25`

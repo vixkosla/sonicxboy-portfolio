@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-17
+Updated: 2026-07-18
 
 ## Start here
 
@@ -68,12 +68,14 @@ covering received a dedicated analytic circuit surface. It extends the existing
 `MeshStandardMaterial` through `onBeforeCompile`, preserving all current lighting
 and shadows while adding:
 
-- a subdued five-cell composite microgrid and inset frame;
-- recessed circuit paths with pale-gold ENIG-like inner conductors and square
-  terminal pads;
-- deterministic random layouts from `gl_InstanceID`: every plate receives its own
-  hub location, two-to-four orthogonal branches, endpoints, axis swap, and mirrors;
-- radial structure reveal during cube-to-plate morphing;
+- a subdued per-instance `8..12`-cell composite microgrid and fine inset frame;
+- recessed circuit paths with pale-gold ENIG-like inner conductors, microvias,
+  compact module outlines, and smaller terminal pads;
+- deterministic random layouts from `gl_InstanceID`: three routing families vary
+  hub location, branch count, endpoints, trace width, grid density, axis swap, and
+  mirrors;
+- a diagonal shell reveal spanning morph and both divisions: a bright gold trace
+  leads locally from each hub, followed by the resin microgrid and recessed etch;
 - one slow emissive packet that inherits the current instance color, so it becomes
   blue under the ionization wave and red on the selected signal plate;
 - a current-strength envelope that drops through shutdown and scattering.
@@ -101,6 +103,12 @@ showed parity. The compact `500 x 759` viewport held `60.25 FPS`. Morph, tiles,
 blue-wave, signal, scatter, and compact captures produced no shader compile or
 scene errors. `pnpm build` passes. This pass remains a visual proposal until the
 user reviews it in the normal browser.
+
+The follow-up micro-detail/wave pass held the `60 FPS` display cap in a 180-frame
+headless Firefox sample at both `1400 x 1000` and `500 x 759`. Static captures at
+`12.2s`, `13.25s`, and the completed tile stage confirmed the intended ordering:
+isolated gold leaders first, varied resin/circuit detail behind them, then a fully
+etched 104-plate shell. This was a cap check rather than a paired benchmark.
 
 ### Lighting prototype — awaiting visual approval
 
@@ -189,12 +197,12 @@ Implementation: `src/lib/LayeredAssembly.ts` and `src/lib/trajectoryData.ts`.
 - At the runtime path sampling resolution, the largest adjacent tangent change fell
   from about `35.1deg` in the removed piecewise model to about `3.29deg`; the actual
   evaluated polynomial remains spatially continuous.
-- The final `0.10s` of assembly starts a `0.64s` cold-white additive pulse. A box
-  shader draws the outer edge plus the `3 x 3` face seams, and a dim inset box makes
-  those gaps read as energy from inside. The original roll begins immediately; the
+- The final `0.10s` of assembly starts a `0.64s` cold-white additive pulse. One box
+  shader draws the outer edge plus the `3 x 3` face seams. The former inset box was
+  removed after it read as a second cube. The original roll begins immediately; the
   pulse fades over its first `0.54s` and is gone before the corner lift.
-- The two pulse materials are invisible outside the envelope, avoiding permanent
-  draw calls. Development URL `/?assembly-glow-preview` freezes the peak frame.
+- The pulse material is invisible outside the envelope, avoiding a permanent draw
+  call. Development URL `/?assembly-glow-preview` freezes the peak frame.
 
 ## Roll, lift, and spin
 
@@ -380,9 +388,12 @@ The existing tech badges and hero subtitle fade at that point to prevent overlap
 The card is a viewport-wide bottom strip with responsive hero gutters and a
 `220px..292px` responsive minimum height. It has no side/bottom border or radius.
 Placeholder Russian copy currently describes interactive WebGL systems.
-Its top border, `36px` CSS grid, labels, reactor plates, and nucleus grid all derive
-from the same `#18d383` reactor color. Red remains only the launch warning; after
-three pulses its vertical signal edge settles to emerald over `2.4s`.
+Its top border, `18px` microgrid with restrained `72px` major divisions, labels,
+reactor plates, and nucleus grid all derive from the same `#18d383` reactor color.
+The former few oversized SVG routes are replaced by short fine traces and smaller
+varied pads. Gold draws first with per-route stagger; recessed grooves and the
+diagonal resin-grid reveal settle behind it. Red remains only the launch warning;
+after three pulses its vertical signal edge settles to emerald over `2.4s`.
 
 The final source expansion overlaps the release. The grid cage still follows the
 `4.35x` scale envelope, but only as a transient demolition volume: its deterministic
@@ -397,10 +408,11 @@ that lower block rather than surrounding it. At full expansion the blue rise sta
 `0.45` normalized units inside the upper hemisphere, uses a `1.38` shoulder, and
 blends into its column over heights `1.35..3.10`. Independent broad/detail/ridged/
 micro perturbation breaks the radial contour, so the top stays plasma-like instead
-of following the smooth lathe silhouette. The compact `BoxGeometry` proxy is
-retained through 35% of final expansion, then the existing mesh switches to a
-preallocated 24-segment `LatheGeometry` silhouette reaching the same `6.05x` radial
-and `13.5x` vertical extent. A shared domain-warped medium contains seven independent
+of following the smooth lathe silhouette. A compact 24x16 `SphereGeometry` proxy is
+used through 35% of final expansion; the former axis-aligned box was removed after
+its transparent hull read as a second dark cube inside the rotating grid. The mesh
+then switches to a preallocated 24-segment `LatheGeometry` silhouette reaching the
+same `6.05x` radial and `13.5x` vertical extent. A shared domain-warped medium contains seven independent
 tube streams, two thin angular ribbon families, and a low-density blue-grey mist.
 The streams launch from different points in the upper source, braid at separate
 speeds, break and reconnect through ridged noise, then converge toward the
@@ -496,7 +508,7 @@ changing any of them.
 ## Files and constraints
 
 - `src/components/HeroScene.tsx`: R3F scene and phases 2-8, plus the React card.
-- `src/lib/AssemblyGlow.ts`: transient six-face seam shader and inset assembly light.
+- `src/lib/AssemblyGlow.ts`: transient six-face seam shader; no inset box.
 - `src/lib/LayeredAssembly.ts`: phase 1 path and time sampling.
 - `src/lib/trajectoryData.ts`: phase 1 curve and spacetime data.
 - `src/lib/SpinSimulation.ts`: angular physics.
@@ -554,12 +566,12 @@ cluster without per-instance offsets and keeps tangent-facing lineage motion.
 ### Assembly synergy pulse — completed
 
 Starting `0.10s` before the last cubelet locks, a cold-white additive box shader
-traces the `3 x 3` contact grid and the big cube's outer edges; a lower-opacity inset
-box makes the light read as coming from inside the gaps. The original roll begins
-without a pause or timing change. The `0.46s` release travels with the cube through
-the first `0.54s` of that roll, then disappears before corner lift. Both materials
-are marked invisible outside the `0.64s` envelope, so they do not add steady-state
-draw calls.
+traces the `3 x 3` contact grid and the big cube's outer edges. The lower-opacity
+inset box was removed because it created a nested-cube silhouette. The original roll
+begins without a pause or timing change. The `0.46s` release travels with the cube
+through the first `0.54s` of that roll, then disappears before corner lift. The
+remaining material is marked invisible outside the `0.64s` envelope, so it does not
+add a steady-state draw call.
 
 ### Final blue plasma contour — source-relative
 

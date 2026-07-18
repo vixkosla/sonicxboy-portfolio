@@ -1,12 +1,13 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { useLayoutEffect, useMemo, useRef } from 'react'
-import type { RefObject } from 'react'
+import type { CSSProperties, RefObject } from 'react'
 import {
   BackSide,
   BoxGeometry,
   Color,
   Euler,
+  Fog,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
@@ -92,6 +93,18 @@ const COMPACT_SCENE_SCALE = 0.82
 // at the settled anchor instead so the show is centered.
 const settledCenterX = (scale: number) =>
   INITIAL_X + 2 * (CUBE_SIZE / 2 + CUBE_STEP) * scale
+// Camera offset from its aim point (base rig: [4.8, 3.4, 7.2] looking at
+// INITIAL_X). Narrow viewports shrink the horizontal FOV, so compact
+// pulls the camera back along the same axis; fog and the scatter-hide
+// distance shift by the same delta to keep the depth story identical.
+const CAMERA_BASE_OFFSET = new Vector3(3.6, 3.4, 7.2)
+const COMPACT_CAMERA_PULLBACK = 1.6
+const COMPACT_CAMERA_EXTRA_DISTANCE =
+  CAMERA_BASE_OFFSET.length() * (COMPACT_CAMERA_PULLBACK - 1)
+const FOG_NEAR = 10
+const FOG_FAR = 20
+const SCATTER_HIDE_DISTANCE = 18.35
+const cameraAimScratch = new Vector3()
 const CUBE_EDGE_RADIUS = 0.0225
 const ASSEMBLY_OUTER_SIZE = CUBE_STEP * 2 + CUBE_SIZE
 const ASSEMBLY_SEAM_SIZE = ASSEMBLY_OUTER_SIZE + 0.006
@@ -150,6 +163,10 @@ const REACTOR_DIVIDE_TWO_START =
 const REACTOR_DIVIDE_TWO_DURATION = 1.2
 const REACTOR_TRANSFORM_END =
   REACTOR_DIVIDE_TWO_START + REACTOR_DIVIDE_TWO_DURATION
+const REACTOR_CIRCUIT_REVEAL_START =
+  REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION * 0.28
+const REACTOR_CIRCUIT_REVEAL_DURATION =
+  REACTOR_TRANSFORM_END - REACTOR_CIRCUIT_REVEAL_START + 0.24
 const REACTOR_PARENT_WIDTH = 0.3
 const REACTOR_PARENT_THICKNESS = 0.1
 const REACTOR_LINEAGE_WIDTH = 0.285
@@ -1667,7 +1684,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                       Math.abs(reactorScreenPosition.y) > 1.12 ||
                       reactorScreenPosition.z < -1 ||
                       reactorScreenPosition.z > 1
-                    const hiddenInFog = cameraDistance >= 18.35
+                    const hiddenInFog =
+                      cameraDistance >=
+                      SCATTER_HIDE_DISTANCE +
+                        (compact ? COMPACT_CAMERA_EXTRA_DISTANCE : 0)
                     const passedCamera = cameraDistance <= 0.72
                     concealed =
                       outsideViewport ||
@@ -1833,6 +1853,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const reactorSurfaceProgress = smootherstep(
       (spin.mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
     )
+    const reactorCircuitProgress = smootherstep(
+      (spin.mainElapsed - REACTOR_CIRCUIT_REVEAL_START) /
+        REACTOR_CIRCUIT_REVEAL_DURATION,
+    )
     if (previewMaterialBaseline) {
       reactorMaterial.metalness = 0.24 + reactorSurfaceProgress * 0.18
       reactorMaterial.roughness = 0.28 - reactorSurfaceProgress * 0.1
@@ -1852,6 +1876,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         reactorSurfaceProgress,
         clock.elapsedTime,
         reactorEnergy,
+        reactorCircuitProgress,
       )
       updateReactorCircuitSurface(
         heroPlateMaterial,
@@ -2196,14 +2221,26 @@ function ReactorWarmSpotlight() {
  * phones — the cube rolls into center stage instead of out of it). */
 function SceneControls() {
   const camera = useThree((state) => state.camera)
+  const scene = useThree((state) => state.scene)
   const compact = useThree((state) => state.size.width < 720)
   const targetX = compact
     ? settledCenterX(COMPACT_SCENE_SCALE)
     : INITIAL_X
 
   useLayoutEffect(() => {
+    const pullback = compact ? COMPACT_CAMERA_PULLBACK : 1
+    camera.position
+      .copy(CAMERA_BASE_OFFSET)
+      .multiplyScalar(pullback)
+      .add(cameraAimScratch.set(targetX, 0, 0))
     camera.lookAt(targetX, 0, 0)
-  }, [camera, targetX])
+
+    const extra = compact ? COMPACT_CAMERA_EXTRA_DISTANCE : 0
+    if (scene.fog instanceof Fog) {
+      scene.fog.near = FOG_NEAR + extra
+      scene.fog.far = FOG_FAR + extra
+    }
+  }, [camera, scene, compact, targetX])
 
   return (
     <OrbitControls
@@ -2301,51 +2338,57 @@ const DEFAULT_CARD_COPY: HeroCardCopy = {
 }
 
 const CARD_CIRCUIT_PATHS = [
-  'M42 62H150V104H312V70H470',
-  'M112 38V44H246V86H390V132H520',
-  'M42 302H168V258H330V300H486V238H620',
-  'M540 322V316H694V270H836V318H970',
-  'M730 38V52H866V96H1004V54H1130',
-  'M1558 60H1474V108H1328V72H1192V132H1080',
-  'M1558 310H1456V264H1318V308H1170V252H1046',
-  'M1540 38V52H1380V168H1248V196H1120',
+  'M24 30H82V46H154V28H226',
+  'M72 74H132V92H212V64H286',
+  'M188 18V34H306V56H388V34H456',
+  'M438 20V42H504V72H578',
+  'M590 26H662V48H736V30H804',
+  'M770 18V58H852V78H926',
+  'M944 28H1018V46H1086V24H1158',
+  'M1132 76H1210V54H1288V84H1366',
+  'M1326 24H1402V44H1474V26H1576',
+  'M24 330H104V310H174V334H250',
+  'M78 276H150V294H226V268H302',
+  'M292 334H372V308H448V326H522',
+  'M506 286H584V314H664V292H742',
+  'M718 334H798V306H878V330H954',
+  'M934 280H1010V302H1090V274H1168',
+  'M1142 332H1222V308H1300V330H1380',
+  'M1336 276H1412V296H1490V270H1576',
+  'M530 112V150H504V202H536V242',
+  'M1056 106V146H1080V194H1048V238',
+  'M24 116H58V150H92V184H54V224H24',
+  'M1576 112H1542V146H1508V180H1544V222H1576',
+  'M356 112H408V130H452',
+  'M720 110H766V134H812',
+  'M1184 118H1230V140H1278',
 ] as const
 
 const CARD_CIRCUIT_PADS = [
-  [42, 62],
-  [112, 38],
-  [42, 302],
-  [540, 322],
-  [730, 38],
-  [1558, 60],
-  [1558, 310],
-  [1540, 38],
-  [150, 104],
-  [312, 70],
-  [312, 86],
-  [470, 70],
-  [246, 86],
-  [520, 132],
-  [168, 258],
-  [330, 300],
-  [620, 238],
-  [694, 270],
-  [836, 318],
-  [970, 318],
-  [866, 96],
-  [1004, 54],
-  [1130, 54],
-  [1474, 108],
-  [1328, 72],
-  [1080, 132],
-  [1456, 264],
-  [1318, 308],
-  [1170, 252],
-  [1046, 252],
-  [1380, 108],
-  [1380, 168],
-  [1248, 196],
-  [1120, 196],
+  [24, 30, 3], [154, 28, 2.5], [226, 28, 3],
+  [72, 74, 2.5], [212, 64, 3], [286, 64, 2.5],
+  [188, 18, 2.5], [306, 56, 3], [456, 34, 2.5],
+  [438, 20, 2.5], [504, 72, 3], [578, 72, 2.5],
+  [590, 26, 3], [736, 30, 2.5], [804, 30, 3],
+  [770, 18, 2.5], [852, 78, 3], [926, 78, 2.5],
+  [944, 28, 3], [1086, 24, 2.5], [1158, 24, 3],
+  [1132, 76, 2.5], [1288, 84, 3], [1366, 84, 2.5],
+  [1326, 24, 3], [1474, 26, 2.5], [1576, 26, 3],
+  [24, 330, 3], [174, 334, 2.5], [250, 334, 3],
+  [78, 276, 2.5], [226, 268, 3], [302, 268, 2.5],
+  [292, 334, 3], [448, 326, 2.5], [522, 326, 3],
+  [506, 286, 2.5], [664, 292, 3], [742, 292, 2.5],
+  [718, 334, 3], [878, 330, 2.5], [954, 330, 3],
+  [934, 280, 2.5], [1090, 274, 3], [1168, 274, 2.5],
+  [1142, 332, 3], [1300, 330, 2.5], [1380, 330, 3],
+  [1336, 276, 2.5], [1490, 270, 3], [1576, 270, 2.5],
+  [530, 112, 3], [504, 202, 2.5], [536, 242, 3],
+  [1056, 106, 2.5], [1080, 194, 3], [1048, 238, 2.5],
+  [24, 116, 3], [92, 184, 2.5], [24, 224, 3],
+  [1576, 112, 3], [1508, 180, 2.5], [1576, 222, 3],
+  [356, 112, 2.5], [408, 130, 3], [452, 130, 2.5],
+  [720, 110, 3], [766, 134, 2.5], [812, 134, 3],
+  [1184, 118, 2.5], [1230, 140, 3], [1278, 140, 2.5],
 ] as const
 
 export default function HeroScene({
@@ -2434,23 +2477,41 @@ export default function HeroScene({
             height="324"
           />
           <g className="reactor-card__circuit-grooves">
-            {CARD_CIRCUIT_PATHS.map((path) => (
-              <path key={`groove-${path}`} d={path} />
+            {CARD_CIRCUIT_PATHS.map((path, index) => (
+              <path
+                key={`groove-${path}`}
+                d={path}
+                pathLength="1"
+                style={{
+                  '--circuit-delay': `${index * 0.042}s`,
+                } as CSSProperties}
+              />
             ))}
           </g>
           <g className="reactor-card__circuit-metal">
-            {CARD_CIRCUIT_PATHS.map((path) => (
-              <path key={`metal-${path}`} d={path} pathLength="1" />
+            {CARD_CIRCUIT_PATHS.map((path, index) => (
+              <path
+                key={`metal-${path}`}
+                d={path}
+                pathLength="1"
+                style={{
+                  '--circuit-delay': `${index * 0.042}s`,
+                } as CSSProperties}
+              />
             ))}
           </g>
           <g className="reactor-card__circuit-pads">
-            {CARD_CIRCUIT_PADS.map(([x, y]) => (
+            {CARD_CIRCUIT_PADS.map(([x, y, size], index) => (
               <rect
-                key={`${x}-${y}`}
-                x={x - 6}
-                y={y - 6}
-                width="12"
-                height="12"
+                key={`${x}-${y}-${index}`}
+                x={x - size}
+                y={y - size}
+                width={size * 2}
+                height={size * 2}
+                rx={index % 4 === 0 ? size : 0.6}
+                style={{
+                  '--pad-delay': `${(index % 16) * 0.035}s`,
+                } as CSSProperties}
               />
             ))}
           </g>

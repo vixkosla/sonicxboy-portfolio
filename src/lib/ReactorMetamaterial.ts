@@ -118,6 +118,8 @@ float reactorSeedC = vReactorRandomA.z;
 float reactorSeedD = vReactorRandomA.w;
 float reactorSeedE = vReactorRandomB.x;
 float reactorSeedF = vReactorRandomB.y;
+float reactorSeedG = vReactorRandomB.z;
+float reactorSeedH = vReactorRandomB.w;
 
 float reactorSwapAxes = step( 0.5, reactorSeedC );
 float reactorFlipX = step( 0.5, reactorSeedD );
@@ -127,30 +129,73 @@ reactorUv.x = mix( reactorUv.x, 1.0 - reactorUv.x, reactorFlipX );
 reactorUv.y = mix( reactorUv.y, 1.0 - reactorUv.y, reactorFlipY );
 
 vec2 reactorHub = vec2(
-  mix( 0.36, 0.64, reactorSeedA ),
-  mix( 0.36, 0.64, reactorSeedB )
+  mix( 0.3, 0.7, reactorSeedA ),
+  mix( 0.3, 0.7, reactorSeedB )
 );
-float reactorHubHalfSize = mix( 0.072, 0.105, reactorSeedF );
-float reactorMicroReveal = smoothstep( 0.1, 0.62, uReactorSurface );
-float reactorStructureReveal = smoothstep( 0.28, 0.9, uReactorSurface );
-float reactorRadialProgress = length( reactorUv - reactorHub ) * 0.86;
-float reactorTraceReveal = smoothstep(
-  reactorRadialProgress,
-  reactorRadialProgress + 0.2,
-  uReactorSurface
+float reactorHubHalfSize = mix( 0.036, 0.058, reactorSeedF );
+
+// One diagonal wave traverses the shell. Inside each plate the conductor
+// grows out from its local hub; the resin/fine etch follows behind it.
+float reactorActivation = smoothstep( 0.015, 0.16, uReactorSurface );
+float reactorRadialProgress = length( reactorUv - reactorHub );
+float reactorEtchClock =
+  uReactorSurface * 1.78 -
+  vReactorWave * 0.58 -
+  reactorSeedG * 0.1 -
+  reactorRadialProgress * 0.38;
+float reactorGoldReveal =
+  smoothstep( -0.05, 0.035, reactorEtchClock ) * reactorActivation;
+float reactorBoardReveal =
+  smoothstep( 0.09, 0.28, reactorEtchClock ) * reactorActivation;
+float reactorGoldLead = 1.0 - smoothstep(
+  0.035,
+  0.13,
+  abs( reactorEtchClock - 0.055 )
 );
 
-vec2 reactorLeftNode = vec2( 0.13, mix( 0.2, 0.8, reactorSeedC ) );
-vec2 reactorRightNode = vec2( 0.87, mix( 0.2, 0.8, reactorSeedD ) );
-vec2 reactorTopNode = vec2( mix( 0.2, 0.8, reactorSeedE ), 0.87 );
-vec2 reactorBottomNode = vec2( mix( 0.2, 0.8, reactorSeedF ), 0.13 );
-float reactorRightBranch = step(
-  0.28,
-  vReactorRandomB.z
+vec2 reactorLeftNode = vec2( 0.075, mix( 0.14, 0.86, reactorSeedC ) );
+vec2 reactorRightNode = vec2( 0.925, mix( 0.14, 0.86, reactorSeedD ) );
+vec2 reactorTopNode = vec2( mix( 0.14, 0.86, reactorSeedE ), 0.925 );
+vec2 reactorBottomNode = vec2( mix( 0.14, 0.86, reactorSeedF ), 0.075 );
+vec2 reactorLocalNode = vec2(
+  mix( 0.18, 0.82, reactorSeedG ),
+  mix( 0.18, 0.82, reactorSeedH )
 );
-float reactorBottomBranch = step(
-  0.42,
-  vReactorRandomB.w
+float reactorTopologyB = step( 0.34, reactorSeedA );
+float reactorTopologyC = step( 0.68, reactorSeedA );
+float reactorTopologyA = 1.0 - reactorTopologyB;
+reactorTopologyB *= 1.0 - reactorTopologyC;
+float reactorLeftBranch = clamp(
+  reactorTopologyA +
+  reactorTopologyB +
+  reactorTopologyC * step( 0.62, reactorSeedG ),
+  0.0,
+  1.0
+);
+float reactorTopBranch = clamp(
+  reactorTopologyA +
+  reactorTopologyC +
+  reactorTopologyB * step( 0.7, reactorSeedH ),
+  0.0,
+  1.0
+);
+float reactorRightBranch = clamp(
+  reactorTopologyB +
+  reactorTopologyA * step( 0.58, reactorSeedG ) +
+  reactorTopologyC * step( 0.78, reactorSeedG ),
+  0.0,
+  1.0
+);
+float reactorBottomBranch = clamp(
+  reactorTopologyC +
+  reactorTopologyB * step( 0.58, reactorSeedH ) +
+  reactorTopologyA * step( 0.78, reactorSeedH ),
+  0.0,
+  1.0
+);
+float reactorLocalBranch = step(
+  0.44,
+  fract( reactorSeedA + reactorSeedE )
 );
 
 vec2 reactorLeftCorner = vec2( reactorHub.x, reactorLeftNode.y );
@@ -189,10 +234,15 @@ float reactorBottomDistance = min(
   ),
   reactorSegmentDistance( reactorUv, reactorBottomCorner, reactorHub )
 );
+vec2 reactorLocalCorner = vec2( reactorLocalNode.x, reactorHub.y );
+float reactorLocalDistance = min(
+  reactorSegmentDistance( reactorUv, reactorHub, reactorLocalCorner ),
+  reactorSegmentDistance( reactorUv, reactorLocalCorner, reactorLocalNode )
+);
 
 float reactorTraceDistance = min(
-  reactorLeftDistance,
-  reactorTopDistance
+  mix( 1.0, reactorLeftDistance, reactorLeftBranch ),
+  mix( 1.0, reactorTopDistance, reactorTopBranch )
 );
 reactorTraceDistance = min(
   reactorTraceDistance,
@@ -202,15 +252,27 @@ reactorTraceDistance = min(
   reactorTraceDistance,
   mix( 1.0, reactorBottomDistance, reactorBottomBranch )
 );
+reactorTraceDistance = min(
+  reactorTraceDistance,
+  mix( 1.0, reactorLocalDistance, reactorLocalBranch )
+);
 
 float reactorTerminalDistance = min(
-  max(
-    abs( reactorUv.x - reactorLeftNode.x ),
-    abs( reactorUv.y - reactorLeftNode.y )
+  mix(
+    1.0,
+    max(
+      abs( reactorUv.x - reactorLeftNode.x ),
+      abs( reactorUv.y - reactorLeftNode.y )
+    ),
+    reactorLeftBranch
   ),
-  max(
-    abs( reactorUv.x - reactorTopNode.x ),
-    abs( reactorUv.y - reactorTopNode.y )
+  mix(
+    1.0,
+    max(
+      abs( reactorUv.x - reactorTopNode.x ),
+      abs( reactorUv.y - reactorTopNode.y )
+    ),
+    reactorTopBranch
   )
 );
 reactorTerminalDistance = min(
@@ -235,30 +297,101 @@ reactorTerminalDistance = min(
     reactorBottomBranch
   )
 );
+reactorTerminalDistance = min(
+  reactorTerminalDistance,
+  mix(
+    1.0,
+    max(
+      abs( reactorUv.x - reactorLocalNode.x ),
+      abs( reactorUv.y - reactorLocalNode.y )
+    ),
+    reactorLocalBranch
+  )
+);
 
 float reactorEdgeDistance = min(
   min( reactorUv.x, 1.0 - reactorUv.x ),
   min( reactorUv.y, 1.0 - reactorUv.y )
 );
-float reactorFrameDistance = abs( reactorEdgeDistance - 0.075 );
+float reactorFrameInset = mix( 0.046, 0.068, reactorSeedG );
+float reactorFrameDistance = abs( reactorEdgeDistance - reactorFrameInset );
 float reactorHubDistance = abs(
   max(
     abs( reactorUv.x - reactorHub.x ),
     abs( reactorUv.y - reactorHub.y )
   ) - reactorHubHalfSize
 );
-vec2 reactorGridCell = abs( fract( reactorUv * 5.0 ) - 0.5 );
+float reactorGridDensity = floor( mix( 8.0, 13.0, reactorSeedD ) );
+vec2 reactorGridPosition = reactorUv * reactorGridDensity;
+vec2 reactorGridCell = abs( fract( reactorGridPosition ) - 0.5 );
 float reactorGridDistance = 0.5 - max( reactorGridCell.x, reactorGridCell.y );
+vec2 reactorGridIndex = floor( reactorGridPosition );
+float reactorCellVariation = fract(
+  dot( reactorGridIndex, vec2( 0.754877, 0.56984 ) ) +
+  reactorSeedA * 0.71
+);
 
-float reactorMicroGrid = reactorBand( reactorGridDistance, 0.014 );
-float reactorFrameGroove = reactorBand( reactorFrameDistance, 0.018 );
-float reactorFrameCore = reactorBand( reactorFrameDistance, 0.006 );
-float reactorTraceGroove = reactorBand( reactorTraceDistance, 0.033 );
-float reactorTraceCore = reactorBand( reactorTraceDistance, 0.011 );
-float reactorTerminalGroove = reactorBand( reactorTerminalDistance, 0.04 );
-float reactorTerminalCore = reactorBand( reactorTerminalDistance, 0.014 );
-float reactorHubGroove = reactorBand( reactorHubDistance, 0.024 );
-float reactorHubCore = reactorBand( reactorHubDistance, 0.007 );
+vec2 reactorViaA = vec2(
+  mix( 0.18, 0.82, reactorSeedB ),
+  mix( 0.18, 0.82, reactorSeedE )
+);
+vec2 reactorViaB = vec2(
+  mix( 0.18, 0.82, reactorSeedF ),
+  mix( 0.18, 0.82, reactorSeedA )
+);
+float reactorViaSize = mix( 0.014, 0.023, reactorSeedH );
+float reactorViaDistance = min(
+  abs(
+    max(
+      abs( reactorUv.x - reactorViaA.x ),
+      abs( reactorUv.y - reactorViaA.y )
+    ) - reactorViaSize
+  ),
+  abs(
+    max(
+      abs( reactorUv.x - reactorViaB.x ),
+      abs( reactorUv.y - reactorViaB.y )
+    ) - reactorViaSize * 0.82
+  )
+);
+
+vec2 reactorModuleCenter = vec2(
+  mix( 0.24, 0.76, reactorSeedE ),
+  mix( 0.24, 0.76, reactorSeedF )
+);
+vec2 reactorModuleHalfSize = mix(
+  vec2( 0.052, 0.026 ),
+  vec2( 0.03, 0.058 ),
+  step( 0.5, reactorSeedG )
+);
+vec2 reactorModuleOffset =
+  abs( reactorUv - reactorModuleCenter ) - reactorModuleHalfSize;
+float reactorModuleDistance = abs(
+  max( reactorModuleOffset.x, reactorModuleOffset.y )
+);
+float reactorModulePresence = step( 0.38, reactorSeedB );
+
+float reactorMicroGrid = reactorBand(
+  reactorGridDistance,
+  mix( 0.006, 0.011, reactorSeedE )
+);
+float reactorFrameGroove = reactorBand( reactorFrameDistance, 0.012 );
+float reactorFrameCore = reactorBand( reactorFrameDistance, 0.0035 );
+float reactorTraceGroove = reactorBand( reactorTraceDistance, 0.019 );
+float reactorTraceCore = reactorBand(
+  reactorTraceDistance,
+  mix( 0.0045, 0.007, reactorSeedC )
+);
+float reactorTerminalGroove = reactorBand( reactorTerminalDistance, 0.025 );
+float reactorTerminalCore = reactorBand( reactorTerminalDistance, 0.008 );
+float reactorHubGroove = reactorBand( reactorHubDistance, 0.015 );
+float reactorHubCore = reactorBand( reactorHubDistance, 0.0045 );
+float reactorViaGroove = reactorBand( reactorViaDistance, 0.009 );
+float reactorViaCore = reactorBand( reactorViaDistance, 0.003 );
+float reactorModuleGroove = reactorBand( reactorModuleDistance, 0.01 ) *
+  reactorModulePresence;
+float reactorModuleCore = reactorBand( reactorModuleDistance, 0.003 ) *
+  reactorModulePresence;
 
 float reactorFlowCoordinate = fract(
   reactorUv.x * 0.58 +
@@ -268,37 +401,73 @@ float reactorFlowCoordinate = fract(
 );
 float reactorFlowPulse = reactorBand(
   abs( reactorFlowCoordinate - 0.5 ),
-  0.055
+  0.036
 );
 
-float reactorSurfaceMask = reactorFaceMask * reactorStructureReveal;
-float reactorTraceMask = reactorFaceMask * reactorTraceReveal;
+float reactorSurfaceMask = reactorFaceMask * reactorBoardReveal;
+float reactorTraceMask = reactorFaceMask * reactorGoldReveal;
 float reactorMicroPattern =
-  reactorFaceMask * reactorMicroReveal * reactorMicroGrid;
+  reactorSurfaceMask * reactorMicroGrid;
 float reactorFramePattern = reactorSurfaceMask * reactorFrameGroove;
 float reactorFrameConductor = reactorSurfaceMask * reactorFrameCore;
 float reactorGroovePattern = reactorTraceMask * max(
   reactorTraceGroove,
-  max( reactorTerminalGroove, reactorHubGroove )
+  max(
+    reactorTerminalGroove,
+    max(
+      reactorHubGroove,
+      max( reactorViaGroove, reactorModuleGroove )
+    )
+  )
 );
 float reactorConductorPattern = reactorTraceMask * max(
   reactorTraceCore,
-  max( reactorTerminalCore, reactorHubCore )
+  max(
+    reactorTerminalCore,
+    max(
+      reactorHubCore,
+      max( reactorViaCore, reactorModuleCore )
+    )
+  )
 );
 float reactorPulsePattern = reactorConductorPattern * reactorFlowPulse;
-
-diffuseColor.rgb *= 1.0 - reactorMicroPattern * 0.075;
-diffuseColor.rgb *= 1.0 - reactorFramePattern * 0.22;
-diffuseColor.rgb *= 1.0 - reactorGroovePattern * 0.31;
-float reactorGoldMask = clamp(
-  reactorConductorPattern * 0.92,
+float reactorLeadPattern = clamp(
+  reactorFaceMask *
+  max(
+    reactorTraceCore,
+    max( reactorTerminalCore, reactorHubCore )
+  ) * reactorGoldLead * 1.35,
   0.0,
   1.0
 );
+
+float reactorUnetched =
+  reactorFaceMask * reactorActivation * ( 1.0 - reactorBoardReveal );
+diffuseColor.rgb *= 1.0 - reactorUnetched * 0.16;
+diffuseColor.rgb *= 1.0 +
+  ( reactorCellVariation - 0.5 ) * reactorBoardReveal * 0.035;
+diffuseColor.rgb *= 1.0 - reactorMicroPattern * 0.045;
+diffuseColor.rgb *= 1.0 - reactorFramePattern * 0.14;
+diffuseColor.rgb *= 1.0 - reactorGroovePattern * 0.24;
+float reactorGoldMask = clamp(
+  reactorConductorPattern * 0.96,
+  0.0,
+  1.0
+);
+vec3 reactorTileGold = mix(
+  uReactorConductorColor,
+  vec3( 0.94, 0.9, 0.74 ),
+  reactorSeedH * 0.1
+);
 diffuseColor.rgb = mix(
   diffuseColor.rgb,
-  uReactorConductorColor,
+  reactorTileGold,
   reactorGoldMask
+);
+diffuseColor.rgb = mix(
+  diffuseColor.rgb,
+  vec3( 1.0, 0.88, 0.58 ),
+  reactorLeadPattern * 0.66
 );
 `
 
@@ -306,10 +475,11 @@ const REACTOR_ROUGHNESS_FRAGMENT = `
 #include <roughnessmap_fragment>
 roughnessFactor = clamp(
   roughnessFactor +
-  reactorMicroPattern * 0.075 +
-  reactorFramePattern * 0.065 +
-  reactorGroovePattern * 0.1 -
-  reactorConductorPattern * 0.12,
+  reactorMicroPattern * 0.045 +
+  reactorFramePattern * 0.05 +
+  reactorGroovePattern * 0.085 -
+  reactorConductorPattern * 0.16 -
+  reactorLeadPattern * 0.07,
   0.08,
   0.88
 );
@@ -319,10 +489,11 @@ const REACTOR_METALNESS_FRAGMENT = `
 #include <metalnessmap_fragment>
 metalnessFactor = clamp(
   metalnessFactor -
-  reactorMicroPattern * 0.055 -
-  reactorGroovePattern * 0.08 +
-  reactorConductorPattern * 0.28 +
-  reactorFrameConductor * 0.08,
+  reactorMicroPattern * 0.035 -
+  reactorGroovePattern * 0.065 +
+  reactorConductorPattern * 0.34 +
+  reactorFrameConductor * 0.06 +
+  reactorLeadPattern * 0.12,
   0.0,
   1.0
 );
@@ -331,10 +502,14 @@ metalnessFactor = clamp(
 const REACTOR_EMISSIVE_FRAGMENT = `
 #include <emissivemap_fragment>
 float reactorCurrent = uReactorEnergy * (
-  reactorConductorPattern * 0.025 +
-  reactorPulsePattern * 0.5
+  reactorConductorPattern * 0.018 +
+  reactorPulsePattern * 0.34
 );
-totalEmissiveRadiance += reactorSignalColor * reactorCurrent;
+float reactorEtchCurrent =
+  uReactorEnergy * reactorLeadPattern * 0.48;
+totalEmissiveRadiance +=
+  reactorSignalColor * reactorCurrent +
+  reactorTileGold * reactorEtchCurrent;
 `
 
 export const CONDUCTIVE_METALNESS = 0.38
@@ -380,7 +555,7 @@ export function enableReactorCircuitSurface(
     time: { value: 0 },
     energy: { value: 0 },
     seed: { value: 0 },
-    conductorColor: { value: new Color('#e8c56f') },
+    conductorColor: { value: new Color('#d8c58b') },
   }
   reactorSurfaceUniforms.set(material, uniforms)
 
@@ -406,7 +581,7 @@ export function enableReactorCircuitSurface(
       )
       .replace('#include <emissivemap_fragment>', REACTOR_EMISSIVE_FRAGMENT)
   }
-  material.customProgramCacheKey = () => 'reactor-circuit-surface-v6'
+  material.customProgramCacheKey = () => 'reactor-circuit-surface-v7'
   material.needsUpdate = true
   return material
 }
@@ -461,6 +636,7 @@ export function updateReactorMetamaterial(
   morphProgress: number,
   time = 0,
   energy = 1,
+  circuitProgress = morphProgress,
 ) {
   const progress = clamp01(morphProgress)
   material.metalness = interpolate(
@@ -478,5 +654,5 @@ export function updateReactorMetamaterial(
     REACTOR_EMISSIVE_INTENSITY,
     progress,
   )
-  updateReactorCircuitSurface(material, progress, time, energy)
+  updateReactorCircuitSurface(material, circuitProgress, time, energy)
 }
