@@ -576,12 +576,21 @@ void main() {
         blueEnvelopeScale * 0.97,
         sphereRadius
       ));
+    // The blue mist must die out before touching the proxy hull: any
+    // density clipped by the proxy surface paints its silhouette as a
+    // dark box with sharp edges. Fade on the per-axis wall distance so
+    // the volume stays self-contained.
+    float wallDistance = max(
+      abs(position.x),
+      max(abs(position.y), abs(position.z))
+    );
+    float vesselFade = 1.0 - smoothstep(0.84, 0.98, wallDistance);
     float mistDensity = (
       mistBand * bluePlumeJoin *
         (0.052 + broadNoise * 0.066 + ridgeNoise * 0.038) +
       baseMistBand * uExpansion *
         (0.026 + broadNoise * 0.034 + ridgeNoise * 0.019)
-    ) * uRimProgress;
+    ) * uRimProgress * vesselFade;
     float bodyDensity =
       (coreDensity + baseOuterDensity * gap + tailOuterDensity + streamDensity) *
       baseFade;
@@ -845,9 +854,11 @@ void main() {
   );
   color *= 1.0 - shutdownLevel * 0.12 * uUpgrade;
 
-  // Rear faces reveal the volume but stay quiet enough to avoid a moire
-  // carpet where several sides overlap in projection.
-  float rearVisibility = mix(0.34, 0.14, uUpgrade);
+  // Rear faces nearly vanish: at 0.14 they still read as a nested dark
+  // cube floating inside the cage (perspective offsets their edges into a
+  // smaller cube silhouette). A whisper of them keeps depth without the
+  // inner-cube illusion; the baseline branch keeps the old value for A/B.
+  float rearVisibility = mix(0.34, 0.05, uUpgrade);
   float faceVisibility = gl_FrontFacing ? 1.0 : rearVisibility;
   float structureAlpha =
     gridCore * (0.42 + scan * 0.12) +
