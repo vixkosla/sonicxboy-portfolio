@@ -742,13 +742,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       new URLSearchParams(window.location.search).has('material-baseline'),
     [],
   )
-  const previewGridBaseline = useMemo(
-    () =>
-      import.meta.env.DEV &&
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).has('grid-baseline'),
-    [],
-  )
   const previewPlasma = previewStage !== null
   useLayoutEffect(() => {
     setDpr(
@@ -1421,6 +1414,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     if (mainElapsed >= HERO_CARD_REVEAL && !cardRevealed.current) {
       cardRef.current?.classList.add('is-visible')
       cardRef.current?.removeAttribute('aria-hidden')
+      cardRef.current?.removeAttribute('inert')
       document.body.classList.add('reactor-card-visible')
       cardRevealed.current = true
     }
@@ -1729,6 +1723,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     if (heroPlate) heroPlate.scale.setScalar(0)
     cardRef.current?.classList.remove('is-visible')
     cardRef.current?.setAttribute('aria-hidden', 'true')
+    cardRef.current?.setAttribute('inert', '')
     document.body.classList.remove('reactor-card-visible')
     document.body.removeAttribute('data-orbit-title-wave')
     if (previewMaterialBaseline) {
@@ -1745,6 +1740,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     return () => {
       cardRef.current?.classList.remove('is-visible')
       cardRef.current?.setAttribute('aria-hidden', 'true')
+      cardRef.current?.setAttribute('inert', '')
       document.body.classList.remove('reactor-card-visible')
       document.body.removeAttribute('data-orbit-title-wave')
       document.body.removeAttribute('data-material-baseline')
@@ -1965,10 +1961,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       (spin.mainElapsed - NUCLEUS_FINAL_EXPAND_START) /
         NUCLEUS_FINAL_EXPAND_DURATION,
     )
-    const gridShutdown = smootherstep(
-      (spin.mainElapsed - REACTOR_WAVE_ONE_START) /
-        REACTOR_ROTATION_BRAKE_DURATION,
-    )
     const plasmaOpacity = Math.max(coreProgress, warmProgress, rimProgress)
     const initialNucleusScale =
       1 + (NUCLEUS_MAX_SCALE - 1) * expandProgress
@@ -2024,8 +2016,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       gridProgress,
       warmProgress,
       finalExpandProgress,
-      gridShutdown,
-      previewGridBaseline ? 0 : 1,
     )
     updatePlasmaMaterial(
       plasmaMaterial,
@@ -2260,7 +2250,7 @@ function StudioEnvironment() {
     addPanel('#ffb653', 4, [7, -2, 5], [4, 3])
     addPanel('#18d383', 1.2, [0, -9, 1], [12, 12])
 
-    const renderTarget = pmrem.fromScene(envScene, 0.045)
+    const renderTarget = pmrem.fromScene(envScene, 0.04)
     scene.environment = renderTarget.texture
     scene.environmentIntensity = 0.32
 
@@ -2300,19 +2290,28 @@ const DEFAULT_CARD_COPY: HeroCardCopy = {
 }
 
 const CARD_CIRCUIT_PATHS = [
-  'M0 62H150V104H312V70H470',
-  'M112 0V44H246V86H390V132H520',
-  'M0 302H168V258H330V300H486V238H620',
-  'M540 360V316H694V270H836V318H970',
-  'M730 0V52H866V96H1004V54H1130',
-  'M1600 60H1474V108H1328V72H1192V132H1080',
-  'M1600 310H1456V264H1318V308H1170V252H1046',
-  'M1540 0V34H1380V168H1248V196H1120',
+  'M42 62H150V104H312V70H470',
+  'M112 38V44H246V86H390V132H520',
+  'M42 302H168V258H330V300H486V238H620',
+  'M540 322V316H694V270H836V318H970',
+  'M730 38V52H866V96H1004V54H1130',
+  'M1558 60H1474V108H1328V72H1192V132H1080',
+  'M1558 310H1456V264H1318V308H1170V252H1046',
+  'M1540 38V52H1380V168H1248V196H1120',
 ] as const
 
 const CARD_CIRCUIT_PADS = [
+  [42, 62],
+  [112, 38],
+  [42, 302],
+  [540, 322],
+  [730, 38],
+  [1558, 60],
+  [1558, 310],
+  [1540, 38],
   [150, 104],
   [312, 70],
+  [312, 86],
   [470, 70],
   [246, 86],
   [520, 132],
@@ -2332,6 +2331,7 @@ const CARD_CIRCUIT_PADS = [
   [1318, 308],
   [1170, 252],
   [1046, 252],
+  [1380, 108],
   [1380, 168],
   [1248, 196],
   [1120, 196],
@@ -2411,6 +2411,8 @@ export default function HeroScene({
       <article
         ref={cardRef}
         className="reactor-card"
+        aria-hidden="true"
+        inert
       >
         <svg
           className="reactor-card__circuit"

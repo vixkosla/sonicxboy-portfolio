@@ -1,9 +1,10 @@
 import {
   AddEquation,
+  AdditiveBlending,
   BoxGeometry,
   CustomBlending,
   Data3DTexture,
-  DoubleSide,
+  FrontSide,
   GLSL3,
   LatheGeometry,
   LinearFilter,
@@ -693,8 +694,6 @@ uniform float uTime;
 uniform float uOpacity;
 uniform float uWarmth;
 uniform float uDissolve;
-uniform float uShutdown;
-uniform float uUpgrade;
 
 varying vec2 vUv;
 varying vec3 vWorldNormal;
@@ -719,27 +718,8 @@ float gridNoise(vec2 p) {
 
 void main() {
   vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-  vec3 surfaceNormal = normalize(vWorldNormal);
-  float facing = abs(dot(surfaceNormal, viewDirection));
+  float facing = abs(dot(normalize(vWorldNormal), viewDirection));
   float fresnel = pow(1.0 - facing, 2.15);
-  vec3 warmLightDirection = normalize(
-    vec3(5.4, -0.8, 4.6) - vWorldPosition
-  );
-  vec3 coolLightDirection = normalize(
-    vec3(0.5, 3.0, -3.4) - vWorldPosition
-  );
-  vec3 warmHalfDirection = normalize(warmLightDirection + viewDirection);
-  vec3 coolHalfDirection = normalize(coolLightDirection + viewDirection);
-  float frontFace = gl_FrontFacing ? 1.0 : 0.0;
-  float warmDiffuse = max(dot(surfaceNormal, warmLightDirection), 0.0);
-  float warmSpecular = pow(
-    max(dot(surfaceNormal, warmHalfDirection), 0.0),
-    18.0
-  );
-  float coolSpecular = pow(
-    max(dot(surfaceNormal, coolHalfDirection), 0.0),
-    12.0
-  ) * (0.35 + fresnel * 0.65);
   float shimmer = 0.5 + 0.5 * sin(
     uTime * 1.05 + vWorldPosition.y * 15.0 + vWorldPosition.x * 8.0
   );
@@ -761,11 +741,6 @@ void main() {
   float gridCore = 1.0 - smoothstep(
     max(0.0, 0.036 - lineAA),
     0.036 + lineAA,
-    lineDistance
-  );
-  float gridFilament = 1.0 - smoothstep(
-    max(0.0, 0.012 - lineAA * 0.7),
-    0.012 + lineAA * 0.7,
     lineDistance
   );
   float gridGlow = 1.0 - smoothstep(
@@ -791,11 +766,6 @@ void main() {
     0.024 + edgeAA,
     outerDistance
   );
-  float outerFilament = 1.0 - smoothstep(
-    max(0.0, 0.009 - edgeAA * 0.65),
-    0.009 + edgeAA * 0.65,
-    outerDistance
-  );
   float outerGlow = 1.0 - smoothstep(
     max(0.0, 0.115 - edgeAA * 1.4),
     0.115 + edgeAA * 1.4,
@@ -805,8 +775,6 @@ void main() {
   float scan = 0.5 + 0.5 * sin(
     fragmentGrid.y * 1.35 - uTime * 1.4 + surfaceNoise * 2.2
   );
-  float shutdownLevel = smoothstep(0.08, 0.92, uShutdown);
-
   float faceSeed = dot(abs(normalize(vWorldNormal)), vec3(17.0, 31.0, 47.0));
   float breakTime = 0.06 + gridHash(cell + vec2(faceSeed)) * 0.56;
   float fragmentLife =
@@ -824,8 +792,6 @@ void main() {
   vec3 reactorGreen = vec3(0.094, 0.827, 0.514);
   vec3 reactorMint = vec3(0.37, 0.95, 0.67);
   vec3 waveBlue = vec3(0.141, 0.298, 1.0);
-  vec3 warmGold = vec3(1.0, 0.62, 0.24);
-  vec3 rimCyan = vec3(0.2, 0.66, 1.0);
   float highlight = clamp(
     0.10 + fresnel * 0.42 + shimmer * 0.08 + uWarmth * 0.13,
     0.0,
@@ -835,31 +801,7 @@ void main() {
   color *= 0.78 + surfaceNoise * 0.31;
   color += reactorMint * (gridCore * 0.16 + outerCore * 0.21);
   color += waveBlue * breakupStructure * 0.82;
-  float conductor = max(gridFilament, outerFilament);
-  float materialResponse = uUpgrade * frontFace * conductor;
-  color += reactorMint * materialResponse * 0.18;
-  color += warmGold * materialResponse * (
-    warmDiffuse * 0.055 +
-    warmSpecular * 0.32 +
-    uWarmth * 0.075
-  );
-  color += rimCyan * materialResponse * coolSpecular * 0.22;
-  color += reactorMint * gridNode * frontFace * uUpgrade * (
-    0.045 + 0.035 * shimmer
-  );
-  color = mix(
-    color,
-    color * vec3(0.66, 0.82, 1.12),
-    shutdownLevel * 0.18 * uUpgrade
-  );
-  color *= 1.0 - shutdownLevel * 0.12 * uUpgrade;
 
-  // Rear faces nearly vanish: at 0.14 they still read as a nested dark
-  // cube floating inside the cage (perspective offsets their edges into a
-  // smaller cube silhouette). A whisper of them keeps depth without the
-  // inner-cube illusion; the baseline branch keeps the old value for A/B.
-  float rearVisibility = mix(0.34, 0.05, uUpgrade);
-  float faceVisibility = gl_FrontFacing ? 1.0 : rearVisibility;
   float structureAlpha =
     gridCore * (0.42 + scan * 0.12) +
     gridGlow * 0.075 +
@@ -868,9 +810,8 @@ void main() {
     outerGlow * 0.085;
   float alpha = uOpacity * (
     fragmentLife * structureAlpha + breakupStructure * 0.27
-  ) * faceVisibility;
-  alpha *= 1.0 - shutdownLevel * 0.18 * uUpgrade;
-  gl_FragColor = vec4(color * mix(0.58, 1.0, faceVisibility), alpha);
+  );
+  gl_FragColor = vec4(color, alpha);
 }
 `
 
@@ -935,16 +876,14 @@ export function createGridMaterial() {
       uOpacity: { value: 0 },
       uWarmth: { value: 0 },
       uDissolve: { value: 0 },
-      uShutdown: { value: 0 },
-      uUpgrade: { value: 1 },
     },
     vertexShader: gridVertexShader,
     fragmentShader: gridFragmentShader,
     transparent: true,
-    blending: NormalBlending,
+    blending: AdditiveBlending,
     depthWrite: false,
     depthTest: true,
-    side: DoubleSide,
+    side: FrontSide,
     toneMapped: false,
   })
 }
@@ -995,15 +934,11 @@ export function updateGridMaterial(
   opacity: number,
   warmth: number,
   dissolve: number,
-  shutdown = 0,
-  upgrade = 1,
 ) {
   material.uniforms.uTime.value = time
   material.uniforms.uOpacity.value = opacity
   material.uniforms.uWarmth.value = warmth
   material.uniforms.uDissolve.value = dissolve
-  material.uniforms.uShutdown.value = shutdown
-  material.uniforms.uUpgrade.value = upgrade
 }
 
 export function updateFlashMaterial(
