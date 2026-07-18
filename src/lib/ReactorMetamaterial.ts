@@ -33,6 +33,7 @@ uniform float uReactorSeed;
 varying vec2 vReactorUv;
 varying float vReactorFace;
 flat varying float vReactorSeed;
+flat varying float vReactorWave;
 flat varying vec4 vReactorRandomA;
 flat varying vec4 vReactorRandomB;
 
@@ -47,8 +48,20 @@ vReactorUv = uv;
 vReactorFace = abs( normal.z );
 #ifdef USE_INSTANCING
   vReactorSeed = float( gl_InstanceID );
+  vec3 reactorInstanceCenter = instanceMatrix[ 3 ].xyz;
+  vec3 reactorInstanceDirection = reactorInstanceCenter /
+    max( length( reactorInstanceCenter ), 0.001 );
+  vReactorWave = clamp(
+    dot(
+      reactorInstanceDirection,
+      normalize( vec3( -0.68, 0.56, 0.48 ) )
+    ) * 0.5 + 0.5,
+    0.0,
+    1.0
+  );
 #else
   vReactorSeed = uReactorSeed;
+  vReactorWave = reactorVertexHash( vReactorSeed + 211.0 );
 #endif
 vReactorRandomA = vec4(
   reactorVertexHash( vReactorSeed + 1.0 ),
@@ -73,6 +86,7 @@ uniform vec3 uReactorConductorColor;
 varying vec2 vReactorUv;
 varying float vReactorFace;
 flat varying float vReactorSeed;
+flat varying float vReactorWave;
 flat varying vec4 vReactorRandomA;
 flat varying vec4 vReactorRandomB;
 

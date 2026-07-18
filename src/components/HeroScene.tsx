@@ -33,7 +33,6 @@ import {
   LayeredAssembly,
 } from '../lib/LayeredAssembly'
 import {
-  createAssemblyInnerMaterial,
   createAssemblySeamMaterial,
   updateAssemblySeamMaterial,
 } from '../lib/AssemblyGlow'
@@ -43,8 +42,10 @@ import {
   PLASMA_GEOMETRY,
   PLASMA_RADIUS,
   createFlashMaterial,
+  createGridMaterial,
   createPlasmaMaterial,
   updateFlashMaterial,
+  updateGridMaterial,
   updatePlasmaMaterial,
 } from '../lib/FireEffect'
 import {
@@ -82,10 +83,18 @@ const DIAMOND_ORIENTATION = new Quaternion()
   .multiply(new Quaternion().setFromUnitVectors(CORNER, UP))
 
 const INITIAL_X = 1.2
+const DESKTOP_SCENE_SCALE = 1.3
+const COMPACT_SCENE_SCALE = 0.82
+// After the edge roll the whole choreography is anchored at
+// INITIAL_X + 2 * contactHalfExtent (the no-slip roll displacement).
+// Desktop deliberately keeps the camera on the assembly point so the
+// settled reactor sits right of the text column; compact viewports aim
+// at the settled anchor instead so the show is centered.
+const settledCenterX = (scale: number) =>
+  INITIAL_X + 2 * (CUBE_SIZE / 2 + CUBE_STEP) * scale
 const CUBE_EDGE_RADIUS = 0.0225
 const ASSEMBLY_OUTER_SIZE = CUBE_STEP * 2 + CUBE_SIZE
 const ASSEMBLY_SEAM_SIZE = ASSEMBLY_OUTER_SIZE + 0.006
-const ASSEMBLY_INNER_GLOW_SIZE = ASSEMBLY_OUTER_SIZE - 0.24
 const ASSEMBLY_GLOW_LEAD = 0.1
 const ASSEMBLY_GLOW_ATTACK = 0.12
 const ASSEMBLY_GLOW_HOLD = 0.06
@@ -713,7 +722,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const plasmaWorldRadii = useMemo(() => new Vector3(), [])
   const compact = useThree((state) => state.size.width < 720)
   const setDpr = useThree((state) => state.setDpr)
-  const sceneScale = compact ? 0.82 : 1.3
+  const sceneScale = compact ? COMPACT_SCENE_SCALE : DESKTOP_SCENE_SCALE
   const contactHalfExtent = (CUBE_SIZE / 2 + CUBE_STEP) * sceneScale
   const rollDistance = contactHalfExtent * 2
   const diamondLift = contactHalfExtent * (Math.sqrt(3) - 1)
@@ -831,10 +840,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     () => createAssemblySeamMaterial(),
     [],
   )
-  const assemblyInnerMaterial = useMemo(
-    () => createAssemblyInnerMaterial(),
-    [],
-  )
+  const gridMaterial = useMemo(() => createGridMaterial(), [])
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
   const flashMaterial = useMemo(() => createFlashMaterial(), [])
   const reactorMaterial = useMemo(
@@ -1797,13 +1803,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     nucleusMaterial.emissiveIntensity = cubeletMaterial.emissiveIntensity
     const assemblyGlowVisible = assemblyGlow > 0.001
     assemblySeamMaterial.visible = assemblyGlowVisible
-    assemblyInnerMaterial.visible = assemblyGlowVisible
     updateAssemblySeamMaterial(
       assemblySeamMaterial,
       assembly.time,
       assemblyGlow * 0.32,
     )
-    assemblyInnerMaterial.opacity = assemblyGlow * 0.13
 
     const group = groupRef.current
     if (!group || !assembly.complete) {
@@ -2007,6 +2011,13 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     nucleusMaterial.opacity = 1 - gridProgress
     nucleusMaterial.emissiveIntensity =
       cubeletMaterial.emissiveIntensity + conversionGlow * 0.72
+    updateGridMaterial(
+      gridMaterial,
+      assembly.time,
+      gridProgress,
+      warmProgress,
+      finalExpandProgress,
+    )
     updatePlasmaMaterial(
       plasmaMaterial,
       assembly.time,
@@ -2062,7 +2073,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             receiveShadow
             material={nucleusMaterial}
           />
-
+          <mesh material={gridMaterial} renderOrder={2}>
+            <boxGeometry args={[CUBE_SIZE, CUBE_SIZE, CUBE_SIZE]} />
+          </mesh>
         </group>
 
         <instancedMesh
@@ -2074,20 +2087,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           castShadow
           receiveShadow
         />
-
-        <mesh
-          material={assemblyInnerMaterial}
-          renderOrder={1}
-          frustumCulled={false}
-        >
-          <boxGeometry
-            args={[
-              ASSEMBLY_INNER_GLOW_SIZE,
-              ASSEMBLY_INNER_GLOW_SIZE,
-              ASSEMBLY_INNER_GLOW_SIZE,
-            ]}
-          />
-        </mesh>
 
         <mesh
           material={assemblySeamMaterial}
@@ -2188,6 +2187,31 @@ function ReactorWarmSpotlight() {
       angle={0.52}
       penumbra={0.78}
       color="#ffb653"
+    />
+  )
+}
+
+/** Camera target: assembly point on desktop, settled post-roll anchor on
+ * compact viewports (keeps the long-lived phases screen-centered on
+ * phones — the cube rolls into center stage instead of out of it). */
+function SceneControls() {
+  const camera = useThree((state) => state.camera)
+  const compact = useThree((state) => state.size.width < 720)
+  const targetX = compact
+    ? settledCenterX(COMPACT_SCENE_SCALE)
+    : INITIAL_X
+
+  useLayoutEffect(() => {
+    camera.lookAt(targetX, 0, 0)
+  }, [camera, targetX])
+
+  return (
+    <OrbitControls
+      target={[targetX, 0, 0]}
+      enablePan={false}
+      enableZoom={false}
+      minPolarAngle={0.8}
+      maxPolarAngle={2.1}
     />
   )
 }
@@ -2345,7 +2369,7 @@ export default function HeroScene({
           camera={{ position: [4.8, 3.4, 7.2], fov: 43 }}
           dpr={[1, 1.5]}
           shadows
-          onCreated={({ camera }) => camera.lookAt(1.2, 0, 0)}
+          onCreated={({ camera }) => camera.lookAt(INITIAL_X, 0, 0)}
         >
           <color attach="background" args={['#050907']} />
           <fog attach="fog" args={['#050907', 10, 20]} />
@@ -2385,13 +2409,7 @@ export default function HeroScene({
             <ReactorWarmSpotlight />
           )}
           <AssemblyCube cardRef={cardRef} />
-          <OrbitControls
-            target={[1.2, 0, 0]}
-            enablePan={false}
-            enableZoom={false}
-            minPolarAngle={0.8}
-            maxPolarAngle={2.1}
-          />
+          <SceneControls />
         </Canvas>
       </div>
 

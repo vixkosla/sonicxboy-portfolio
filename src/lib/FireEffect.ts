@@ -1,6 +1,5 @@
 import {
   AddEquation,
-  AdditiveBlending,
   BoxGeometry,
   CustomBlending,
   Data3DTexture,
@@ -880,7 +879,7 @@ export function createGridMaterial() {
     vertexShader: gridVertexShader,
     fragmentShader: gridFragmentShader,
     transparent: true,
-    blending: AdditiveBlending,
+    blending: NormalBlending,
     depthWrite: false,
     depthTest: true,
     side: FrontSide,

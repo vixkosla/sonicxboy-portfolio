@@ -1,7 +1,6 @@
 import {
   AdditiveBlending,
   DoubleSide,
-  MeshBasicMaterial,
   ShaderMaterial,
 } from 'three'
 
@@ -78,21 +77,6 @@ export function createAssemblySeamMaterial() {
     depthWrite: false,
     depthTest: true,
     side: DoubleSide,
-    toneMapped: false,
-  })
-
-  material.visible = false
-  return material
-}
-
-export function createAssemblyInnerMaterial() {
-  const material = new MeshBasicMaterial({
-    color: '#eaf8ff',
-    transparent: true,
-    opacity: 0,
-    blending: AdditiveBlending,
-    depthWrite: false,
-    depthTest: true,
     toneMapped: false,
   })
 
