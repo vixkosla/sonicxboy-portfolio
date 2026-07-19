@@ -51,7 +51,9 @@ sonicxboy.io — свободны**. Юзернейм **@sonicxboy в Telegram �
 - [ ] Пользователь: сменить nameservers у Sav на `ns1.vercel-dns.com` /
       `ns2.vercel-dns.com` (поля Name Servers → Update)
 - [ ] После пропагации: проверить https://sonicxboy.dev и SSL
-- [ ] og:image (собрать из эмблемы BrandMark, 1200×630)
+- [x] og:image (`public/og.png`, 1200×630, собран из эмблемы BrandMark;
+      источник и инструкция регенерации — `docs/og-image.html`) + og:image/
+      twitter:card мета в `HomePage.astro` (2026-07-19)
 - [ ] Яндекс.Вебмастер + Метрика, Google Search Console (подтвердить, скормить sitemap)
 - [ ] Ссылка на домен во все профили: Kwork, Upwork, X bio, Telegram-канал,
       GitHub-профиль, YouDo, FL.ru, посты HN

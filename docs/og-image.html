@@ -1,0 +1,252 @@
+<!doctype html>
+<!--
+  Источник og:image (1200×630). Регенерация:
+  открыть файл в Chromium с вьюпортом 1200×630 и снять скриншот в public/og.png
+  (агент: playwright browser_navigate file://…/docs/og-image.html → screenshot).
+  Дизайн повторяет BrandMark.astro; шрифты берутся из node_modules.
+-->
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      @font-face {
+        font-family: 'Tektur Variable';
+        font-style: normal;
+        font-weight: 400 900;
+        src: url('../node_modules/@fontsource-variable/tektur/files/tektur-latin-wght-normal.woff2')
+          format('woff2-variations');
+      }
+      @font-face {
+        font-family: 'JetBrains Mono Variable';
+        font-style: normal;
+        font-weight: 100 800;
+        src: url('../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2')
+          format('woff2-variations');
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+      }
+
+      body {
+        --ink: #e8f5ee;
+        --ink-dim: rgba(218, 238, 229, 0.72);
+        --reactor: #18d383;
+        --mint: #7dffc7;
+        --bg: #050907;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 84px;
+        background:
+          radial-gradient(
+            860px 520px at 30% 46%,
+            rgba(24, 211, 131, 0.14),
+            transparent 68%
+          ),
+          radial-gradient(
+            720px 560px at 82% 88%,
+            rgba(24, 211, 131, 0.07),
+            transparent 70%
+          ),
+          var(--bg);
+        color: var(--ink);
+        text-transform: uppercase;
+        font-family: 'Tektur Variable', system-ui, sans-serif;
+      }
+
+      /* тонкие сканлайны, как на плашке эмблемы */
+      body::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent 0,
+          transparent 13px,
+          rgba(24, 211, 131, 0.035) 14px
+        );
+      }
+
+      /* ——— эмблема (копия BrandMark.astro, font-size задаёт масштаб) ——— */
+      .brand-mark {
+        --cut: 0.5em;
+        position: relative;
+        display: inline-block;
+        font-size: 56px;
+        line-height: 1;
+        filter: drop-shadow(0 0 0.9em rgba(24, 211, 131, 0.16));
+      }
+
+      .brand-mark__frame,
+      .brand-mark__plate {
+        clip-path: polygon(
+          var(--cut) 0,
+          calc(100% - var(--cut)) 0,
+          100% var(--cut),
+          100% calc(100% - var(--cut)),
+          calc(100% - var(--cut)) 100%,
+          var(--cut) 100%,
+          0 calc(100% - var(--cut)),
+          0 var(--cut)
+        );
+      }
+
+      .brand-mark__frame {
+        display: inline-block;
+        padding: 2px;
+        background: linear-gradient(
+          170deg,
+          rgba(125, 255, 199, 0.85),
+          rgba(24, 211, 131, 0.66) 42%,
+          rgba(10, 122, 76, 0.72)
+        );
+      }
+
+      .brand-mark__plate {
+        display: inline-grid;
+        justify-items: center;
+        row-gap: 0.16em;
+        padding: 0.5em 0.52em 0.55em;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            transparent 0,
+            transparent 0.36em,
+            rgba(24, 211, 131, 0.05) calc(0.36em + 1px)
+          ),
+          linear-gradient(165deg, rgba(9, 26, 19, 0.97), rgba(4, 11, 8, 0.99));
+      }
+
+      .brand-mark__line {
+        font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+        font-weight: 800;
+        line-height: 1;
+        white-space: nowrap;
+      }
+
+      .brand-mark__line--top {
+        letter-spacing: 0.1em;
+        margin-right: -0.1em;
+      }
+
+      .brand-mark__line--bottom {
+        font-size: 1.14em;
+        letter-spacing: 0.55em;
+        margin-right: -0.55em;
+      }
+
+      .brand-mark__rule {
+        justify-self: stretch;
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(24, 211, 131, 0.6) 18% 82%,
+          transparent
+        );
+      }
+
+      .brand-mark__x {
+        font-family: 'Tektur Variable', system-ui, sans-serif;
+        font-size: 4.35em;
+        font-weight: 900;
+        line-height: 0.8;
+        transform: scaleX(1.24);
+        background: linear-gradient(160deg, #7dffc7 8%, #18d383 46%, #0a7a4c 92%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        filter: drop-shadow(0 0 0.09em rgba(24, 211, 131, 0.55))
+          drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.3));
+      }
+
+      /* ——— правая колонка ——— */
+      .copy {
+        display: grid;
+        row-gap: 34px;
+        max-width: 560px;
+      }
+
+      .copy__title {
+        font-size: 66px;
+        font-weight: 700;
+        line-height: 1.04;
+        letter-spacing: 0.015em;
+      }
+
+      .copy__title em {
+        font-style: normal;
+        background: linear-gradient(160deg, #7dffc7 8%, #18d383 60%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .copy__rule {
+        height: 2px;
+        background: linear-gradient(
+          90deg,
+          rgba(24, 211, 131, 0.6),
+          rgba(24, 211, 131, 0.12) 70%,
+          transparent
+        );
+      }
+
+      .copy__stack {
+        font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+        font-size: 22px;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        white-space: nowrap;
+        color: var(--ink-dim);
+      }
+
+      .copy__stack b {
+        font-weight: 500;
+        color: var(--reactor);
+      }
+
+      .copy__site {
+        font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+        font-size: 27px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: var(--mint);
+        text-shadow: 0 0 18px rgba(24, 211, 131, 0.45);
+      }
+    </style>
+  </head>
+  <body>
+    <span class="brand-mark">
+      <span class="brand-mark__frame">
+        <span class="brand-mark__plate">
+          <span class="brand-mark__line brand-mark__line--top">Sonic</span>
+          <span class="brand-mark__rule"></span>
+          <span class="brand-mark__x">X</span>
+          <span class="brand-mark__rule"></span>
+          <span class="brand-mark__line brand-mark__line--bottom">Boy</span>
+        </span>
+      </span>
+    </span>
+
+    <div class="copy">
+      <h1 class="copy__title">WebGL<br /><em>Developer</em></h1>
+      <div class="copy__rule"></div>
+      <p class="copy__stack">
+        Three.js <b>·</b> WebGL <b>·</b> GLSL <b>·</b> React Three Fiber
+      </p>
+      <p class="copy__site">sonicxboy.dev</p>
+    </div>
+  </body>
+</html>
