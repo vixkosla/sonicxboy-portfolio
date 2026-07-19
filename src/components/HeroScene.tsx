@@ -105,6 +105,12 @@ const FOG_NEAR = 10
 const FOG_FAR = 20
 const SCATTER_HIDE_DISTANCE = 18.35
 const cameraAimScratch = new Vector3()
+// Dev-only: ?compact-preview forces the phone framing on a wide window so
+// the compact camera/staging can be inspected without resizing.
+const FORCE_COMPACT_PREVIEW =
+  import.meta.env.DEV &&
+  typeof window !== 'undefined' &&
+  new URLSearchParams(window.location.search).has('compact-preview')
 const CUBE_EDGE_RADIUS = 0.0225
 const ASSEMBLY_OUTER_SIZE = CUBE_STEP * 2 + CUBE_SIZE
 const ASSEMBLY_SEAM_SIZE = ASSEMBLY_OUTER_SIZE + 0.006
@@ -737,7 +743,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const plasmaWorldCenter = useMemo(() => new Vector3(), [])
   const plasmaProxyCenter = useMemo(() => new Vector3(), [])
   const plasmaWorldRadii = useMemo(() => new Vector3(), [])
-  const compact = useThree((state) => state.size.width < 720)
+  const compact =
+    useThree((state) => state.size.width < 720) || FORCE_COMPACT_PREVIEW
   const setDpr = useThree((state) => state.setDpr)
   const sceneScale = compact ? COMPACT_SCENE_SCALE : DESKTOP_SCENE_SCALE
   const contactHalfExtent = (CUBE_SIZE / 2 + CUBE_STEP) * sceneScale
@@ -2222,7 +2229,8 @@ function ReactorWarmSpotlight() {
 function SceneControls() {
   const camera = useThree((state) => state.camera)
   const scene = useThree((state) => state.scene)
-  const compact = useThree((state) => state.size.width < 720)
+  const compact =
+    useThree((state) => state.size.width < 720) || FORCE_COMPACT_PREVIEW
   const targetX = compact
     ? settledCenterX(COMPACT_SCENE_SCALE)
     : INITIAL_X
@@ -2239,6 +2247,15 @@ function SceneControls() {
     if (scene.fog instanceof Fog) {
       scene.fog.near = FOG_NEAR + extra
       scene.fog.far = FOG_FAR + extra
+    }
+
+    if (import.meta.env.DEV) {
+      ;(window as unknown as Record<string, unknown>).__sceneDebug = {
+        camera,
+        scene,
+        compact,
+        targetX,
+      }
     }
   }, [camera, scene, compact, targetX])
 
