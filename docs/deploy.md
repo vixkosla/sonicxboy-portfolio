@@ -48,9 +48,15 @@ sonicxboy.io — свободны**. Юзернейм **@sonicxboy в Telegram �
 - [x] Прод задеплоен с новым каноническим адресом, alias
       `sonicxboy.dev` назначен на деплой, SSL выпустится автоматически
       после смены NS (2026-07-19)
-- [ ] Пользователь: сменить nameservers у Sav на `ns1.vercel-dns.com` /
-      `ns2.vercel-dns.com` (поля Name Servers → Update)
+- [x] Пользователь: сменить nameservers у Sav на `ns1.vercel-dns.com` /
+      `ns2.vercel-dns.com` — сделано 2026-07-19, Sav пушит в реестр
+      «за несколько часов, до 2 суток». Проверка публикации делегации:
+      `dig +norecurse NS sonicxboy.dev @ns-tld1.charlestonroadregistry.com`
+- [x] `www.sonicxboy.dev` → 308-редирект на apex (PATCH через Vercel API,
+      2026-07-19); зона Vercel DNS готова (apex ALIAS + wildcard)
 - [ ] После пропагации: проверить https://sonicxboy.dev и SSL
+- [ ] Опционально после пропагации: сделать sonicxboy.vercel.app
+      редиректом на домен (пока оставлен как резервный URL)
 - [x] og:image (`public/og.png`, 1200×630, собран из эмблемы BrandMark;
       источник и инструкция регенерации — `docs/og-image.html`) + og:image/
       twitter:card мета в `HomePage.astro` (2026-07-19)
