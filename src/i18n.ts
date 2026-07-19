@@ -1,4 +1,4 @@
-export const SITE = 'https://sonicxboy.vercel.app'
+export const SITE = 'https://sonicxboy.dev'
 
 export type Lang = 'ru' | 'en'
 

@@ -1,6 +1,8 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://sonicxboy.dev/sitemap-index.xml
+
 # AI crawlers are welcome — see /llms.txt
 User-agent: GPTBot
 Allow: /

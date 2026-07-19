@@ -1,13 +1,20 @@
 # Деплой и инфраструктура
 
-Обновлено: 2026-07-17
+Обновлено: 2026-07-19
 
 ## Продакшен
 
-- **URL:** https://sonicxboy.vercel.app
+- **Домен:** https://sonicxboy.dev — куплен 2026-07-18 на Sav.com
+  (истекает 2027-07-18, автопродление включено, transfer-lock до 2026-09-18,
+  WHOIS-privacy включён). Привязан к Vercel-проекту вместе с
+  `www.sonicxboy.dev`; для активации у регистратора должны стоять
+  nameservers `ns1.vercel-dns.com` / `ns2.vercel-dns.com`.
+- **Резервный URL:** https://sonicxboy.vercel.app (работает всегда)
 - **Платформа:** Vercel (статический Astro-билд, адаптер не нужен)
 - **Проект:** `sonicxboy` в аккаунте `askerovtamerlan` (team `askerovtamerlans-projects`)
 - Локальная привязка — каталог `.vercel/` (в .gitignore)
+- Канонический адрес зашит константой `SITE` в `src/i18n.ts`
+  (canonical/hreflang/og:url/JSON-LD) и `site` в `astro.config.mjs` (sitemap)
 
 ## Команды
 
@@ -34,12 +41,15 @@ sonicxboy.io — свободны**. Юзернейм **@sonicxboy в Telegram �
 
 ## Чеклист после подключения домена
 
-- [ ] `astro.config.mjs`: `site: 'https://<домен>'`
-- [ ] `@astrojs/sitemap` + строка `Sitemap:` в `public/robots.txt`
-- [ ] `<link rel="canonical">`, `og:url`
+- [x] `astro.config.mjs`: `site: 'https://sonicxboy.dev'` (2026-07-19)
+- [x] `@astrojs/sitemap` + строка `Sitemap:` в `public/robots.txt` (2026-07-19)
+- [x] `<link rel="canonical">`, `og:url` — через SITE в `src/i18n.ts` (2026-07-19)
+- [x] Обновлены ссылки в `public/llms.txt` на sonicxboy.dev (2026-07-19)
+- [ ] Пользователь: сменить nameservers у Sav на `ns1.vercel-dns.com` /
+      `ns2.vercel-dns.com` (поля Name Servers → Update)
+- [ ] После пропагации: проверить https://sonicxboy.dev и SSL
 - [ ] og:image (собрать из эмблемы BrandMark, 1200×630)
 - [ ] Яндекс.Вебмастер + Метрика, Google Search Console (подтвердить, скормить sitemap)
-- [ ] Обновить ссылки в `public/llms.txt` (если появятся абсолютные на себя)
 - [ ] Ссылка на домен во все профили: Kwork, Upwork, X bio, Telegram-канал,
       GitHub-профиль, YouDo, FL.ru, посты HN
 - [ ] Обновить URL в закрепе Telegram-канала и X-треде о запуске
