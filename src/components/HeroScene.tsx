@@ -98,7 +98,7 @@ const settledCenterX = (scale: number) =>
 // pulls the camera back along the same axis; fog and the scatter-hide
 // distance shift by the same delta to keep the depth story identical.
 const CAMERA_BASE_OFFSET = new Vector3(3.6, 3.4, 7.2)
-const COMPACT_CAMERA_PULLBACK = 1.6
+const COMPACT_CAMERA_PULLBACK = 1.45
 const COMPACT_CAMERA_EXTRA_DISTANCE =
   CAMERA_BASE_OFFSET.length() * (COMPACT_CAMERA_PULLBACK - 1)
 const FOG_NEAR = 10
