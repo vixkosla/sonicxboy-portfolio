@@ -45,6 +45,9 @@ sonicxboy.io — свободны**. Юзернейм **@sonicxboy в Telegram �
 - [x] `@astrojs/sitemap` + строка `Sitemap:` в `public/robots.txt` (2026-07-19)
 - [x] `<link rel="canonical">`, `og:url` — через SITE в `src/i18n.ts` (2026-07-19)
 - [x] Обновлены ссылки в `public/llms.txt` на sonicxboy.dev (2026-07-19)
+- [x] Прод задеплоен с новым каноническим адресом, alias
+      `sonicxboy.dev` назначен на деплой, SSL выпустится автоматически
+      после смены NS (2026-07-19)
 - [ ] Пользователь: сменить nameservers у Sav на `ns1.vercel-dns.com` /
       `ns2.vercel-dns.com` (поля Name Servers → Update)
 - [ ] После пропагации: проверить https://sonicxboy.dev и SSL
