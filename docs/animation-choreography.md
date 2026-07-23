@@ -521,24 +521,25 @@ attack, ease-in-out travel, lingering release), which the user asked to keep
 alive as a separate graphic figure while the on-sphere arcs returned to the
 jagged electric read.
 
-- One ellipse line (`560 x 70` in a `1200 x 360` viewBox,
-  `pathLength=100`) repeated in eleven tight vertical storeys, so the
-  lanes stand as walls of an elliptical cylinder — crossings emerge only
-  in the viewer's projection, never by construction. Every ring is split
-  into a far arc (an svg painted before the text) and a near arc (a
-  mirrored, identically positioned svg painted after it), so the flat
-  copy occludes the far halves while the near halves pass in front — the
-  text stands inside the wall. Paired arcs share their timing, keeping
-  the two comet pulses diametrically opposite. Desktop width matches the
-  measured headline width (`75vh`, the `11vh` font cap) and is
-  left-aligned with the hero gutter; the wall is raised so the subtitle
-  and badges sit inside it (`bottom: 14vh`). On compact viewports it
-  anchors at the headline's lower edge with the same offset math as the
-  reactor card top, at `84vw` (the mobile headline measures ~`83vw`).
-- Each storey carries a three-layer pulse — a wide faint emerald halo
+- Nine nested ellipse lanes (`1200 x 460` viewBox, `pathLength=100`):
+  the first draft's concentric arrangement (larger outside, smaller
+  inside, never crossing by construction) extruded ~`1.8x` vertically
+  into a cylindrical oval (`560 x 209` outermost down to `382 x 104`).
+  Every ring is split into a far arc (an svg painted before the text)
+  and a near arc (a mirrored, identically positioned svg painted after
+  it), so the flat copy occludes the far halves while the near halves
+  pass in front — the text stands inside the oval. Paired arcs share
+  their timing, keeping the two comet pulses diametrically opposite.
+  Desktop width matches the measured headline width (`75vh`, the `11vh`
+  font cap) and is left-aligned with the hero gutter; the oval is raised
+  so the subtitle and badges sit inside it (`bottom: 14vh`). On compact
+  viewports it anchors at the headline's lower edge with the same offset
+  math as the reactor card top, at `84vw` (the mobile headline measures
+  ~`83vw`).
+- Each lane carries a three-layer pulse — a wide faint emerald halo
   (`20%` dash), a body (`13%`) tinted from the site's green family in a
-  vertical grade (`#0f6e4a` deep at the base through `#18d383` emerald
-  mid-wall to `#7dffc9` pale mint at the top rim), and a white-hot
+  depth grade (`#0a5236` deep at the outermost lane through `#18d383`
+  emerald mid-band to `#4be8b3` pale mint innermost), and a white-hot
   filament (`6%`) riding the body's leading edge —
   plus a shorter echo pulse on the reverse course. Layered strokes
   replace blur filters, mirroring the grid cage's core-plus-halo recipe.

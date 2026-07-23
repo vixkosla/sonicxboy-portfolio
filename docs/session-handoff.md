@@ -48,12 +48,15 @@ awaiting the user's visual review in the normal browser:
   from flat additive emission into the blue shell's own `shellColor`
   emission — the glow is shaped by the shell's real density and occluded
   by its transmittance, so blocks light from within.
-- **Oval v3 — the depth illusion**: every ring split into a far arc
-  (svg before the text) and a near arc (mirrored svg after it), so the
-  flat copy occludes far halves while near halves pass in front. Storeys
-  `7 -> 11`, tighter stack, whole wall raised (`bottom: 14vh`) so the
-  subtitle and badges sit inside it. Paired arcs share timing
-  (diametrically opposite pulses).
+- **Oval v4 — cylindrical oval from the approved nested arrangement**
+  (user correction: the stacked identical rings of v3 were NOT what
+  "extrude vertically" meant — restore the first draft's concentric
+  lanes, then stretch them): nine nested ellipses (`560 x 209` down to
+  `382 x 104`, ~`1.8x` the original vertical radii), never crossing by
+  construction. The far/near arc split (the depth illusion) is kept:
+  flat copy occludes far halves, near halves pass in front. Greens grade
+  deep-outside to pale-inside; width still matches the headline;
+  `bottom: 14vh`; compact anchored at the headline's lower edge.
 - New dev preview `?plasma-preview=arcnet` freezes a three-stroke
   branched network with the thunderclap glow.
 
