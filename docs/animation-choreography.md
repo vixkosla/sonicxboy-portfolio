@@ -442,6 +442,20 @@ anywhere in the effect:
   are attenuated naturally by the flame's own transmittance. (The earlier
   smooth-glide surface treatment moved off the scene onto the DOM title
   oval described below.)
+  Each surface strike also carries a **thunderclap illumination** that
+  follows the real lightning order: the strike first travels a stretch of
+  path in the dark, then a circular gradient flash ignites around the
+  midpoint of the visible channel once the head is a third along its
+  travel (`0.09s` ramp), and the glow lingers with a slow `3.2/s` afterglow
+  while the strike travels on. The gradient is centered halfway along the
+  currently traveled channel (so it trails the head), spans about `0.55`
+  radians with a squared shoulder, is confined to the shell by a radial
+  band at the lane's radius, and is broken into patches by the shell's own
+  broad/ridged noise — neighboring blocks of the blue shell light up
+  rather than a flat disc being painted. The scheduler passes the
+  illumination envelope in the previously unused `uSurfParam.w`; the
+  active window per event extends to `travel + 0.8s` so the afterglow is
+  never clipped.
 - **Stream strikes** begin at 70% of the final expansion (`19.84s`) and
   propagate up the seven existing stream centerlines in deterministic bursts.
   Each burst contains two or three hits. Starts inside the burst are spaced
@@ -491,25 +505,32 @@ attack, ease-in-out travel, lingering release), which the user asked to keep
 alive as a separate graphic figure while the on-sphere arcs returned to the
 jagged electric read.
 
-- Seven concentric ellipse lanes (`viewBox 1200 x 320`, `pathLength=100`)
-  form one thin band under the text block; desktop placement is absolute,
-  left-aligned with the hero gutter and bottom-anchored inside `main`,
-  height-capped at `15vh`; on compact viewports it anchors directly under
-  the headline block with the same offset math as the reactor card top.
+- Seven ellipse lanes (`viewBox 1200 x 360`, `pathLength=100`) with lane
+  heights varied independently of widths, so the lanes cross one another
+  instead of nesting. Desktop width matches the measured headline width
+  (`75vh`, the `11vh` font cap) and is left-aligned with the hero gutter;
+  on compact viewports it anchors directly under the headline block with
+  the same offset math as the reactor card top, at `84vw` (the mobile
+  headline measures ~`83vw`).
 - Each lane carries a three-layer pulse — a wide faint emerald halo
-  (`20%` dash), a mint body (`13%`), and a white-hot filament (`6%`) riding
-  the body's leading edge — plus a shorter echo pulse on the reverse
-  course. Layered strokes replace blur filters, mirroring the grid cage's
-  core-plus-halo recipe.
+  (`20%` dash), a body (`13%`) tinted per lane from the site's green
+  family (`#0f6e4a` deep through `#18d383` emerald to `#7dffc9` pale
+  mint), and a white-hot filament (`6%`) riding the body's leading edge —
+  plus a shorter echo pulse on the reverse course. Layered strokes
+  replace blur filters, mirroring the grid cage's core-plus-halo recipe.
 - Every pulse runs one lap per cycle: it fades in over the first 7%,
   glides with a `cubic-bezier(0.37, 0, 0.63, 1)` ease-in-out, and fades
   out through the last quarter. Per-lane durations (`5.7..9.1s`), negative
   delays, peak opacities (`0.62..1.0`), and alternating directions are
   fixed constants — pure CSS, no JavaScript, no per-frame cost — so
   segments of the oval keep appearing and disappearing in places and the
-  band stays loosely filled.
-- The oval fades out with the `reactor-card-visible` body class, together
-  with the badges it supports.
+  figure stays loosely filled.
+- The oval is hidden until the first orbit title wave
+  (`data-orbit-title-wave='outer-approach'`) reaches the headline:
+  `HeroScene` sets the persistent `data-oval-on` body attribute at that
+  one beat, and the oval fades in over `1.6s` — the energy wave that first
+  paints the title also powers its support. It fades back out with the
+  `reactor-card-visible` body class, together with the badges it supports.
 
 ## Collision and continuity invariants
 

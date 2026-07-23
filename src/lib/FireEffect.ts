@@ -640,6 +640,36 @@ void main() {
            vec3(0.95, 0.98, 1.0) *
             (surfLong * surfCore * 2.2 + surfHeadGlow * surfCore * 4.0)) *
           surfAxis.w * uRimProgress;
+        // Thunderclap shell illumination: like a real lightning flash, the
+        // glow around the channel's midpoint ignites only after the head
+        // has traveled a stretch of path and lingers while the strike
+        // travels on. A circular gradient centered halfway along the
+        // visible channel lights the neighboring blocks of the blue shell;
+        // the shell's own noise structure breaks the glow into patches
+        // instead of a flat disc, and a radial band keeps it on the shell.
+        float surfIllum = surfParam.w;
+        if (surfIllum > 0.001) {
+          float illumCenter = surfParam.x * 0.5;
+          vec3 illumDir =
+            surfTan.xyz * cos(illumCenter) + surfTanB * sin(illumCenter);
+          float illumProximity = max(
+            dot(plasmaDir, illumDir) - 0.8525,
+            0.0
+          ) / 0.1475;
+          float illumFall = illumProximity * illumProximity;
+          float illumRadial = exp(
+            -abs(sphereRadius - surfParam.z * blueEnvelopeScale) * 5.0
+          );
+          float illumStructure = 0.45 + 0.55 * smoothstep(
+            0.2,
+            0.8,
+            broadNoise * 0.55 + ridgeNoise * 0.45
+          );
+          arcEmission +=
+            (vec3(0.45, 0.72, 1.0) * 2.6 + vec3(0.95, 0.98, 1.0) * 0.8) *
+            illumFall * illumRadial * illumStructure * surfIllum *
+            uRimProgress;
+        }
       }
     }
     float strandBreakup = 0.22 + 0.78 * smoothstep(
@@ -1182,6 +1212,7 @@ export function updatePlasmaMaterial(
     radius: number
     seed: number
     envelope: number
+    illum: number
   }[],
 ) {
   material.uniforms.uTime.value = time
@@ -1226,7 +1257,12 @@ export function updatePlasmaMaterial(
         surface.tanA[2],
         surface.seed,
       )
-      paramTarget.set(surface.headAngle, surface.span, surface.radius, 0)
+      paramTarget.set(
+        surface.headAngle,
+        surface.span,
+        surface.radius,
+        surface.illum,
+      )
     }
   }
 }

@@ -962,6 +962,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         radius: 0.97,
         seed: 8.3,
         envelope: 1,
+        illum: 1,
       }
     }
     return scheduler
@@ -1871,6 +1872,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     cardRef.current?.setAttribute('inert', '')
     document.body.classList.remove('reactor-card-visible')
     document.body.removeAttribute('data-orbit-title-wave')
+    document.body.removeAttribute('data-oval-on')
     if (previewMaterialBaseline) {
       document.body.setAttribute('data-material-baseline', '')
     } else {
@@ -1888,6 +1890,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       cardRef.current?.setAttribute('inert', '')
       document.body.classList.remove('reactor-card-visible')
       document.body.removeAttribute('data-orbit-title-wave')
+      document.body.removeAttribute('data-oval-on')
       document.body.removeAttribute('data-material-baseline')
     }
   }, [
@@ -2019,6 +2022,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     ) {
       document.body.dataset.orbitTitleWave =
         TITLE_WAVE_STAGES[titleWaveStep.current]
+      // The first energy wave reaching the headline also ignites its
+      // air-support oval — one choreographed beat, set only once.
+      if (titleWaveStep.current === 0) {
+        document.body.dataset.ovalOn = ''
+      }
       titleWaveStep.current += 1
     }
 

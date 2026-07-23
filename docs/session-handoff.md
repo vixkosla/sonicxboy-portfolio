@@ -27,7 +27,38 @@ for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
 ## Next session start point
 
-The latest pass (2026-07-23) split the surface-arc treatment in two at the
+Follow-up on the same day (2026-07-23), also awaiting the user's visual
+review in the normal browser:
+
+- **Thunderclap shell illumination** (user's art direction, "like a real
+  lightning flash"): each surface strike now lights the neighboring blocks
+  of the blue shell with a circular gradient around the midpoint of the
+  visible channel. It ignites only after the head has traveled a third of
+  its path, ramps over `0.09s`, and lingers with a `3.2/s` afterglow while
+  the strike travels on. The gradient trails the head (centered at half
+  the traveled angle), spans ~`0.55` rad with a squared shoulder, is
+  radially confined to the lane's shell band, and is broken into patches
+  by the shell's own noise. The envelope travels in `uSurfParam.w`
+  (previously unused); the per-event active window extends to
+  `travel + 0.8s`. Numerics re-measured: duty `71.5%`, two-or-more
+  `23.7%`, radius band `[0.941, 1.009]`, deterministic.
+- **Oval v2**: lanes now cross (heights vary independently of widths),
+  per-lane greens from the site family (`#0f6e4a..#7dffc9`), and size
+  matches the measured headline width (`75vh` desktop / `84vw` compact).
+  The oval is hidden until the first orbit title wave reaches the
+  headline — `HeroScene` sets `data-oval-on` at that beat (`1.6s`
+  fade-in) — and still fades with `reactor-card-visible`.
+
+Validation: `pnpm build` and `git diff --check` pass; headless Chromium
+captures of `?plasma-preview=arcsurf`/`=arcrev` show the thunderclap glow
+patch on both shell states; the oval was captured at two moments on
+desktop (full headline width, visible lane crossings) and `390 x 844`
+compact; zero console errors. The live ignition beat rides the proven
+title-wave trigger (headless story-clock throttling prevents a wall-clock
+timing check in this environment; the mechanism is one added line inside
+the existing wave loop).
+
+The earlier pass (2026-07-23) split the surface-arc treatment in two at the
 user's art direction and awaits the user's visual review in the normal
 browser:
 

@@ -27,6 +27,12 @@ export interface SurfaceDischargeState {
   radius: number
   seed: number
   envelope: number
+  /**
+   * Thunderclap shell illumination: lags the strike like a real lightning
+   * flash (it ignites once the head has traveled a third of the path) and
+   * outlives it with a slower afterglow while the strike travels on.
+   */
+  illum: number
 }
 
 const STRIKE_ATTACK = 0.02
@@ -36,10 +42,17 @@ const STRIKE_RELEASE_DECAY = 15
 // restore on the shell (the smooth glide now lives in the DOM title oval).
 const SURFACE_ATTACK = 0.03
 const SURFACE_RELEASE_DECAY = 10
+// The thunderclap glow on the shell follows the real lightning order: the
+// strike first travels a stretch of path in the dark, the flash around the
+// channel's midpoint ignites by mid-travel, and the glow lingers after the
+// strike itself has ended.
+const SURFACE_ILLUM_LEAD = 0.33
+const SURFACE_ILLUM_ATTACK = 0.09
+const SURFACE_ILLUM_DECAY = 3.2
 const STREAM_TRAVEL_DURATION = 0.3
 const SURFACE_TRAVEL_DURATION = 0.45
 const STREAM_ACTIVE_WINDOW = STREAM_TRAVEL_DURATION + 0.24
-const SURFACE_ACTIVE_WINDOW = SURFACE_TRAVEL_DURATION + 0.5
+const SURFACE_ACTIVE_WINDOW = SURFACE_TRAVEL_DURATION + 0.8
 
 const STREAM_COUNT = 7
 const STREAM_HEAD_START = 0.3
@@ -151,6 +164,7 @@ export class DischargeScheduler {
         radius: 1.7,
         seed: 0,
         envelope: 0,
+        illum: 0,
       })
       this.surfaceLanes.push({
         next: Number.NaN,
@@ -167,7 +181,10 @@ export class DischargeScheduler {
     this.peak = 0
     if (!this.enabled) {
       for (const stream of this.streams) stream.envelope = 0
-      for (const surface of this.surfaces) surface.envelope = 0
+      for (const surface of this.surfaces) {
+        surface.envelope = 0
+        surface.illum = 0
+      }
       return
     }
     if (this.previewStream) Object.assign(this.streams[0], this.previewStream)
@@ -259,10 +276,20 @@ export class DischargeScheduler {
         elapsed > SURFACE_ACTIVE_WINDOW
       ) {
         output.envelope = 0
+        output.illum = 0
       } else {
         output.envelope = surfaceEnvelope(elapsed)
         output.headAngle =
           output.span * surfaceTravelEase(elapsed / SURFACE_TRAVEL_DURATION)
+        output.illum =
+          clamp01(
+            (elapsed - SURFACE_TRAVEL_DURATION * SURFACE_ILLUM_LEAD) /
+              SURFACE_ILLUM_ATTACK,
+          ) *
+          Math.exp(
+            -Math.max(elapsed - SURFACE_TRAVEL_DURATION, 0) *
+              SURFACE_ILLUM_DECAY,
+          )
       }
       this.peak = Math.max(this.peak, output.envelope)
     }
