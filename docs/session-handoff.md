@@ -42,12 +42,18 @@ review in the normal browser:
   (previously unused); the per-event active window extends to
   `travel + 0.8s`. Numerics re-measured: duty `71.5%`, two-or-more
   `23.7%`, radius band `[0.941, 1.009]`, deterministic.
-- **Oval v2**: lanes now cross (heights vary independently of widths),
-  per-lane greens from the site family (`#0f6e4a..#7dffc9`), and size
-  matches the measured headline width (`75vh` desktop / `84vw` compact).
-  The oval is hidden until the first orbit title wave reaches the
-  headline — `HeroScene` sets `data-oval-on` at that beat (`1.6s`
-  fade-in) — and still fades with `reactor-card-visible`.
+- **Oval v2 (revised same day after user correction)**: one ellipse line
+  (`560 x 70`) repeated in seven vertical storeys — the lanes stand as
+  **walls of an elliptical cylinder**; crossings emerge only in the
+  viewer's projection, never by construction (the first v2 draft's
+  deliberately crossing ellipses were rejected). Greens grade vertically
+  (`#0f6e4a` base → `#18d383` mid → `#7dffc9` top rim), size matches the
+  measured headline width (`75vh` desktop / `84vw` compact), and the wall
+  is raised so its upper storeys pass behind the subtitle and badges
+  (`bottom: 9vh`; compact: tucked at the headline's lower edge). The oval
+  is hidden until the first orbit title wave reaches the headline —
+  `HeroScene` sets `data-oval-on` at that beat (`1.6s` fade-in) — and
+  still fades with `reactor-card-visible`.
 
 Validation: `pnpm build` and `git diff --check` pass; headless Chromium
 captures of `?plasma-preview=arcsurf`/`=arcrev` show the thunderclap glow

@@ -2,6 +2,7 @@
 import '@fontsource-variable/tektur'
 import '@fontsource/faster-one'
 import '@fontsource/monoton'
+import '@fontsource/rubik-mono-one'
 import '@fontsource-variable/onest'
 import '@fontsource-variable/jetbrains-mono'
 import BrandMark from '../components/BrandMark.astro'
@@ -133,6 +134,7 @@ const websiteSchema = {
         --bg: #050907;
         --card-h: clamp(300px, 27.5vh, 360px);
         --font-display: 'Tektur Variable', system-ui, sans-serif;
+        --font-slab: 'Rubik Mono One', 'Tektur Variable', system-ui, sans-serif;
         --font-body: 'Onest Variable', system-ui, sans-serif;
         --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
         --safe-top: env(safe-area-inset-top, 0px);
@@ -448,18 +450,22 @@ const websiteSchema = {
       :global(.reactor-card h2) {
         position: relative;
         z-index: 1;
-        margin: 0 0 0.72rem;
-        font-family: var(--font-display);
-        font-size: clamp(1.2rem, 2vw, 1.5rem);
-        font-weight: 600;
-        letter-spacing: 0.01em;
+        margin: 0 0 0.85rem;
+        font-family: var(--font-slab);
+        font-size: clamp(0.95rem, 1.32vw, 1.28rem);
+        font-weight: 400;
+        letter-spacing: 0.02em;
+        text-transform: uppercase;
         text-shadow: 0 1px 10px rgba(2, 10, 7, 0.92);
       }
 
+      /* Three glyph slabs: uppercase Rubik Mono One, both edges
+         justified, one shared top rule so the blocks read as three
+         stone tablets hanging from the same line. */
       :global(.reactor-card__body) {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: clamp(1.75rem, 3vw, 3.75rem);
+        gap: clamp(1.5rem, 2.6vw, 3.25rem);
         align-items: start;
         width: 100%;
       }
@@ -467,11 +473,16 @@ const websiteSchema = {
       :global(.reactor-card p) {
         position: relative;
         z-index: 1;
-        color: rgba(218, 238, 229, 0.74);
-        max-width: 58ch;
-        font-size: clamp(0.86rem, 0.76vw, 0.94rem);
-        line-height: 1.48;
-        text-wrap: pretty;
+        color: rgba(224, 243, 234, 0.8);
+        border-top: 1px solid rgba(24, 211, 131, 0.34);
+        padding-top: 0.72rem;
+        font-family: var(--font-slab);
+        font-size: clamp(0.55rem, 0.62vw, 0.72rem);
+        line-height: 1.62;
+        letter-spacing: 0.01em;
+        text-transform: uppercase;
+        text-align: justify;
+        hyphens: auto;
         text-shadow: 0 1px 8px rgba(2, 10, 7, 0.94);
       }
 
@@ -759,17 +770,19 @@ const websiteSchema = {
       }
 
       /* ── Air-support oval ─────────────────────────────────────
-         Crossing ellipse lanes carrying smooth impulse pulses:
-         each pulse fades in, glides one lap with ease-in-out, then
-         fades out — the figure reads as loosely filled, appearing
-         and disappearing in places. Lane heights vary independently
-         of widths, so lanes cross instead of nesting. Width matches
-         the measured headline width (75vh on desktop). Hidden until
-         the first orbit title wave ignites it; fades with the card. */
+         One ellipse line repeated in vertical storeys, so the lanes
+         stand as walls of an elliptical cylinder; crossings emerge
+         only in the viewer's projection. Each pulse fades in, glides
+         one lap with ease-in-out, then fades out — the figure reads
+         as loosely filled, appearing and disappearing in places.
+         Width matches the measured headline width (75vh on desktop);
+         the wall is raised so its upper storeys pass behind the
+         subtitle and badges. Hidden until the first orbit title
+         wave ignites it; fades with the card. */
       .hero-oval {
         position: absolute;
         left: clamp(1.5rem, 8vw, 9rem);
-        bottom: clamp(0.75rem, 2.5vh, 2rem);
+        bottom: clamp(0.75rem, 9vh, 6rem);
         width: min(66rem, 75vh);
         aspect-ratio: 1200 / 360;
         pointer-events: none;
@@ -926,7 +939,10 @@ const websiteSchema = {
 
         :global(.reactor-card__body p:last-child) {
           grid-column: 1 / -1;
-          max-width: 74ch;
+        }
+
+        :global(.reactor-card p) {
+          font-size: clamp(0.55rem, 0.86vw, 0.68rem);
         }
       }
 
@@ -1041,15 +1057,16 @@ const websiteSchema = {
         }
 
         /* The oval anchors directly under the headline block (same offset
-           math as the reactor card top) and stays clear of the solo scene
-           stage below it. Width matches the mobile headline (~83vw). */
+           math as the reactor card top), its upper storeys tucked behind
+           the headline's lower edge. Width matches the mobile headline
+           (~83vw). */
         .hero-oval {
           --oval-visibility: 0.5;
           left: calc(var(--safe-left) + 1.25rem);
           bottom: auto;
           top: calc(
             var(--safe-top) + 7.6rem + 0.82rem + 0.7rem +
-            min(32.24vw, 14.56svh) + 1.2rem
+            min(32.24vw, 14.56svh) + 0.4rem
           );
           width: 84vw;
         }
@@ -1130,13 +1147,12 @@ const websiteSchema = {
 
         :global(.reactor-card h2) {
           margin-bottom: 0.62rem;
-          font-size: 1.08rem;
+          font-size: 0.88rem;
         }
 
         :global(.reactor-card p) {
-          max-width: none;
-          font-size: 0.82rem;
-          line-height: 1.42;
+          font-size: 0.58rem;
+          line-height: 1.58;
         }
       }
 
@@ -1221,7 +1237,7 @@ const websiteSchema = {
 
         :global(.reactor-card h2) {
           margin-bottom: 0.55rem;
-          font-size: 1rem;
+          font-size: 0.82rem;
         }
 
         :global(.reactor-card__body) {
@@ -1234,9 +1250,8 @@ const websiteSchema = {
         }
 
         :global(.reactor-card p) {
-          max-width: none;
-          font-size: 0.76rem;
-          line-height: 1.36;
+          font-size: 0.56rem;
+          line-height: 1.54;
         }
 
         :global(.reactor-card__actions) {
@@ -1288,52 +1303,53 @@ const websiteSchema = {
     </nav>
 
     <main>
-      {/* Air-support oval under the headline + stack: many smooth impulse
-          pulses travel crossing ellipse lanes and fade in/out, so the
-          figure reads as loosely filled. Ignites with the first orbit
-          title wave; pure CSS, deterministic. */}
+      {/* Air-support oval under the headline + stack: one ellipse line
+          repeats in vertical storeys, so the lanes stand as walls of an
+          elliptical cylinder — crossings emerge only in the viewer's
+          projection. Greens grade from deep at the base to pale at the
+          top rim. Ignites with the first orbit title wave; pure CSS. */}
       <svg class="hero-oval" viewBox="0 0 1200 360" aria-hidden="true">
-        <g style="--dur:6.8s;--delay:-1.2s;--peak:0.62;--lane-color:#0e8f5a">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 20 180 A 580 148 0 1 1 1180 180 A 580 148 0 1 1 20 180 Z" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 20 180 A 580 148 0 1 1 1180 180 A 580 148 0 1 1 20 180 Z" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 20 180 A 580 148 0 1 1 1180 180 A 580 148 0 1 1 20 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.4s;--delay:-5.1s" pathLength="100" d="M 20 180 A 580 148 0 1 1 1180 180 A 580 148 0 1 1 20 180 Z" />
+        <g style="--dur:6.8s;--delay:-1.2s;--peak:0.62;--lane-color:#0f6e4a">
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 260 A 560 70 0 1 1 1160 260 A 560 70 0 1 1 40 260 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 260 A 560 70 0 1 1 1160 260 A 560 70 0 1 1 40 260 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 260 A 560 70 0 1 1 1160 260 A 560 70 0 1 1 40 260 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.4s;--delay:-5.1s" pathLength="100" d="M 40 260 A 560 70 0 1 1 1160 260 A 560 70 0 1 1 40 260 Z" />
         </g>
-        <g style="--dur:8.2s;--delay:-4.6s;--peak:0.78;--lane-color:#14b874">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 60 180 A 540 118 0 1 1 1140 180 A 540 118 0 1 1 60 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 60 180 A 540 118 0 1 1 1140 180 A 540 118 0 1 1 60 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 60 180 A 540 118 0 1 1 1140 180 A 540 118 0 1 1 60 180 Z" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.1s;--delay:-0.9s" pathLength="100" d="M 60 180 A 540 118 0 1 1 1140 180 A 540 118 0 1 1 60 180 Z" />
+        <g style="--dur:8.2s;--delay:-4.6s;--peak:0.78;--lane-color:#0e8f5a">
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 40 233 A 560 70 0 1 1 1160 233 A 560 70 0 1 1 40 233 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 40 233 A 560 70 0 1 1 1160 233 A 560 70 0 1 1 40 233 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 40 233 A 560 70 0 1 1 1160 233 A 560 70 0 1 1 40 233 Z" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.1s;--delay:-0.9s" pathLength="100" d="M 40 233 A 560 70 0 1 1 1160 233 A 560 70 0 1 1 40 233 Z" />
         </g>
-        <g style="--dur:5.9s;--delay:-2.3s;--peak:0.92;--lane-color:#18d383">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 95 180 A 505 162 0 1 1 1105 180 A 505 162 0 1 1 95 180 Z" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 95 180 A 505 162 0 1 1 1105 180 A 505 162 0 1 1 95 180 Z" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 95 180 A 505 162 0 1 1 1105 180 A 505 162 0 1 1 95 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:8.6s;--delay:-6.2s" pathLength="100" d="M 95 180 A 505 162 0 1 1 1105 180 A 505 162 0 1 1 95 180 Z" />
+        <g style="--dur:5.9s;--delay:-2.3s;--peak:0.92;--lane-color:#14b874">
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 207 A 560 70 0 1 1 1160 207 A 560 70 0 1 1 40 207 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 207 A 560 70 0 1 1 1160 207 A 560 70 0 1 1 40 207 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 207 A 560 70 0 1 1 1160 207 A 560 70 0 1 1 40 207 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:8.6s;--delay:-6.2s" pathLength="100" d="M 40 207 A 560 70 0 1 1 1160 207 A 560 70 0 1 1 40 207 Z" />
         </g>
-        <g style="--dur:7.5s;--delay:-5.8s;--peak:1;--lane-color:#0f6e4a">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 132 180 A 468 104 0 1 1 1068 180 A 468 104 0 1 1 132 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 132 180 A 468 104 0 1 1 1068 180 A 468 104 0 1 1 132 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 132 180 A 468 104 0 1 1 1068 180 A 468 104 0 1 1 132 180 Z" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:5.7s;--delay:-2.6s" pathLength="100" d="M 132 180 A 468 104 0 1 1 1068 180 A 468 104 0 1 1 132 180 Z" />
+        <g style="--dur:7.5s;--delay:-5.8s;--peak:1;--lane-color:#18d383">
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 40 180 A 560 70 0 1 1 1160 180 A 560 70 0 1 1 40 180 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 40 180 A 560 70 0 1 1 1160 180 A 560 70 0 1 1 40 180 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 40 180 A 560 70 0 1 1 1160 180 A 560 70 0 1 1 40 180 Z" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:5.7s;--delay:-2.6s" pathLength="100" d="M 40 180 A 560 70 0 1 1 1160 180 A 560 70 0 1 1 40 180 Z" />
         </g>
         <g style="--dur:6.2s;--delay:-0.7s;--peak:0.95;--lane-color:#25f09e">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 168 180 A 432 146 0 1 1 1032 180 A 432 146 0 1 1 168 180 Z" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 168 180 A 432 146 0 1 1 1032 180 A 432 146 0 1 1 168 180 Z" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 168 180 A 432 146 0 1 1 1032 180 A 432 146 0 1 1 168 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.9s;--delay:-4.4s" pathLength="100" d="M 168 180 A 432 146 0 1 1 1032 180 A 432 146 0 1 1 168 180 Z" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 153 A 560 70 0 1 1 1160 153 A 560 70 0 1 1 40 153 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 153 A 560 70 0 1 1 1160 153 A 560 70 0 1 1 40 153 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 153 A 560 70 0 1 1 1160 153 A 560 70 0 1 1 40 153 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.9s;--delay:-4.4s" pathLength="100" d="M 40 153 A 560 70 0 1 1 1160 153 A 560 70 0 1 1 40 153 Z" />
         </g>
         <g style="--dur:8.8s;--delay:-3.9s;--peak:0.82;--lane-color:#4be8b3">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 202 180 A 398 96 0 1 1 998 180 A 398 96 0 1 1 202 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 202 180 A 398 96 0 1 1 998 180 A 398 96 0 1 1 202 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 202 180 A 398 96 0 1 1 998 180 A 398 96 0 1 1 202 180 Z" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.6s;--delay:-7.1s" pathLength="100" d="M 202 180 A 398 96 0 1 1 998 180 A 398 96 0 1 1 202 180 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 40 127 A 560 70 0 1 1 1160 127 A 560 70 0 1 1 40 127 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 40 127 A 560 70 0 1 1 1160 127 A 560 70 0 1 1 40 127 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 40 127 A 560 70 0 1 1 1160 127 A 560 70 0 1 1 40 127 Z" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.6s;--delay:-7.1s" pathLength="100" d="M 40 127 A 560 70 0 1 1 1160 127 A 560 70 0 1 1 40 127 Z" />
         </g>
         <g style="--dur:7.1s;--delay:-6.4s;--peak:0.72;--lane-color:#7dffc9">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 235 180 A 365 126 0 1 1 965 180 A 365 126 0 1 1 235 180 Z" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 235 180 A 365 126 0 1 1 965 180 A 365 126 0 1 1 235 180 Z" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 235 180 A 365 126 0 1 1 965 180 A 365 126 0 1 1 235 180 Z" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:9.1s;--delay:-1.8s" pathLength="100" d="M 235 180 A 365 126 0 1 1 965 180 A 365 126 0 1 1 235 180 Z" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 100 A 560 70 0 1 1 1160 100 A 560 70 0 1 1 40 100 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 100 A 560 70 0 1 1 1160 100 A 560 70 0 1 1 40 100 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 100 A 560 70 0 1 1 1160 100 A 560 70 0 1 1 40 100 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:9.1s;--delay:-1.8s" pathLength="100" d="M 40 100 A 560 70 0 1 1 1160 100 A 560 70 0 1 1 40 100 Z" />
         </g>
       </svg>
 

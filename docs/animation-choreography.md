@@ -505,17 +505,21 @@ attack, ease-in-out travel, lingering release), which the user asked to keep
 alive as a separate graphic figure while the on-sphere arcs returned to the
 jagged electric read.
 
-- Seven ellipse lanes (`viewBox 1200 x 360`, `pathLength=100`) with lane
-  heights varied independently of widths, so the lanes cross one another
-  instead of nesting. Desktop width matches the measured headline width
-  (`75vh`, the `11vh` font cap) and is left-aligned with the hero gutter;
-  on compact viewports it anchors directly under the headline block with
-  the same offset math as the reactor card top, at `84vw` (the mobile
-  headline measures ~`83vw`).
-- Each lane carries a three-layer pulse — a wide faint emerald halo
-  (`20%` dash), a body (`13%`) tinted per lane from the site's green
-  family (`#0f6e4a` deep through `#18d383` emerald to `#7dffc9` pale
-  mint), and a white-hot filament (`6%`) riding the body's leading edge —
+- One ellipse line (`560 x 70` in a `1200 x 360` viewBox,
+  `pathLength=100`) repeated in seven vertical storeys, so the lanes
+  stand as walls of an elliptical cylinder — crossings emerge only in the
+  viewer's projection, never by construction. Desktop width matches the
+  measured headline width (`75vh`, the `11vh` font cap) and is
+  left-aligned with the hero gutter; the wall is raised so its upper
+  storeys pass behind the subtitle and badges (`bottom: 9vh`). On compact
+  viewports it anchors at the headline's lower edge with the same offset
+  math as the reactor card top, at `84vw` (the mobile headline measures
+  ~`83vw`).
+- Each storey carries a three-layer pulse — a wide faint emerald halo
+  (`20%` dash), a body (`13%`) tinted from the site's green family in a
+  vertical grade (`#0f6e4a` deep at the base through `#18d383` emerald
+  mid-wall to `#7dffc9` pale mint at the top rim), and a white-hot
+  filament (`6%`) riding the body's leading edge —
   plus a shorter echo pulse on the reverse course. Layered strokes
   replace blur filters, mirroring the grid cage's core-plus-halo recipe.
 - Every pulse runs one lap per cycle: it fades in over the first 7%,
