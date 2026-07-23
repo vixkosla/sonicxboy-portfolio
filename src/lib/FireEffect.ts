@@ -493,8 +493,8 @@ void main() {
       flowPoint, strandCenter6, inverseStrandWidthSquared * 2.36686391
     );
     // Scheduled lightning strikes: jagged sequential bursts propagating up
-    // the existing streams, plus smooth arcs gliding across the outer
-    // ionization envelope. Emission only — the
+    // the existing streams, plus jagged electric arcs darting across the
+    // outer ionization envelope. Emission only — the
     // flame silhouette is untouched; brightness is flat: no strobing.
     vec3 arcEmission = vec3(0.0);
     float arcBoost = 0.0;
@@ -560,9 +560,10 @@ void main() {
         ) * 0.35 * arcStream.z;
       }
     }
-    // Surface strikes: smooth arcs gliding across the blue ionization
-    // envelope, head leading with a comet trail behind, gentle course sweeps
-    // wrapping the core from different sides.
+    // Surface strikes: jagged electric arcs darting across the blue
+    // ionization envelope — hashed zigzag kinks, a crackling channel, a
+    // thin white-hot core and a comet head, wrapping the core from
+    // different sides. Same lightning read as the stream strikes.
     vec3 plasmaDir = plasmaPosition / max(sphereRadius, 0.0001);
     for (int surfSlot = 0; surfSlot < 3; surfSlot++) {
       vec4 surfAxis = uSurfAxis[surfSlot];
@@ -575,29 +576,37 @@ void main() {
           dot(plasmaDir, surfTan.xyz)
         );
         if (surfAngle < 0.0) surfAngle += 6.2831853;
-        // Smooth direction turns instead of fine zigzag: the lane's course
-        // sweeps gently (max ~30 degrees, under the requested 45), wrapping
-        // the core from different sides. All coefficients derive from the
-        // per-event seed, so no extra uniforms are needed.
-        float surfTurnFreq =
-          1.0 + hash31(vec3(surfTan.w, 13.0, 0.0));
-        float surfTurnPhase =
-          hash31(vec3(surfTan.w, 17.0, 0.0)) * 6.2831853;
-        float surfTurnAmp =
-          0.15 + hash31(vec3(surfTan.w, 19.0, 0.0)) * 0.15;
-        float surfRadPhase =
-          hash31(vec3(surfTan.w, 29.0, 0.0)) * 6.2831853;
+        // Hashed zigzag kinks bend the course sharply, mirroring the stream
+        // strikes: piecewise-linear offsets with per-event frequency and
+        // amplitude, all derived from the event seed (no extra uniforms).
+        float surfJagFreq =
+          7.0 + hash31(vec3(surfTan.w, 13.0, 0.0)) * 4.0;
+        float surfJagCoord = surfAngle * surfJagFreq + surfTan.w * 7.31;
+        float surfJagIndex = floor(surfJagCoord);
+        float surfJagFrac = surfJagCoord - surfJagIndex;
+        float surfKinkA =
+          hash31(vec3(surfJagIndex, surfTan.w, 17.0)) - 0.5;
+        float surfKinkB =
+          hash31(vec3(surfJagIndex + 1.0, surfTan.w, 17.0)) - 0.5;
+        float surfKinkAmp =
+          0.09 + hash31(vec3(surfTan.w, 19.0, 0.0)) * 0.07;
+        float surfRadA =
+          hash31(vec3(surfJagIndex, surfTan.w, 29.0)) - 0.5;
+        float surfRadB =
+          hash31(vec3(surfJagIndex + 1.0, surfTan.w, 29.0)) - 0.5;
         float surfRadAmp =
-          0.02 + hash31(vec3(surfTan.w, 31.0, 0.0)) * 0.02;
+          0.03 + hash31(vec3(surfTan.w, 31.0, 0.0)) * 0.02;
         // The lane hugs the blue envelope at any size: the radius factor and
-        // the radial breathing scale with the envelope, so the same code
-        // draws arcs on the compact revving shell and the enlarged sphere.
+        // the radial kinks scale with the envelope, so the same code draws
+        // arcs on the compact revving shell and the enlarged sphere. The
+        // kink amplitude stays small enough to keep the arc on the blue
+        // shell and out of the warm orange body.
         float surfRingRadius =
-          (surfParam.z + sin(surfAngle + surfRadPhase) * surfRadAmp) *
+          (surfParam.z + mix(surfRadA, surfRadB, surfJagFrac) * surfRadAmp) *
           blueEnvelopeScale;
         float surfPlaneOffset =
           dot(plasmaDir, surfAxis.xyz) -
-          sin(surfAngle * surfTurnFreq + surfTurnPhase) * surfTurnAmp *
+          mix(surfKinkA, surfKinkB, surfJagFrac) * surfKinkAmp *
             blueEnvelopeScale;
         float surfRingDist = length(
           vec2(sphereRadius - surfRingRadius, surfPlaneOffset)
@@ -610,20 +619,26 @@ void main() {
         float surfTrail =
           smoothstep(0.0, 0.25, surfBehind) *
           (1.0 - smoothstep(0.9, 1.5, surfBehind));
+        // Spatial crackle: per-cell brightness jumps along the channel make
+        // the arc read as a live discharge instead of a drawn ribbon.
+        float surfCrackleCell = floor(surfAngle * 16.0 + surfTan.w * 3.71);
+        float surfCrackle =
+          0.62 + 0.55 * hash31(vec3(surfCrackleCell, surfTan.w, 53.0));
         float surfHeadGlow = gaussian(surfAngle, surfParam.x, 0.07);
-        float surfLong = surfTrail + surfHeadGlow * 1.25;
-        float surfCoreDist = surfRingDist / 0.05;
+        float surfLong = surfTrail * surfCrackle + surfHeadGlow * 1.25;
+        float surfCoreDist = surfRingDist / 0.03;
         float surfCoreKernel =
           max(1.0 - surfCoreDist * surfCoreDist / 2.25, 0.0);
         float surfCore = surfCoreKernel * surfCoreKernel * surfCoreKernel;
-        float surfHaloDist = surfRingDist / 0.13;
+        float surfHaloDist = surfRingDist / 0.11;
         float surfHaloKernel =
           max(1.0 - surfHaloDist * surfHaloDist / 2.25, 0.0);
         float surfHalo = surfHaloKernel * surfHaloKernel * surfHaloKernel;
         arcEmission +=
           (vec3(0.45, 0.72, 1.0) *
-            (surfLong * (surfCore + surfHalo * 0.4)) * 5.0 +
-           vec3(0.95, 0.98, 1.0) * (surfHeadGlow * surfCore) * 4.0) *
+            (surfLong * (surfCore * 0.6 + surfHalo * 0.4)) * 5.0 +
+           vec3(0.95, 0.98, 1.0) *
+            (surfLong * surfCore * 2.2 + surfHeadGlow * surfCore * 4.0)) *
           surfAxis.w * uRimProgress;
       }
     }

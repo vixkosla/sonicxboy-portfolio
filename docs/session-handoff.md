@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-20
+Updated: 2026-07-23
 
 ## Start here
 
@@ -27,7 +27,41 @@ for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
 ## Next session start point
 
-This visual-refinement pass is user-approved. Treat the following as the baseline:
+The latest pass (2026-07-23) split the surface-arc treatment in two at the
+user's art direction and awaits the user's visual review in the normal
+browser:
+
+- **On-sphere arcs returned to the jagged electric read** ("2-3 iterations
+  after their introduction", before the smoothing pass): hashed
+  piecewise-linear zigzag kinks (`7..11` per radian, `±0.045..0.08`
+  out-of-plane, `±0.015..0.025` radial), per-cell brightness crackle
+  (`0.0625`-radian cells, `×0.62..1.17`), thin `0.03` white-hot core with a
+  `0.11` halo, near-instant `0.03s` attack, `10/s` afterglow, and a darting
+  `t^1.35` head. The approved macro-structure is untouched: three
+  independent lanes at `2.8s ± 0.8s`, the `0.94..1.01` radius band, the
+  `10.55s` revving-phase start, the comet trail window, and all causal
+  chains. Numerics over `111s`: duty `75.8%`, two-or-more `29.1%`, radius
+  band `[0.941, 1.009]`, fully deterministic (35 events in 40s, identical
+  across runs).
+- **The retired smooth glide moved onto a new DOM figure**: a horizontal
+  air-support oval of smooth impulse pulses under the headline and the
+  tech-stack list (`src/layouts/HomePage.astro`). Seven concentric ellipse
+  lanes carry layered halo/body/white-hot-filament dashes plus reverse
+  echo pulses; per-lane durations, delays, peaks, and directions are fixed
+  CSS constants (no JS), so segments keep appearing and disappearing while
+  the band stays loosely filled. It fades out with `reactor-card-visible`.
+  Documented in `docs/animation-choreography.md` ("Title air-support
+  oval").
+
+Validation: `pnpm build` and `git diff --check` pass; headless Chromium
+captures of `?plasma-preview=arcsurf` and `=arcrev` show the jagged
+electric channel on both the enlarged envelope and the revving shell; the
+oval was captured on desktop (two moments, pulses travel and re-fill),
+`390 x 844` compact (anchored under the headline, clear of the scene
+stage), and the `card` preview (faded out). Zero console errors. This
+remains a visual proposal until the user reviews it in the normal browser.
+
+The earlier visual-refinement pass is user-approved. Treat the following as the baseline:
 
 - the blue upper plasma grows out of the lower sphere and keeps its irregular noisy
   contour; it must not return to a smooth enveloping dome;
@@ -192,12 +226,9 @@ review mismatch. Implemented as phase 9 in
   Param[3]`); stream lanes reuse the seven stream centerlines with hashed
   zigzag kinks, a white-hot head, a strengthened glowing channel (spatial
   decay `0.85`), one diagonal branch spur, core tube plus halo; surface
-  lanes are back to the approved smooth glide — soft `0.22s` attack, slow
-  `7/s` release, ease-in-out head glide over `0.45s`, one to two gentle
-  sinusoidal course sweeps per path (max about `30°`), core `0.05` plus
-  halo `0.13`, comet trail that never stubs at the origin — with the later
-  electric-texture additions (micro-jitter, spatial crackle, thin core,
-  radial spur, piecewise course) fully removed. A `0.94..1.01` radius band
+  lanes returned to the jagged electric read on 2026-07-23 (see "Next
+  session start point" above) — the smooth glide they had at this point
+  moved onto the DOM title oval. A `0.94..1.01` radius band
   rides the blue shell instead of crossing the warm orange body (where the
   blue impulse lost its read) or drifting into empty space. Emission only —
   silhouette untouched; every lane is gated behind its own uniform branch.

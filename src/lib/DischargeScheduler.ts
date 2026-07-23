@@ -5,8 +5,9 @@
 // - stream strikes: jagged lightning lanes propagating up the seven rising
 //   streams in short two-or-three-hit bursts; hits inside a burst are
 //   strictly sequential rather than simultaneous;
-// - surface strikes: smooth arcs gliding across the outer blue ionization
-//   envelope from a hashed side to a hashed side, on independent lanes.
+// - surface strikes: jagged electric arcs darting across the outer blue
+//   ionization envelope from a hashed side to a hashed side, on independent
+//   lanes — the same lightning read as the streams, wrapped onto the shell.
 //
 // All timing derives from story time and hashed event indices, never from
 // frame deltas, so every run reproduces the same discharge choreography.
@@ -30,10 +31,11 @@ export interface SurfaceDischargeState {
 
 const STRIKE_ATTACK = 0.02
 const STRIKE_RELEASE_DECAY = 15
-// Surface arcs glide: soft attack, slow release, ease-in-out travel — a
-// calm counterpoint to the sharp stream strikes.
-const SURFACE_ATTACK = 0.22
-const SURFACE_RELEASE_DECAY = 7
+// Surface arcs strike like the streams: near-instant attack, a short live
+// afterglow, and a darting head — the electric read the user asked to
+// restore on the shell (the smooth glide now lives in the DOM title oval).
+const SURFACE_ATTACK = 0.03
+const SURFACE_RELEASE_DECAY = 10
 const STREAM_TRAVEL_DURATION = 0.3
 const SURFACE_TRAVEL_DURATION = 0.45
 const STREAM_ACTIVE_WINDOW = STREAM_TRAVEL_DURATION + 0.24
@@ -88,16 +90,16 @@ function strikeEnvelope(elapsed: number, travelDuration: number) {
 
 function surfaceEnvelope(elapsed: number) {
   const attack = clamp01(elapsed / SURFACE_ATTACK)
-  const attackSmooth = attack * attack * (3 - 2 * attack)
   const release = Math.exp(
     -Math.max(elapsed - SURFACE_TRAVEL_DURATION, 0) * SURFACE_RELEASE_DECAY,
   )
-  return attackSmooth * release
+  return attack * release
 }
 
+// The head darts like a stream strike: slow ignition, then an accelerating
+// run along the arc — no ease-in-out gliding.
 function surfaceTravelEase(progress: number) {
-  const clamped = clamp01(progress)
-  return clamped * clamped * (3 - 2 * clamped)
+  return clamp01(progress) ** 1.35
 }
 
 export class DischargeScheduler {

@@ -413,16 +413,20 @@ brightness through the strike — there is deliberately no sinusoidal strobing
 anywhere in the effect:
 
 - **Surface strikes** (three independent lanes, each firing every
-  `2.8s ± 0.8s`, so the shell carries activity most of the time) glide
-  across the blue ionization shell. They begin while the core is still
+  `2.8s ± 0.8s`, so the shell carries activity most of the time) dart
+  across the blue ionization shell with the same jagged lightning read as
+  the stream family. They begin while the core is still
   revving up behind the reactor covering (`10.55s` of main-spin time,
   right after rim ignition completes) and continue through the settled
-  flame. The lane glides — a soft `0.22s` smoothstep attack, a slow `7/s`
-  exponential release, an ease-in-out head glide over `0.45s`, and one to
-  two gentle sinusoidal course sweeps per path (max about `30°`, below the
-  requested `45°`) wrapping the core from different sides; all turn
-  coefficients derive from the event seed in-shader, so no extra uniforms
-  are spent. The lane radius is a
+  flame. The lane strikes — a near-instant `0.03s` attack, a `10/s`
+  exponential afterglow, and a darting head that accelerates over `0.45s`
+  with a `t^1.35` curve. The course carries hashed piecewise-linear
+  zigzag kinks (per-event frequency `7..11` per radian, out-of-plane
+  amplitude `±0.045..0.08` of the envelope scale, radial `±0.015..0.025`),
+  all derived from the event seed in-shader, so no extra uniforms are
+  spent; per-cell brightness crackle (`0.0625`-radian cells, `×0.62..1.17`)
+  keeps the channel reading as a live discharge rather than a drawn
+  ribbon. The lane radius is a
   factor of the blue envelope scale hashed in a `0.94..1.01` band riding
   the shell and its outer crest: dipping lower would drag the arc across
   the warm orange body where the blue impulse loses its read, and higher
@@ -435,7 +439,9 @@ anywhere in the effect:
   behind the head (dark at the head, full a quarter radian behind, gone
   beyond one and a half radians), so the visible segment grows gradually
   with the head and never leaves a dying stub at the origin. Far-side arcs
-  are attenuated naturally by the flame's own transmittance.
+  are attenuated naturally by the flame's own transmittance. (The earlier
+  smooth-glide surface treatment moved off the scene onto the DOM title
+  oval described below.)
 - **Stream strikes** begin at 70% of the final expansion (`19.84s`) and
   propagate up the seven existing stream centerlines in deterministic bursts.
   Each burst contains two or three hits. Starts inside the burst are spaced
@@ -460,9 +466,9 @@ anywhere in the effect:
   otherwise. During the revving phase (before stream strikes exist), surface
   arcs fire alone.
 
-Each stream strike attacks effectively instantly (`0.02s`), holds flat
-brightness, then releases with a lingering exponential afterglow; the surface
-family keeps the separate soft envelope described above. Strikes render as a
+Each strike attacks effectively instantly (`0.02s` stream, `0.03s`
+surface), holds flat
+brightness, then releases with a lingering exponential afterglow. Strikes render as a
 core tube plus a soft halo, reuse the established ionization palette
 (electric blue plus a white-hot head), add emission only — never density —
 so the flame silhouette is untouched, and slightly thicken the ridden strand
@@ -475,6 +481,35 @@ stream strike, `?plasma-preview=arcsurf` freezes a surface strike on the
 enlarged envelope, `?plasma-preview=arcrev` freezes one on the revving shell
 behind the plates, and `?arc-baseline` disables the scheduler for paired A/B
 measurements.
+
+## Title air-support oval
+
+The headline and the tech-stack list rest on a horizontal oval of smooth
+impulse pulses — a DOM/SVG element in `src/layouts/HomePage.astro`, not a
+scene object. It inherits the retired smooth surface-arc envelope (soft
+attack, ease-in-out travel, lingering release), which the user asked to keep
+alive as a separate graphic figure while the on-sphere arcs returned to the
+jagged electric read.
+
+- Seven concentric ellipse lanes (`viewBox 1200 x 320`, `pathLength=100`)
+  form one thin band under the text block; desktop placement is absolute,
+  left-aligned with the hero gutter and bottom-anchored inside `main`,
+  height-capped at `15vh`; on compact viewports it anchors directly under
+  the headline block with the same offset math as the reactor card top.
+- Each lane carries a three-layer pulse — a wide faint emerald halo
+  (`20%` dash), a mint body (`13%`), and a white-hot filament (`6%`) riding
+  the body's leading edge — plus a shorter echo pulse on the reverse
+  course. Layered strokes replace blur filters, mirroring the grid cage's
+  core-plus-halo recipe.
+- Every pulse runs one lap per cycle: it fades in over the first 7%,
+  glides with a `cubic-bezier(0.37, 0, 0.63, 1)` ease-in-out, and fades
+  out through the last quarter. Per-lane durations (`5.7..9.1s`), negative
+  delays, peak opacities (`0.62..1.0`), and alternating directions are
+  fixed constants — pure CSS, no JavaScript, no per-frame cost — so
+  segments of the oval keep appearing and disappearing in places and the
+  band stays loosely filled.
+- The oval fades out with the `reactor-card-visible` body class, together
+  with the badges it supports.
 
 ## Collision and continuity invariants
 

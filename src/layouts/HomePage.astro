@@ -758,6 +758,80 @@ const websiteSchema = {
         color: var(--emerald);
       }
 
+      /* ── Air-support oval ─────────────────────────────────────
+         Concentric ellipse lanes carrying smooth impulse pulses:
+         each pulse fades in, glides one lap with ease-in-out, then
+         fades out — the band reads as a loosely filled figure that
+         appears and disappears in places. Mirrors the smooth
+         envelope the plasma surface arcs used before the electric
+         read returned to them. */
+      .hero-oval {
+        position: absolute;
+        left: clamp(1.5rem, 8vw, 9rem);
+        bottom: clamp(1.25rem, 5vh, 3.5rem);
+        width: min(44rem, 56vw);
+        aspect-ratio: 1200 / 320;
+        max-height: 15vh;
+        pointer-events: none;
+        opacity: 1;
+        transition: opacity 0.6s ease;
+      }
+
+      :global(body.reactor-card-visible) .hero-oval {
+        opacity: 0;
+      }
+
+      .oval-pulse {
+        fill: none;
+        stroke-linecap: round;
+        animation:
+          hero-oval-lap var(--dur) cubic-bezier(0.37, 0, 0.63, 1)
+          var(--delay) infinite;
+      }
+
+      .oval-pulse--rev {
+        animation-name: hero-oval-lap-rev;
+      }
+
+      .oval-halo {
+        stroke: rgba(24, 211, 131, 0.14);
+        stroke-width: 9;
+        stroke-dasharray: 20 80;
+      }
+
+      .oval-body {
+        stroke: #25f09e;
+        stroke-width: 2.6;
+        stroke-dasharray: 13 87;
+      }
+
+      .oval-body--echo {
+        stroke-dasharray: 9 91;
+        opacity: 0.8;
+      }
+
+      /* White-hot filament rides the leading edge of the body dash,
+         the same core+halo recipe the grid cage uses. */
+      .oval-hot {
+        stroke: #e2fff3;
+        stroke-width: 1.6;
+        stroke-dasharray: 6 94;
+      }
+
+      @keyframes hero-oval-lap {
+        0% { stroke-dashoffset: 0; opacity: 0; }
+        7% { opacity: var(--peak, 1); }
+        76% { opacity: var(--peak, 1); }
+        100% { stroke-dashoffset: -100; opacity: 0; }
+      }
+
+      @keyframes hero-oval-lap-rev {
+        0% { stroke-dashoffset: 0; opacity: 0; }
+        7% { opacity: var(--peak, 1); }
+        76% { opacity: var(--peak, 1); }
+        100% { stroke-dashoffset: 100; opacity: 0; }
+      }
+
       /* ── Card socials & contact (right column of the card) ── */
 
       :global(.reactor-card__actions) {
@@ -960,6 +1034,22 @@ const websiteSchema = {
 
         .tech-badge {
           flex-shrink: 0;
+        }
+
+        /* The oval anchors directly under the headline block (same offset
+           math as the reactor card top) and stays clear of the solo scene
+           stage below it. */
+        .hero-oval {
+          left: 50%;
+          bottom: auto;
+          transform: translateX(-50%);
+          top: calc(
+            var(--safe-top) + 7.6rem + 0.82rem + 0.7rem +
+            min(32.24vw, 14.56svh) + 1.2rem
+          );
+          width: min(34rem, 94vw);
+          max-height: 13svh;
+          opacity: 0.5;
         }
 
         .subtitle,
@@ -1196,6 +1286,54 @@ const websiteSchema = {
     </nav>
 
     <main>
+      {/* Air-support oval under the headline + stack: many smooth impulse
+          pulses travel concentric ellipse lanes and fade in/out, so the
+          band reads as a loosely filled figure. Pure CSS, deterministic. */}
+      <svg class="hero-oval" viewBox="0 0 1200 320" aria-hidden="true">
+        <g style="--dur:6.8s;--delay:-1.2s;--peak:0.62">
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 160 A 560 116 0 1 1 1160 160 A 560 116 0 1 1 40 160 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 160 A 560 116 0 1 1 1160 160 A 560 116 0 1 1 40 160 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 160 A 560 116 0 1 1 1160 160 A 560 116 0 1 1 40 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.4s;--delay:-5.1s" pathLength="100" d="M 40 160 A 560 116 0 1 1 1160 160 A 560 116 0 1 1 40 160 Z" />
+        </g>
+        <g style="--dur:8.2s;--delay:-4.6s;--peak:0.78">
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 85 160 A 515 100 0 1 1 1115 160 A 515 100 0 1 1 85 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 85 160 A 515 100 0 1 1 1115 160 A 515 100 0 1 1 85 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 85 160 A 515 100 0 1 1 1115 160 A 515 100 0 1 1 85 160 Z" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.1s;--delay:-0.9s" pathLength="100" d="M 85 160 A 515 100 0 1 1 1115 160 A 515 100 0 1 1 85 160 Z" />
+        </g>
+        <g style="--dur:5.9s;--delay:-2.3s;--peak:0.92">
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 130 160 A 470 85 0 1 1 1070 160 A 470 85 0 1 1 130 160 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 130 160 A 470 85 0 1 1 1070 160 A 470 85 0 1 1 130 160 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 130 160 A 470 85 0 1 1 1070 160 A 470 85 0 1 1 130 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:8.6s;--delay:-6.2s" pathLength="100" d="M 130 160 A 470 85 0 1 1 1070 160 A 470 85 0 1 1 130 160 Z" />
+        </g>
+        <g style="--dur:7.5s;--delay:-5.8s;--peak:1">
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 175 160 A 425 71 0 1 1 1025 160 A 425 71 0 1 1 175 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 175 160 A 425 71 0 1 1 1025 160 A 425 71 0 1 1 175 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 175 160 A 425 71 0 1 1 1025 160 A 425 71 0 1 1 175 160 Z" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:5.7s;--delay:-2.6s" pathLength="100" d="M 175 160 A 425 71 0 1 1 1025 160 A 425 71 0 1 1 175 160 Z" />
+        </g>
+        <g style="--dur:6.2s;--delay:-0.7s;--peak:0.95">
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 218 160 A 382 58 0 1 1 982 160 A 382 58 0 1 1 218 160 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 218 160 A 382 58 0 1 1 982 160 A 382 58 0 1 1 218 160 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 218 160 A 382 58 0 1 1 982 160 A 382 58 0 1 1 218 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.9s;--delay:-4.4s" pathLength="100" d="M 218 160 A 382 58 0 1 1 982 160 A 382 58 0 1 1 218 160 Z" />
+        </g>
+        <g style="--dur:8.8s;--delay:-3.9s;--peak:0.82">
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 260 160 A 340 47 0 1 1 940 160 A 340 47 0 1 1 260 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 260 160 A 340 47 0 1 1 940 160 A 340 47 0 1 1 260 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 260 160 A 340 47 0 1 1 940 160 A 340 47 0 1 1 260 160 Z" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.6s;--delay:-7.1s" pathLength="100" d="M 260 160 A 340 47 0 1 1 940 160 A 340 47 0 1 1 260 160 Z" />
+        </g>
+        <g style="--dur:7.1s;--delay:-6.4s;--peak:0.72">
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 300 160 A 300 37 0 1 1 900 160 A 300 37 0 1 1 300 160 Z" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 300 160 A 300 37 0 1 1 900 160 A 300 37 0 1 1 300 160 Z" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 300 160 A 300 37 0 1 1 900 160 A 300 37 0 1 1 300 160 Z" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:9.1s;--delay:-1.8s" pathLength="100" d="M 300 160 A 300 37 0 1 1 900 160 A 300 37 0 1 1 300 160 Z" />
+        </g>
+      </svg>
+
       <p class="eyebrow">{t.eyebrow}</p>
 
       <h1>
