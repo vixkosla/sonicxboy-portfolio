@@ -66,6 +66,7 @@ import {
   updateReactorMetamaterial,
   updateStructuralMetamaterial,
 } from '../lib/ReactorMetamaterial'
+import { DischargeScheduler } from '../lib/DischargeScheduler'
 
 const EMERALD = new Color('#18d383')
 const WAVE_BLUE = new Color('#244cff')
@@ -86,11 +87,22 @@ const DIAMOND_ORIENTATION = new Quaternion()
 const INITIAL_X = 1.2
 const DESKTOP_SCENE_SCALE = 1.3
 const COMPACT_SCENE_SCALE = 0.82
+const COMPACT_MAX_WIDTH = 720
+const COMPACT_LANDSCAPE_MAX_WIDTH = 1180
+const COMPACT_LANDSCAPE_MAX_HEIGHT = 800
+const COMPACT_PORTRAIT_TARGET_Y = 0.72
+const isCompactViewport = (width: number, height: number) =>
+  width <= COMPACT_MAX_WIDTH ||
+  (width <= COMPACT_LANDSCAPE_MAX_WIDTH &&
+    height <= COMPACT_LANDSCAPE_MAX_HEIGHT &&
+    width > height)
+const isPortraitCompactViewport = (width: number, height: number) =>
+  width <= COMPACT_MAX_WIDTH && height >= width
 // After the edge roll the whole choreography is anchored at
 // INITIAL_X + 2 * contactHalfExtent (the no-slip roll displacement).
-// Desktop deliberately keeps the camera on the assembly point so the
-// settled reactor sits right of the text column; compact viewports aim
-// at the settled anchor instead so the show is centered.
+// Desktop and short landscape keep the camera on the assembly point so the
+// settled reactor sits right of the text column; compact portrait aims at
+// the settled anchor instead so the show is centered.
 const settledCenterX = (scale: number) =>
   INITIAL_X + 2 * (CUBE_SIZE / 2 + CUBE_STEP) * scale
 // Camera offset from its aim point (base rig: [4.8, 3.4, 7.2] looking at
@@ -105,19 +117,34 @@ const FOG_NEAR = 10
 const FOG_FAR = 20
 const SCATTER_HIDE_DISTANCE = 18.35
 const cameraAimScratch = new Vector3()
-// Dev-only: ?compact-preview forces the phone framing on a wide window so
-// the compact camera/staging can be inspected without resizing.
+const PAGE_SEARCH_PARAMS =
+  typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search)
+    : null
+const VIEWPORT_LAB_PREVIEW =
+  PAGE_SEARCH_PARAMS?.has('viewport-lab') === true
+const DEVELOPMENT_PREVIEW_ENABLED =
+  import.meta.env.DEV || VIEWPORT_LAB_PREVIEW
+const FREEZE_VIEWPORT_LAB_GRID =
+  PAGE_SEARCH_PARAMS !== null &&
+  PAGE_SEARCH_PARAMS.get('viewport-lab') === 'grid' &&
+  PAGE_SEARCH_PARAMS.has('plasma-preview')
+// Dev-only: ?compact-preview forces compact scene parameters on a wide
+// window. It does not emulate a phone aspect ratio; use a real narrow
+// viewport when validating screen-space centering.
 const FORCE_COMPACT_PREVIEW =
-  import.meta.env.DEV &&
-  typeof window !== 'undefined' &&
-  new URLSearchParams(window.location.search).has('compact-preview')
+  DEVELOPMENT_PREVIEW_ENABLED &&
+  PAGE_SEARCH_PARAMS?.has('compact-preview') === true
 const CUBE_EDGE_RADIUS = 0.0225
-const ASSEMBLY_OUTER_SIZE = CUBE_STEP * 2 + CUBE_SIZE
-const ASSEMBLY_SEAM_SIZE = ASSEMBLY_OUTER_SIZE + 0.006
+const ASSEMBLY_GLOW_SCALE = 1.012
 const ASSEMBLY_GLOW_LEAD = 0.1
 const ASSEMBLY_GLOW_ATTACK = 0.12
 const ASSEMBLY_GLOW_HOLD = 0.06
 const ASSEMBLY_GLOW_RELEASE = 0.46
+const ROLL_CONTACT_GLOW_START = EDGE_ROLL_DURATION * 0.34
+const ROLL_CONTACT_GLOW_ATTACK = EDGE_ROLL_DURATION * 0.5
+const ROLL_CONTACT_GLOW_RELEASE_START = EDGE_ROLL_DURATION * 0.92
+const ROLL_CONTACT_GLOW_RELEASE = 0.22
 const SHELL_RADIUS = 1.22
 const ORBIT_DEPART_DURATION = 2.05
 const ORBIT_CAPTURE_START = 7.15
@@ -174,11 +201,11 @@ const REACTOR_CIRCUIT_REVEAL_START =
 const REACTOR_CIRCUIT_REVEAL_DURATION =
   REACTOR_TRANSFORM_END - REACTOR_CIRCUIT_REVEAL_START + 0.24
 const REACTOR_PARENT_WIDTH = 0.3
-const REACTOR_PARENT_THICKNESS = 0.1
+const REACTOR_PARENT_THICKNESS = 0.07
 const REACTOR_LINEAGE_WIDTH = 0.285
-const REACTOR_LINEAGE_THICKNESS = 0.08
+const REACTOR_LINEAGE_THICKNESS = 0.05
 const REACTOR_TILE_WIDTH = 0.27
-const REACTOR_TILE_THICKNESS = 0.055
+const REACTOR_TILE_THICKNESS = 0.03
 const REACTOR_WAVE_ONE_START = REACTOR_TRANSFORM_END + 0.7
 const REACTOR_WAVE_DURATION = 0.72
 const REACTOR_WAVE_GAP = 0.14
@@ -209,6 +236,15 @@ const PLASMA_REACTOR_DROP = 0.17
 const WAVE_AXIS_A = new Vector3(0.14, 0.98, 0.1).normalize()
 const WAVE_AXIS_B = new Vector3(-0.74, 0.28, 0.61).normalize()
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
+// Electric discharges: surface arcs crawl the blue shell from the moment the
+// core finishes igniting (the reactor "revving" phase); stream strikes join
+// once the flame fills the vacated reactor volume.
+const DISCHARGE_AUTO_START =
+  NUCLEUS_FINAL_EXPAND_START + NUCLEUS_FINAL_EXPAND_DURATION * 0.7
+const SURFACE_AUTO_START = PLASMA_RIM_START + PLASMA_RIM_DURATION + 0.5
+const ARC_LIGHT_TINT = new Color('#8fb4ff')
+const NUCLEUS_BASE_EMISSIVE = new Color('#6cf3b3')
+const INNER_GLOW_COLD = new Color('#d1f0ff')
 
 interface ReactorFamily {
   parentDirection: Vector3
@@ -710,17 +746,21 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const nucleusFrameRef = useRef<Group>(null)
   const plasmaRef = useRef<Mesh>(null)
   const meshRef = useRef<InstancedMesh>(null)
+  const assemblyGlowMeshRef = useRef<InstancedMesh>(null)
   const orbitMeshRef = useRef<InstancedMesh>(null)
   const reactorMeshRef = useRef<InstancedMesh>(null)
   const heroPlateRef = useRef<Mesh>(null)
   const plasmaLightRef = useRef<PointLight>(null)
   const heroPlateLightRef = useRef<PointLight>(null)
+  const innerGlowLightRef = useRef<PointLight>(null)
   const selectedPlateIndex = useRef(-1)
   const heroLaunchCaptured = useRef(false)
   const cardRevealed = useRef(false)
   const titleWaveStep = useRef(0)
   const reactorApertureFrozen = useRef(false)
+  const viewportLabReady = useRef(false)
   const transform = useMemo(() => new Object3D(), [])
+  const assemblyGlowTransform = useMemo(() => new Object3D(), [])
   const orbitTransform = useMemo(() => new Object3D(), [])
   const reactorTransform = useMemo(() => new Object3D(), [])
   const heroFacingTransform = useMemo(() => new Object3D(), [])
@@ -744,7 +784,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const plasmaProxyCenter = useMemo(() => new Vector3(), [])
   const plasmaWorldRadii = useMemo(() => new Vector3(), [])
   const compact =
-    useThree((state) => state.size.width < 720) || FORCE_COMPACT_PREVIEW
+    useThree((state) =>
+      isCompactViewport(state.size.width, state.size.height),
+    ) || FORCE_COMPACT_PREVIEW
   const setDpr = useThree((state) => state.setDpr)
   const sceneScale = compact ? COMPACT_SCENE_SCALE : DESKTOP_SCENE_SCALE
   const contactHalfExtent = (CUBE_SIZE / 2 + CUBE_STEP) * sceneScale
@@ -752,25 +794,25 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const diamondLift = contactHalfExtent * (Math.sqrt(3) - 1)
   const previewStage = useMemo(
     () =>
-      import.meta.env.DEV &&
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).has('plasma-preview')
-        ? new URLSearchParams(window.location.search).get('plasma-preview')
+      DEVELOPMENT_PREVIEW_ENABLED &&
+      PAGE_SEARCH_PARAMS?.has('plasma-preview')
+        ? PAGE_SEARCH_PARAMS.get('plasma-preview')
         : null,
     [],
   )
-  const previewAssemblyGlow = useMemo(
+  const previewAssemblyGlowStage = useMemo(
     () =>
-      import.meta.env.DEV &&
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).has('assembly-glow-preview'),
+      DEVELOPMENT_PREVIEW_ENABLED &&
+      PAGE_SEARCH_PARAMS?.has('assembly-glow-preview')
+        ? PAGE_SEARCH_PARAMS.get('assembly-glow-preview')
+        : null,
     [],
   )
+  const previewAssemblyGlow = previewAssemblyGlowStage !== null
   const previewMaterialBaseline = useMemo(
     () =>
-      import.meta.env.DEV &&
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).has('material-baseline'),
+      DEVELOPMENT_PREVIEW_ENABLED &&
+      PAGE_SEARCH_PARAMS?.has('material-baseline') === true,
     [],
   )
   const previewPlasma = previewStage !== null
@@ -783,10 +825,17 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   }, [compact, setDpr])
   const assembly = useMemo(() => {
     const simulation = new LayeredAssembly()
-    if (previewAssemblyGlow) simulation.time = simulation.endTime + 0.04
-    else if (previewPlasma) simulation.time = simulation.endTime + 0.1
+    if (previewAssemblyGlow) {
+      const previewElapsed =
+        previewAssemblyGlowStage === 'roll'
+          ? EDGE_ROLL_DURATION * 0.58
+          : previewAssemblyGlowStage === 'landing'
+            ? EDGE_ROLL_DURATION * 0.96
+            : 0.04
+      simulation.time = simulation.endTime + previewElapsed
+    } else if (previewPlasma) simulation.time = simulation.endTime + 0.1
     return simulation
-  }, [previewAssemblyGlow, previewPlasma])
+  }, [previewAssemblyGlow, previewAssemblyGlowStage, previewPlasma])
   const reactorFamilies = useMemo(
     () => createReactorFamilies(assembly.motions.map((motion) => motion.target)),
     [assembly],
@@ -801,7 +850,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   )
   const spin = useMemo(() => {
     const simulation = new SpinSimulation()
-    if (previewPlasma) {
+    if (previewAssemblyGlow) {
+      simulation.elapsed =
+        previewAssemblyGlowStage === 'roll'
+          ? EDGE_ROLL_DURATION * 0.58
+          : previewAssemblyGlowStage === 'landing'
+            ? EDGE_ROLL_DURATION * 0.96
+            : 0
+    } else if (previewPlasma) {
       const numericPreview = previewStage === '' ? Number.NaN : Number(previewStage)
       const previewMainElapsed = Number.isFinite(numericPreview)
         ? numericPreview
@@ -819,23 +875,30 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                     ? REACTOR_DIVIDE_ONE_START + REACTOR_DIVIDE_ONE_DURATION * 0.7
                     : previewStage === 'tiles'
                       ? REACTOR_TRANSFORM_END + 0.6
-                      : previewStage === 'waves'
+                      : previewStage === 'arcrev'
+                        ? REACTOR_TRANSFORM_END + 0.6
+                        : previewStage === 'waves'
                         ? REACTOR_WAVE_ONE_START + REACTOR_WAVE_DURATION * 0.54
-                        : previewStage === 'signal'
-                          ? REACTOR_SIGNAL_START + REACTOR_SIGNAL_DURATION * 0.48
-                          : previewStage === 'scatter'
-                            ? REACTOR_SCATTER_START + 0.72
-                            : previewStage === 'card'
-                              ? HERO_CARD_REVEAL + 0.42
-                              : REACTOR_SCATTER_START +
-                                REACTOR_SCATTER_STAGGER +
-                                REACTOR_SCATTER_MAX_FLIGHT +
-                                0.2
+                          : previewStage === 'signal'
+                            ? REACTOR_SIGNAL_START + REACTOR_SIGNAL_DURATION * 0.48
+                            : previewStage === 'scatter'
+                              ? REACTOR_SCATTER_START + 0.72
+                              : previewStage === 'card'
+                                ? HERO_CARD_REVEAL + 0.42
+                                : REACTOR_SCATTER_START +
+                                  REACTOR_SCATTER_STAGGER +
+                                  REACTOR_SCATTER_MAX_FLIGHT +
+                                  0.2
       simulation.elapsed = MAIN_SPIN_START + previewMainElapsed
       simulation.settled = true
     }
     return simulation
-  }, [previewPlasma, previewStage])
+  }, [
+    previewAssemblyGlow,
+    previewAssemblyGlowStage,
+    previewPlasma,
+    previewStage,
+  ])
   const cubeletMaterial = useMemo(
     () =>
       createMetamaterial(
@@ -867,6 +930,42 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const gridMaterial = useMemo(() => createGridMaterial(), [])
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
   const flashMaterial = useMemo(() => createFlashMaterial(), [])
+  const previewArcBaseline = useMemo(
+    () =>
+      import.meta.env.DEV &&
+      typeof window !== 'undefined' &&
+      new URLSearchParams(window.location.search).has('arc-baseline'),
+    [],
+  )
+  const discharge = useMemo(() => {
+    const scheduler = new DischargeScheduler()
+    scheduler.autonomousStart = DISCHARGE_AUTO_START
+    scheduler.surfaceStart = SURFACE_AUTO_START
+    scheduler.enabled = !previewArcBaseline
+    if (previewStage === 'arc') {
+      scheduler.previewStream = {
+        strand: 2,
+        head: 2.6,
+        envelope: 1,
+        seed: 5.1,
+      }
+    } else if (previewStage === 'arcsurf' || previewStage === 'arcrev') {
+      const from = new Vector3(0.9, 0.15, 0.41).normalize()
+      const to = new Vector3(-0.35, 0.55, 0.76).normalize()
+      const axis = new Vector3().crossVectors(from, to).normalize()
+      const span = from.angleTo(to)
+      scheduler.previewSurface = {
+        axis: [axis.x, axis.y, axis.z],
+        tanA: [from.x, from.y, from.z],
+        headAngle: span * 0.62,
+        span,
+        radius: 0.97,
+        seed: 8.3,
+        envelope: 1,
+      }
+    }
+    return scheduler
+  }, [previewArcBaseline, previewStage])
   const reactorMaterial = useMemo(
     () => {
       const material = createMetamaterial({
@@ -942,6 +1041,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const syncInstances = (mainElapsed = -1) => {
     const mesh = meshRef.current
     if (!mesh) return
+    const glowMesh = assemblyGlowMeshRef.current
+    const glowVisible = glowMesh && assemblySeamMaterial.visible
 
     const shellComplete = mainElapsed >= ORBIT_END
 
@@ -965,9 +1066,23 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       transform.scale.setScalar(launched || reactorHandoff ? 0 : 1)
       transform.updateMatrix()
       mesh.setMatrixAt(index, transform.matrix)
+
+      if (glowVisible) {
+        assemblyGlowTransform.position.copy(transform.position)
+        assemblyGlowTransform.quaternion.copy(transform.quaternion)
+        assemblyGlowTransform.scale
+          .copy(transform.scale)
+          .multiplyScalar(ASSEMBLY_GLOW_SCALE)
+        assemblyGlowTransform.updateMatrix()
+        glowMesh.setMatrixAt(index, assemblyGlowTransform.matrix)
+      }
     })
 
     mesh.instanceMatrix.needsUpdate = true
+
+    if (glowVisible) {
+      glowMesh.instanceMatrix.needsUpdate = true
+    }
   }
 
   const syncOrbiters = (
@@ -1777,6 +1892,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     }
   }, [
     assembly,
+    assemblyGlowTransform,
     cardRef,
     orbitTransform,
     previewMaterialBaseline,
@@ -1787,6 +1903,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   ])
 
   useFrame(({ camera, clock }, delta) => {
+    if (VIEWPORT_LAB_PREVIEW && !viewportLabReady.current) {
+      viewportLabReady.current = true
+      document.documentElement.dataset.heroCanvasReady = 'true'
+    }
+
     const previousAssemblyTime = assembly.time
     if (!previewAssemblyGlow) assembly.update(delta)
 
@@ -1804,6 +1925,27 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const assemblyGlow = previewPlasma
       ? 0
       : assemblyGlowAttack * assemblyGlowRelease
+    const contactRollProgress = assembly.complete
+      ? smoothstep(spin.elapsed / EDGE_ROLL_DURATION)
+      : 0
+    const contactGlowAttack = smootherstep(
+      (spin.elapsed - ROLL_CONTACT_GLOW_START) / ROLL_CONTACT_GLOW_ATTACK,
+    )
+    const contactGlowRelease =
+      1 -
+      smootherstep(
+        (spin.elapsed - ROLL_CONTACT_GLOW_RELEASE_START) /
+          ROLL_CONTACT_GLOW_RELEASE,
+      )
+    const contactGlow = assembly.complete
+      ? contactGlowAttack * contactGlowRelease
+      : 0
+    const seamOpacity = Math.min(
+      0.68,
+      assemblyGlow * 0.34 + contactGlow * 0.6,
+    )
+    const materialGlow = assemblyGlow * (1 - contactGlow * 0.78)
+    const innerGlow = Math.max(assemblyGlow, contactGlow)
     const crystallization = smootherstep(
       (assembly.time / assembly.endTime - 0.34) / 0.66,
     )
@@ -1821,20 +1963,44 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         cubeletMaterial,
         crystallization,
         conductivity,
-        assemblyGlow,
+        materialGlow,
       )
     }
     nucleusMaterial.color.copy(cubeletMaterial.color)
     nucleusMaterial.metalness = cubeletMaterial.metalness
     nucleusMaterial.roughness = cubeletMaterial.roughness
     nucleusMaterial.emissiveIntensity = cubeletMaterial.emissiveIntensity
-    const assemblyGlowVisible = assemblyGlow > 0.001
+    const assemblyGlowVisible = seamOpacity > 0.001
     assemblySeamMaterial.visible = assemblyGlowVisible
     updateAssemblySeamMaterial(
       assemblySeamMaterial,
       assembly.time,
-      assemblyGlow * 0.32,
+      seamOpacity,
+      contactRollProgress,
+      contactGlow,
+      -contactHalfExtent,
+      1.05 * sceneScale,
+      CUBE_SIZE * 0.5,
     )
+
+    // Internal synergy light: energy released inside the closed cube spills
+    // through the bevel gaps between cubelets, so the lock/roll beat reads as
+    // light coming from within rather than a surface overlay. The light lives
+    // inside the rolling group, so it travels with the cube; its cold-white
+    // tint shifts to the contact mint as the support-edge band forms. The
+    // 1.35 distance dies out right past the shell, and outward faces simply
+    // turn away from it, so the glow stays internal. Both envelopes are zero
+    // outside the beat, so the light costs nothing afterwards.
+    const innerGlowLight = innerGlowLightRef.current
+    if (innerGlowLight) {
+      const innerFlicker = 0.93 + 0.07 * Math.sin(assembly.time * 10.5)
+      innerGlowLight.intensity = innerGlow * 3.5 * innerFlicker
+      innerGlowLight.color.setRGB(
+        0.82 - contactGlow * 0.36,
+        0.94 + contactGlow * 0.06,
+        1.0 - contactGlow * 0.28,
+      )
+    }
 
     const group = groupRef.current
     if (!group || !assembly.complete) {
@@ -2041,8 +2207,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const conversionGlow = 4 * gridProgress * (1 - gridProgress)
     nucleusMaterial.depthWrite = gridProgress < 0.02
     nucleusMaterial.opacity = 1 - gridProgress
+    // The still-solid nucleus flares during the lock/roll synergy beat: it
+    // is the physical source of the internal light, and its hot surface is
+    // what leaks through the bevel gaps as the internal glow.
+    nucleusMaterial.emissive
+      .copy(NUCLEUS_BASE_EMISSIVE)
+      .lerp(INNER_GLOW_COLD, assemblyGlow * 0.55)
     nucleusMaterial.emissiveIntensity =
-      cubeletMaterial.emissiveIntensity + conversionGlow * 0.72
+      cubeletMaterial.emissiveIntensity +
+      conversionGlow * 0.72 +
+      innerGlow * 1.5
     updateGridMaterial(
       gridMaterial,
       assembly.time,
@@ -2050,6 +2224,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       warmProgress,
       finalExpandProgress,
     )
+    discharge.update(spin.mainElapsed)
     updatePlasmaMaterial(
       plasmaMaterial,
       assembly.time,
@@ -2061,6 +2236,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       plasmaWorldRadii,
       finalExpandProgress,
       compact,
+      discharge.streams,
+      discharge.surfaces,
     )
 
     const flashElapsed = spin.mainElapsed - PLASMA_CORE_START
@@ -2090,7 +2267,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       plasmaLight.intensity =
         coreProgress * (5.8 + flicker * 0.35) +
         warmProgress * (1.8 + flicker * 0.65) +
-        finalExpandProgress * (1.6 + flicker * 0.28)
+        finalExpandProgress * (1.6 + flicker * 0.28) +
+        discharge.peak * 2.4
+      plasmaLight.color.lerp(
+        ARC_LIGHT_TINT,
+        Math.min(1, discharge.peak) * 0.3,
+      )
       plasmaLight.distance = 2.6 + finalExpandProgress * 3.8
     }
   })
@@ -2110,6 +2292,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           </mesh>
         </group>
 
+        <pointLight
+          ref={innerGlowLightRef}
+          color="#d1f0ff"
+          intensity={0}
+          distance={1.35}
+          decay={2}
+        />
+
         <instancedMesh
           ref={meshRef}
           args={[undefined, undefined, CUBELET_COUNT]}
@@ -2120,15 +2310,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           receiveShadow
         />
 
-        <mesh
+        <instancedMesh
+          ref={assemblyGlowMeshRef}
+          args={[undefined, undefined, CUBELET_COUNT]}
+          geometry={cubeletGeometry}
           material={assemblySeamMaterial}
           renderOrder={4}
           frustumCulled={false}
-        >
-          <boxGeometry
-            args={[ASSEMBLY_SEAM_SIZE, ASSEMBLY_SEAM_SIZE, ASSEMBLY_SEAM_SIZE]}
-          />
-        </mesh>
+        />
 
         <instancedMesh
           ref={reactorMeshRef}
@@ -2223,25 +2412,32 @@ function ReactorWarmSpotlight() {
   )
 }
 
-/** Camera target: assembly point on desktop, settled post-roll anchor on
- * compact viewports (keeps the long-lived phases screen-centered on
- * phones — the cube rolls into center stage instead of out of it). */
+/** Camera target: assembly point on desktop/landscape, settled post-roll
+ * anchor plus a lower stage bias in compact portrait. The portrait cube
+ * rolls into the clear band between the headline and the bottom copy. */
 function SceneControls() {
   const camera = useThree((state) => state.camera)
   const scene = useThree((state) => state.scene)
   const compact =
-    useThree((state) => state.size.width < 720) || FORCE_COMPACT_PREVIEW
-  const targetX = compact
+    useThree((state) =>
+      isCompactViewport(state.size.width, state.size.height),
+    ) || FORCE_COMPACT_PREVIEW
+  const portraitCompact =
+    useThree((state) =>
+      isPortraitCompactViewport(state.size.width, state.size.height),
+    ) || FORCE_COMPACT_PREVIEW
+  const targetX = portraitCompact
     ? settledCenterX(COMPACT_SCENE_SCALE)
     : INITIAL_X
+  const targetY = portraitCompact ? COMPACT_PORTRAIT_TARGET_Y : 0
 
   useLayoutEffect(() => {
     const pullback = compact ? COMPACT_CAMERA_PULLBACK : 1
     camera.position
       .copy(CAMERA_BASE_OFFSET)
       .multiplyScalar(pullback)
-      .add(cameraAimScratch.set(targetX, 0, 0))
-    camera.lookAt(targetX, 0, 0)
+      .add(cameraAimScratch.set(targetX, targetY, 0))
+    camera.lookAt(targetX, targetY, 0)
 
     const extra = compact ? COMPACT_CAMERA_EXTRA_DISTANCE : 0
     if (scene.fog instanceof Fog) {
@@ -2254,14 +2450,16 @@ function SceneControls() {
         camera,
         scene,
         compact,
+        portraitCompact,
         targetX,
+        targetY,
       }
     }
-  }, [camera, scene, compact, targetX])
+  }, [camera, scene, compact, portraitCompact, targetX, targetY])
 
   return (
     <OrbitControls
-      target={[targetX, 0, 0]}
+      target={[targetX, targetY, 0]}
       enablePan={false}
       enableZoom={false}
       minPolarAngle={0.8}
@@ -2416,9 +2614,8 @@ export default function HeroScene({
   const cardRef = useRef<HTMLElement | null>(null)
   const previewLightingBaseline = useMemo(
     () =>
-      import.meta.env.DEV &&
-      typeof window !== 'undefined' &&
-      new URLSearchParams(window.location.search).has('lighting-baseline'),
+      DEVELOPMENT_PREVIEW_ENABLED &&
+      PAGE_SEARCH_PARAMS?.has('lighting-baseline') === true,
     [],
   )
 
@@ -2428,8 +2625,14 @@ export default function HeroScene({
         <Canvas
           camera={{ position: [4.8, 3.4, 7.2], fov: 43 }}
           dpr={[1, 1.5]}
+          frameloop={FREEZE_VIEWPORT_LAB_GRID ? 'demand' : 'always'}
           shadows
-          onCreated={({ camera }) => camera.lookAt(INITIAL_X, 0, 0)}
+          onCreated={({ camera, invalidate }) => {
+            camera.lookAt(INITIAL_X, 0, 0)
+            window.requestAnimationFrame(() => {
+              invalidate()
+            })
+          }}
         >
           <color attach="background" args={['#050907']} />
           <fog attach="fog" args={['#050907', 10, 20]} />

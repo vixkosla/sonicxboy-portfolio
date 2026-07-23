@@ -109,6 +109,19 @@ Main phases, driven frame-by-frame in `HeroScene.tsx`'s `useFrame`:
   can't explode the simulation — preserve that clamp in any new physics.
 - TypeScript is strict — no implicit `any`, keep types tight.
 
+## Content and search effectiveness
+
+- Preserve the personality and visual concept, but keep commercial search
+  intent explicit in SSR-visible RU and EN copy. Technology badges alone are
+  not enough.
+- Maintain natural coverage of the primary terms documented in
+  `docs/seo-semantics.md` across the title, description, visible copy,
+  structured data, and `public/llms.txt`.
+- Do not add a `meta keywords` tag or repeat phrases unnaturally. Search terms
+  must describe real services and read as normal language.
+- Keep Russian and English metadata localized and aligned with their visible
+  page copy.
+
 ## Docs
 
 Astro: https://docs.astro.build · r3f: https://r3f.docs.pmnd.rs · drei: https://drei.docs.pmnd.rs

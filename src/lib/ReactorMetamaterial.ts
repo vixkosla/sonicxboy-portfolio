@@ -321,7 +321,7 @@ float reactorHubDistance = abs(
     abs( reactorUv.y - reactorHub.y )
   ) - reactorHubHalfSize
 );
-float reactorGridDensity = floor( mix( 8.0, 13.0, reactorSeedD ) );
+float reactorGridDensity = floor( mix( 11.0, 17.0, reactorSeedD ) );
 vec2 reactorGridPosition = reactorUv * reactorGridDensity;
 vec2 reactorGridCell = abs( fract( reactorGridPosition ) - 0.5 );
 float reactorGridDistance = 0.5 - max( reactorGridCell.x, reactorGridCell.y );
@@ -371,6 +371,115 @@ float reactorModuleDistance = abs(
 );
 float reactorModulePresence = step( 0.38, reactorSeedB );
 
+// Densified etch: extra vias, via breakout stubs, a second hub branch,
+// a second component footprint, and corner fiducials fill the resin.
+vec2 reactorViaC = vec2(
+  mix( 0.14, 0.86, fract( reactorSeedC + reactorSeedF ) ),
+  mix( 0.14, 0.86, fract( reactorSeedD + reactorSeedG ) )
+);
+vec2 reactorViaD = vec2(
+  mix( 0.14, 0.86, fract( reactorSeedE + reactorSeedH ) ),
+  mix( 0.14, 0.86, fract( reactorSeedB + reactorSeedC ) )
+);
+reactorViaDistance = min(
+  reactorViaDistance,
+  min(
+    abs(
+      max(
+        abs( reactorUv.x - reactorViaC.x ),
+        abs( reactorUv.y - reactorViaC.y )
+      ) - reactorViaSize * 0.9
+    ),
+    abs(
+      max(
+        abs( reactorUv.x - reactorViaD.x ),
+        abs( reactorUv.y - reactorViaD.y )
+      ) - reactorViaSize * 0.7
+    )
+  )
+);
+
+float reactorStubBranchA = step( 0.3, fract( reactorSeedG + reactorSeedB ) );
+float reactorStubBranchB = step( 0.3, fract( reactorSeedH + reactorSeedE ) );
+float reactorViaStubA = reactorSegmentDistance(
+  reactorUv,
+  reactorViaA,
+  vec2(
+    mix( reactorFrameInset, 1.0 - reactorFrameInset, step( 0.5, reactorSeedA ) ),
+    reactorViaA.y
+  )
+);
+float reactorViaStubB = reactorSegmentDistance(
+  reactorUv,
+  reactorViaB,
+  vec2(
+    reactorViaB.x,
+    mix( reactorFrameInset, 1.0 - reactorFrameInset, step( 0.5, reactorSeedB ) )
+  )
+);
+reactorTraceDistance = min(
+  reactorTraceDistance,
+  min(
+    mix( 1.0, reactorViaStubA, reactorStubBranchA ),
+    mix( 1.0, reactorViaStubB, reactorStubBranchB )
+  )
+);
+
+vec2 reactorLocalNodeB = vec2(
+  mix( 0.16, 0.84, fract( reactorSeedB + reactorSeedH ) ),
+  mix( 0.16, 0.84, fract( reactorSeedC + reactorSeedE ) )
+);
+vec2 reactorLocalCornerB = vec2( reactorHub.x, reactorLocalNodeB.y );
+float reactorLocalDistanceB = min(
+  reactorSegmentDistance( reactorUv, reactorHub, reactorLocalCornerB ),
+  reactorSegmentDistance( reactorUv, reactorLocalCornerB, reactorLocalNodeB )
+);
+float reactorLocalBranchB = step( 0.3, fract( reactorSeedD + reactorSeedF ) );
+reactorTraceDistance = min(
+  reactorTraceDistance,
+  mix( 1.0, reactorLocalDistanceB, reactorLocalBranchB )
+);
+reactorTerminalDistance = min(
+  reactorTerminalDistance,
+  mix(
+    1.0,
+    max(
+      abs( reactorUv.x - reactorLocalNodeB.x ),
+      abs( reactorUv.y - reactorLocalNodeB.y )
+    ),
+    reactorLocalBranchB
+  )
+);
+
+vec2 reactorFiducialUv = min( reactorUv, 1.0 - reactorUv );
+float reactorFiducialDistance = abs(
+  max(
+    abs( reactorFiducialUv.x - 0.115 ),
+    abs( reactorFiducialUv.y - 0.115 )
+  ) - 0.011
+);
+float reactorFiducialPresence = step( 0.45, fract( reactorSeedA + reactorSeedH ) );
+reactorTerminalDistance = min(
+  reactorTerminalDistance,
+  mix( 1.0, reactorFiducialDistance, reactorFiducialPresence )
+);
+
+vec2 reactorModuleCenterB = vec2(
+  mix( 0.2, 0.8, fract( reactorSeedA + reactorSeedD ) ),
+  mix( 0.2, 0.8, fract( reactorSeedF + reactorSeedG ) )
+);
+vec2 reactorModuleHalfSizeB = mix(
+  vec2( 0.044, 0.02 ),
+  vec2( 0.022, 0.046 ),
+  step( 0.5, reactorSeedC )
+);
+vec2 reactorModuleOffsetB =
+  abs( reactorUv - reactorModuleCenterB ) - reactorModuleHalfSizeB;
+float reactorModuleDistanceB = abs(
+  max( reactorModuleOffsetB.x, reactorModuleOffsetB.y )
+);
+float reactorModulePresenceB = step( 0.3, reactorSeedF );
+
 float reactorMicroGrid = reactorBand(
   reactorGridDistance,
   mix( 0.006, 0.011, reactorSeedE )
@@ -388,10 +497,14 @@ float reactorHubGroove = reactorBand( reactorHubDistance, 0.015 );
 float reactorHubCore = reactorBand( reactorHubDistance, 0.0045 );
 float reactorViaGroove = reactorBand( reactorViaDistance, 0.009 );
 float reactorViaCore = reactorBand( reactorViaDistance, 0.003 );
-float reactorModuleGroove = reactorBand( reactorModuleDistance, 0.01 ) *
-  reactorModulePresence;
-float reactorModuleCore = reactorBand( reactorModuleDistance, 0.003 ) *
-  reactorModulePresence;
+float reactorModuleGroove = max(
+  reactorBand( reactorModuleDistance, 0.01 ) * reactorModulePresence,
+  reactorBand( reactorModuleDistanceB, 0.009 ) * reactorModulePresenceB
+);
+float reactorModuleCore = max(
+  reactorBand( reactorModuleDistance, 0.003 ) * reactorModulePresence,
+  reactorBand( reactorModuleDistanceB, 0.0026 ) * reactorModulePresenceB
+);
 
 float reactorFlowCoordinate = fract(
   reactorUv.x * 0.58 +
@@ -581,7 +694,7 @@ export function enableReactorCircuitSurface(
       )
       .replace('#include <emissivemap_fragment>', REACTOR_EMISSIVE_FRAGMENT)
   }
-  material.customProgramCacheKey = () => 'reactor-circuit-surface-v7'
+  material.customProgramCacheKey = () => 'reactor-circuit-surface-v8'
   material.needsUpdate = true
   return material
 }

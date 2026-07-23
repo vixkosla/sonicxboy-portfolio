@@ -1,18 +1,41 @@
 # SonicXBoy
 
-> Разработчик интерактивной 3D-графики для веба: Three.js, WebGL, GLSL,
-> React Three Fiber, картография Mapbox. Производительно и красиво.
+> Независимый WebGL-разработчик и создатель интерактивных браузерных
+> продуктов. Визуальный язык, производительность и личная ответственность
+> за результат — от идеи до продакшена.
 
-SonicXBoy любит дизайн и стиль: придумывать работающие системы и делать их
-красивыми. Упор — на производительность и эстетику: кастомные GLSL-шейдеры,
-постобработка, стабильные 60–120 FPS на десктопе и мобильных. Hero-анимация
-на главной странице собрана с нуля: предвычисленные Bezier-траектории,
-физическая симуляция волчка, ray-marched плазменный шейдер.
+SonicXBoy — независимый бренд разработчика из Санкт-Петербурга. Основная
+специализация: интерактивная 3D-графика и сложные визуальные системы для
+веба на Three.js, WebGL, GLSL и React Three Fiber. Смежные направления —
+WebGPU, Mapbox-картография, браузерные движки и расширения.
 
-Ведёт проект целиком и лично отвечает за результат — концепция, прототип,
-продакшен, оптимизация; клиент общается напрямую с разработчиком.
-Инструменты подбирает по задаче, включая ИИ; следит за WebGPU. Особенно
-приветствуются нестандартные и странные проекты.
+По самоощущению SonicXBoy прежде всего танцор. Это не отдельное хобби, а
+основа визуального мышления: движение воспринимается как язык ритма, паузы,
+веса, инерции и точности. Поэтому анимация строится как хореография, а не как
+набор независимых эффектов.
+
+Главная идея работы — не разделять дизайн и инженерию. Визуальный язык,
+поведение, математика и техническая реализация проектируются как одна
+система. Hero-анимация сайта — пример этого подхода: предвычисленные
+Bezier-траектории, физическая симуляция волчка, процедурные материалы,
+электрические разряды и плазменный шейдер собраны в единый сюжет.
+
+## Принципы работы
+
+- Движение несёт смысл: у него должны быть ритм, вес, пауза и драматургия.
+- Красота не должна маскировать слабую инженерию; производительность — часть
+  визуального качества.
+- Работа ведётся целиком: постановка задачи, концепция, прототип, архитектура,
+  продакшен, проверка и оптимизация.
+- ИИ-агенты используются как производственный инструмент. Они ускоряют
+  исполнение, но визуальные и технические решения, проверка и ответственность
+  остаются за SonicXBoy.
+- Ценность — в работающем продукте, а не в количестве вручную написанных строк
+  или затраченных часов.
+- Предпочтение отдаётся стандартным браузерным API, разумным разрешениям и
+  совместимости без ненужной привязки к одному браузеру.
+- Особенно интересны нестандартные задачи, где нужно одновременно придумать
+  систему и найти для неё собственный визуальный язык.
 
 ## Услуги
 
@@ -23,19 +46,37 @@ SonicXBoy любит дизайн и стиль: придумывать рабо
 - Постобработка: Bloom, Depth of Field, SSAO, God Rays
 - PBR-материалы и отражения в реальном времени
 - Браузерные движки и игры (пример — Minecraft-реплеер)
+- Расширения и небольшие браузерные продукты на стандартных Manifest V3 API
 - Встраивание 3D в React / Next.js / WordPress, оптимизация WebGL
 - Поставка: два билда производительности (десктоп + лёгкий мобильный),
   переиспользуемые компоненты, отладочный инструментарий
 
 ## Стек
 
-Three.js, WebGL, WebGPU (осваивает), GLSL, React Three Fiber, Mapbox GL,
-React, TypeScript, Next.js, Astro, Node.js, GSAP, Rapier, Blender, Figma.
+Three.js, WebGL, WebGPU (развивающееся направление), GLSL, React Three Fiber,
+Mapbox GL, React, TypeScript, Next.js, Astro, Node.js, Manifest V3, Chrome
+Extensions API, GSAP, Rapier, Blender, Figma.
+
+## Собственные браузерные продукты
+
+- GPU Repaint Helper — расширение с явным пользовательским действием для
+  перерисовки активной вкладки. Использует только `activeTab` и `scripting`,
+  не содержит удалённого кода, аналитики и сетевых запросов. Рассчитано на
+  Chromium-браузеры, включая Chrome, Vivaldi, Edge, Brave и Opera.
+- Издатель Chrome Web Store: `sonicxboy.dev`.
+- Chrome Web Store ID: `galcdphakfjnpkddbngncbbcojhildoi`. Продукт отправлен
+  на проверку 2026-07-21; публичная карточка станет доступна после одобрения:
+  https://chromewebstore.google.com/detail/gpu-repaint-helper/galcdphakfjnpkddbngncbbcojhildoi
+- Политика конфиденциальности:
+  https://gist.github.com/vixkosla/a665dbe0dffb5981e2f11208bb4b3d43
 
 ## Живые демо
 
 - Стеклянная спираль (последняя работа): https://bubble-gum-glass-spiral.netlify.app/
 - Minecraft replay-движок в браузере: https://replay-engine-clean.vercel.app/
+- 3D-анализ графов: https://graph-analyse.vercel.app/
+- Three.js-джамботрон для WordPress:
+  https://threejs-wordpress-jumbotron.vercel.app/
 - Картографические работы (Mapbox): https://vixkosla.github.io/portfolio-map/
 
 ## Отзыв клиента
@@ -60,13 +101,23 @@ up and running with a prototype quickly." (Upwork)
 
 ## English summary
 
-SonicXBoy is an interactive 3D graphics developer for the web: Three.js,
-WebGL, GLSL, React Three Fiber, Mapbox cartography. Builds configurators,
-immersive landing pages, data visualizations, custom shaders and browser
-engines (including a Minecraft replay engine) at a steady 60–120 FPS on
-desktop and mobile. Runs projects end to end and owns the result — concept,
-prototype, production; picks tools to fit the task, AI tooling included.
-Unconventional and strange projects are especially welcome. Based in Saint
-Petersburg, works remotely worldwide. Contact: https://t.me/vixkosla
-(primary), https://x.com/vixkosla, https://www.upwork.com/freelancers/askerovt,
-https://github.com/vixkosla. English page: https://sonicxboy.dev/en/
+SonicXBoy is an independent WebGL developer and interactive browser product
+creator. The core practice combines visual direction and engineering across
+Three.js, WebGL, GLSL, React Three Fiber, WebGPU, Mapbox, browser engines and
+extensions. A dancer at heart, SonicXBoy treats movement as a language of
+rhythm, pause, weight, momentum and precision, so animation is approached as
+choreography rather than a collection of effects. Projects are led end to
+end, from framing and prototype through production and optimization. AI agents accelerate execution, while
+architecture, visual decisions, verification and accountability remain with
+SonicXBoy. The goal is a working, distinctive product rather than a count of
+manually typed lines. Unconventional work is especially welcome. Based in
+Saint Petersburg and working remotely worldwide. Contact:
+https://t.me/vixkosla (primary), https://x.com/vixkosla,
+https://www.upwork.com/freelancers/askerovt, https://github.com/vixkosla.
+English page: https://sonicxboy.dev/en/
+
+Core search-relevant services: Three.js developer, WebGL developer, React
+Three Fiber development, interactive 3D websites, 3D product configurators,
+immersive landing pages, data visualization, Mapbox development, custom GLSL
+shaders, WebGL performance optimization, browser engines, Chrome extensions
+and Manifest V3 development.

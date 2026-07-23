@@ -24,43 +24,43 @@ export interface PageCopy {
 
 export const translations: Record<Lang, PageCopy> = {
   ru: {
-    title: 'SonicXBoy — WebGL Developer · Three.js, React Three Fiber',
+    title: 'SonicXBoy — Three.js / WebGL разработчик и браузерные продукты',
     description:
-      'SonicXBoy — разработчик интерактивной 3D-графики для веба: Three.js, WebGL, GLSL, React Three Fiber, картография Mapbox. Конфигураторы, визуализации данных, кастомные шейдеры и браузерные движки — 60–120 FPS, производительно и красиво.',
+      'SonicXBoy — Three.js и WebGL разработчик: интерактивная 3D-графика, React Three Fiber, GLSL-шейдеры, 3D-конфигураторы, Mapbox и Chrome-расширения.',
     ogDescription:
-      'Интерактивная 3D-графика для веба: Three.js, WebGL, GLSL, React Three Fiber.',
+      'Three.js и WebGL-разработка: интерактивная 3D-графика, 3D-конфигураторы, Mapbox, GLSL и браузерные продукты.',
     jsonLdDescription:
-      'Разработчик интерактивной 3D-графики для веба: Three.js, WebGL, GLSL, React Three Fiber, картография Mapbox. Конфигураторы, визуализации данных, шейдеры и браузерные движки — производительно и красиво.',
-    eyebrow: '// интерактивная 3D-графика для веба',
+      'Независимый разработчик интерактивных веб-продуктов: Three.js, WebGL, GLSL, WebGPU, Mapbox, браузерные движки и расширения. Соединяет хореографическое мышление, визуальное направление, инженерную производительность и работу с ИИ-агентами; отвечает за результат от идеи до продакшена.',
+    eyebrow: '// интерактивные системы для веба',
     subtitle:
-      'Анимации, конфигураторы и визуализации на Three.js — прямо в браузере.',
+      'Соединяю движение, визуальный язык и инженерию — от WebGL-сцен до полезных браузерных продуктов.',
     ariaLang: 'Язык сайта',
     card: {
-      h2: 'Интерактивная 3D-графика для веба',
-      p1: 'Я люблю дизайн и стиль: придумывать работающие системы и делать их красивыми. Вкус у меня есть, и я не стесняюсь его применять — сцена на этой странице спроектирована с нуля: математика траекторий, физика волчка, шейдеры плазмы.',
-      p2: 'Упор держу на производительность (спасибо, СДВГ) и эстетику (спасибо, перфекционизм): кастомные GLSL-шейдеры, постобработка, стабильные 60–120 FPS на десктопе и мобильных. Делаю конфигураторы, иммерсивные лендинги, картографию на Mapbox, визуализации данных и браузерные движки — вплоть до Minecraft-реплеера.',
-      p3: 'Веду проект целиком и отвечаю за результат: концепция → прототип → продакшен. Инструменты подбираю по задаче — включая ИИ-инструменты; смотрю в сторону WebGPU. Чем страннее задача, тем интереснее — неформат приветствуется. Санкт-Петербург, работаю удалённо.',
+      h2: 'Движение, вкус и системы, которые работают',
+      p1: 'По-настоящему в душе я танцор. Избавиться от этого невозможно, да и незачем. Поэтому движение для меня не украшение, а язык: ритм, пауза, вес, инерция и точность. Я не отделяю дизайн от инженерии; эта сцена — хореография из траекторий, физики, материалов и света.',
+      p2: 'Упор держу на производительность (спасибо, СДВГ) и эстетику (спасибо, перфекционизм). Моя специализация — разработка на Three.js и WebGL: интерактивная 3D-графика, React Three Fiber, 3D-конфигураторы, визуализации данных, Mapbox-карты, GLSL-шейдеры и оптимизация WebGL. Также создаю браузерные движки и Chrome-расширения; GPU Repaint Helper использует Manifest V3 и рассчитан на весь Chromium.',
+      p3: 'Веду работу целиком — от идеи и прототипа до продакшена и оптимизации. ИИ-агенты ускоряют производство, но постановка задачи, архитектура, визуальный выбор, проверка и ответственность остаются моими. Ценность для меня — работающий продукт, а не количество вручную написанных строк. Особенно люблю нестандартные задачи; Санкт-Петербург, работаю удалённо.',
       cta: 'Написать в Telegram',
       ariaNav: 'Соцсети и контакты',
     },
   },
   en: {
-    title: 'SonicXBoy — WebGL Developer · Three.js, React Three Fiber',
+    title: 'SonicXBoy — Three.js / WebGL Developer & Browser Products',
     description:
-      'SonicXBoy — interactive 3D graphics developer for the web: Three.js, WebGL, GLSL, React Three Fiber, Mapbox cartography. Configurators, data visualizations, custom shaders and browser engines — 60–120 FPS, fast and beautiful.',
+      'SonicXBoy is a Three.js and WebGL developer building interactive 3D graphics, React Three Fiber configurators, Mapbox maps, GLSL shaders and Chrome extensions.',
     ogDescription:
-      'Interactive 3D graphics for the web: Three.js, WebGL, GLSL, React Three Fiber.',
+      'Three.js and WebGL development: interactive 3D graphics, product configurators, Mapbox, GLSL and browser products.',
     jsonLdDescription:
-      'Interactive 3D graphics developer for the web: Three.js, WebGL, GLSL, React Three Fiber, Mapbox cartography. Configurators, data visualizations, shaders and browser engines — fast and beautiful.',
-    eyebrow: '// interactive 3D graphics for the web',
+      'Independent interactive web product developer working with Three.js, WebGL, GLSL, WebGPU, Mapbox, browser engines and extensions. Combines choreographic thinking, visual direction, performance engineering and AI-agent workflows, owning the result from idea to production.',
+    eyebrow: '// interactive systems for the web',
     subtitle:
-      'Animations, configurators and visualizations in Three.js — right in the browser.',
+      'I combine movement, visual direction and engineering — from WebGL scenes to useful browser products.',
     ariaLang: 'Site language',
     card: {
-      h2: 'Interactive 3D graphics for the web',
-      p1: "I love design and style: inventing working systems and making them beautiful. I do have taste and I'm not shy about using it — the scene on this page was designed from scratch: trajectory math, spinning-top physics, plasma shaders.",
-      p2: "I'm obsessed with performance (thanks, ADHD) and aesthetics (thanks, perfectionism): custom GLSL shaders, post-processing, a steady 60–120 FPS on desktop and mobile. I build configurators, immersive landing pages, Mapbox cartography, data visualizations and browser engines — up to a Minecraft replay engine.",
-      p3: 'I run projects end to end and own the result: concept → prototype → production. I pick tools to fit the task — AI tooling included — and keep an eye on WebGPU. The stranger the task, the more fun it is: unconventional projects welcome. Saint Petersburg, working remotely.',
+      h2: 'Movement, taste and systems that work',
+      p1: 'At heart, I am a dancer. That never went away — and I do not want it to. Movement is not decoration to me but a language: rhythm, pause, weight, momentum and precision. I do not separate design from engineering; this scene is choreography made from trajectories, physics, materials and light.',
+      p2: 'I care equally about performance (thanks, ADHD) and aesthetics (thanks, perfectionism). My specialty is Three.js and WebGL development: interactive 3D graphics, React Three Fiber, product configurators, data visualization, Mapbox maps, custom GLSL shaders and WebGL performance optimization. I also build browser engines and Chrome extensions; GPU Repaint Helper uses Manifest V3 and targets Chromium as a platform.',
+      p3: 'I lead the work from idea and prototype through production and optimization. AI agents accelerate execution, while framing, architecture, visual decisions, verification and accountability stay with me. I value a working product over a count of manually typed lines. Unconventional work is especially welcome; based in Saint Petersburg, working remotely.',
       cta: 'Message me on Telegram',
       ariaNav: 'Social links and contacts',
     },

@@ -17,6 +17,7 @@ import {
   UnsignedByteType,
   Vector2,
   Vector3,
+  Vector4,
 } from 'three'
 
 export const PLASMA_RADIUS = 0.235
@@ -104,6 +105,10 @@ uniform float uExpansion;
 uniform float uStepCount;
 uniform vec3 uCenter;
 uniform vec3 uRadii;
+uniform vec4 uArcStream[3];
+uniform vec4 uSurfAxis[3];
+uniform vec4 uSurfTan[3];
+uniform vec4 uSurfParam[3];
 uniform sampler3D uNoiseTexture;
 
 in vec3 vWorldPosition;
@@ -487,6 +492,141 @@ void main() {
     float strand6 = strandTube(
       flowPoint, strandCenter6, inverseStrandWidthSquared * 2.36686391
     );
+    // Scheduled lightning strikes: jagged sequential bursts propagating up
+    // the existing streams, plus smooth arcs gliding across the outer
+    // ionization envelope. Emission only — the
+    // flame silhouette is untouched; brightness is flat: no strobing.
+    vec3 arcEmission = vec3(0.0);
+    float arcBoost = 0.0;
+    for (int arcSlot = 0; arcSlot < 3; arcSlot++) {
+      vec4 arcStream = uArcStream[arcSlot];
+      if (arcStream.z > 0.001 && plumeJoin > 0.001) {
+        vec2 strandBase =
+          arcStream.x < 0.5 ? strandCenter0 :
+          arcStream.x < 1.5 ? strandCenter1 :
+          arcStream.x < 2.5 ? strandCenter2 :
+          arcStream.x < 3.5 ? strandCenter3 :
+          arcStream.x < 4.5 ? strandCenter4 :
+          arcStream.x < 5.5 ? strandCenter5 : strandCenter6;
+        float jagCoord = height * 13.0 + arcStream.w * 7.31;
+        float jagIndex = floor(jagCoord);
+        float jagFrac = jagCoord - jagIndex;
+        vec2 jagA = vec2(
+          hash31(vec3(jagIndex, arcStream.w, 0.0)),
+          hash31(vec3(jagIndex, arcStream.w, 17.0))
+        ) - 0.5;
+        vec2 jagB = vec2(
+          hash31(vec3(jagIndex + 1.0, arcStream.w, 0.0)),
+          hash31(vec3(jagIndex + 1.0, arcStream.w, 17.0))
+        ) - 0.5;
+        vec2 arcCenter =
+          strandBase + mix(jagA, jagB, jagFrac) * 0.11;
+        float arcHeadGlow = gaussian(height, arcStream.y, 0.11);
+        float behind = max(arcStream.y - height, 0.0);
+        float arcTrail =
+          (1.0 - smoothstep(arcStream.y - 0.02, arcStream.y + 0.06, height)) *
+          exp(-behind * 0.85);
+        float arcLong = (arcTrail + arcHeadGlow * 1.2) * plumeJoin;
+        float arcCore = strandTube(
+          flowPoint, arcCenter, inverseStrandWidthSquared * 2.0
+        );
+        float arcHalo = strandTube(
+          flowPoint, arcCenter, inverseStrandWidthSquared * 0.35
+        );
+        // One side branch spur at a hashed height: a short diagonal offshoot
+        // that lights once the head has traveled past it.
+        float branchHeight = mix(
+          0.9, 2.2, hash31(vec3(arcStream.w, 3.0, 0.0))
+        );
+        float branchSign =
+          hash31(vec3(arcStream.w, 5.0, 0.0)) > 0.5 ? 1.0 : -1.0;
+        float branchRise = height - branchHeight;
+        float branchSpan =
+          smoothstep(0.0, 0.05, branchRise) *
+          (1.0 - smoothstep(0.28, 0.42, branchRise));
+        vec2 branchCenter =
+          arcCenter + vec2(branchSign * branchRise * 1.4, branchRise * 0.35);
+        float arcBranch =
+          strandTube(
+            flowPoint, branchCenter, inverseStrandWidthSquared * 2.5
+          ) * branchSpan * arcTrail;
+        float arcBody = arcLong * (arcCore + arcHalo * 0.35) + arcBranch;
+        arcEmission +=
+          vec3(0.45, 0.72, 1.0) * arcBody * arcStream.z * 6.5 +
+          vec3(0.95, 0.98, 1.0) *
+            (arcHeadGlow * arcCore * plumeJoin) * arcStream.z * 4.5;
+        arcBoost += arcLong * strandTube(
+          flowPoint, arcCenter, inverseStrandWidthSquared
+        ) * 0.35 * arcStream.z;
+      }
+    }
+    // Surface strikes: smooth arcs gliding across the blue ionization
+    // envelope, head leading with a comet trail behind, gentle course sweeps
+    // wrapping the core from different sides.
+    vec3 plasmaDir = plasmaPosition / max(sphereRadius, 0.0001);
+    for (int surfSlot = 0; surfSlot < 3; surfSlot++) {
+      vec4 surfAxis = uSurfAxis[surfSlot];
+      if (surfAxis.w > 0.001 && uRimProgress > 0.001) {
+        vec4 surfTan = uSurfTan[surfSlot];
+        vec4 surfParam = uSurfParam[surfSlot];
+        vec3 surfTanB = cross(surfAxis.xyz, surfTan.xyz);
+        float surfAngle = atan(
+          dot(plasmaDir, surfTanB),
+          dot(plasmaDir, surfTan.xyz)
+        );
+        if (surfAngle < 0.0) surfAngle += 6.2831853;
+        // Smooth direction turns instead of fine zigzag: the lane's course
+        // sweeps gently (max ~30 degrees, under the requested 45), wrapping
+        // the core from different sides. All coefficients derive from the
+        // per-event seed, so no extra uniforms are needed.
+        float surfTurnFreq =
+          1.0 + hash31(vec3(surfTan.w, 13.0, 0.0));
+        float surfTurnPhase =
+          hash31(vec3(surfTan.w, 17.0, 0.0)) * 6.2831853;
+        float surfTurnAmp =
+          0.15 + hash31(vec3(surfTan.w, 19.0, 0.0)) * 0.15;
+        float surfRadPhase =
+          hash31(vec3(surfTan.w, 29.0, 0.0)) * 6.2831853;
+        float surfRadAmp =
+          0.02 + hash31(vec3(surfTan.w, 31.0, 0.0)) * 0.02;
+        // The lane hugs the blue envelope at any size: the radius factor and
+        // the radial breathing scale with the envelope, so the same code
+        // draws arcs on the compact revving shell and the enlarged sphere.
+        float surfRingRadius =
+          (surfParam.z + sin(surfAngle + surfRadPhase) * surfRadAmp) *
+          blueEnvelopeScale;
+        float surfPlaneOffset =
+          dot(plasmaDir, surfAxis.xyz) -
+          sin(surfAngle * surfTurnFreq + surfTurnPhase) * surfTurnAmp *
+            blueEnvelopeScale;
+        float surfRingDist = length(
+          vec2(sphereRadius - surfRingRadius, surfPlaneOffset)
+        );
+        // Comet trail: the visible segment is a fixed-length window behind
+        // the head — dark at the head, full a quarter radian behind, gone
+        // beyond one and a half. It grows gradually with the head and never
+        // leaves a dying stub at the origin.
+        float surfBehind = surfParam.x - surfAngle;
+        float surfTrail =
+          smoothstep(0.0, 0.25, surfBehind) *
+          (1.0 - smoothstep(0.9, 1.5, surfBehind));
+        float surfHeadGlow = gaussian(surfAngle, surfParam.x, 0.07);
+        float surfLong = surfTrail + surfHeadGlow * 1.25;
+        float surfCoreDist = surfRingDist / 0.05;
+        float surfCoreKernel =
+          max(1.0 - surfCoreDist * surfCoreDist / 2.25, 0.0);
+        float surfCore = surfCoreKernel * surfCoreKernel * surfCoreKernel;
+        float surfHaloDist = surfRingDist / 0.13;
+        float surfHaloKernel =
+          max(1.0 - surfHaloDist * surfHaloDist / 2.25, 0.0);
+        float surfHalo = surfHaloKernel * surfHaloKernel * surfHaloKernel;
+        arcEmission +=
+          (vec3(0.45, 0.72, 1.0) *
+            (surfLong * (surfCore + surfHalo * 0.4)) * 5.0 +
+           vec3(0.95, 0.98, 1.0) * (surfHeadGlow * surfCore) * 4.0) *
+          surfAxis.w * uRimProgress;
+      }
+    }
     float strandBreakup = 0.22 + 0.78 * smoothstep(
       0.18,
       0.83,
@@ -495,7 +635,7 @@ void main() {
     float strandField = (
       strand0 * 1.18 + strand1 * 0.92 + strand2 * 0.78 +
       strand3 * 0.84 + strand4 * 0.68 + strand5 * 0.73 + strand6 * 0.62
-    ) * strandBreakup;
+    ) * strandBreakup + arcBoost;
     float paleStrands = (
       strand0 * 0.88 + strand1 * 0.67 + strand2 * 0.82 +
       strand3 * 0.61 + strand4 * 0.58 + strand5 * 0.72 + strand6 * 0.55
@@ -633,12 +773,13 @@ void main() {
     vec3 mistColor = vec3(0.095, 0.22, 0.48) * mistDensity * 2.25;
     vec3 emission =
       bodyColor * (0.58 + detailNoise * 0.48) * (0.72 + filament * 0.28) +
-      shellColor + strandColor + ribbonColor + mistColor;
+      shellColor + strandColor + ribbonColor + mistColor + arcEmission;
 
     float sampleAlpha = 1.0 - exp(-density * stepLength * 1.14);
     radiance += transmittance * emission * sampleAlpha;
     radiance += transmittance *
-      (strandColor * 0.36 + ribbonColor * 0.085) * stepLength;
+      (strandColor * 0.36 + ribbonColor * 0.085 + arcEmission * 0.42) *
+      stepLength;
     coverage += transmittance * sampleAlpha;
     transmittance *= 1.0 - sampleAlpha;
     if (transmittance < 0.012) break;
@@ -717,8 +858,24 @@ float gridNoise(vec2 p) {
 
 void main() {
   vec3 viewDirection = normalize(cameraPosition - vWorldPosition);
-  float facing = abs(dot(normalize(vWorldNormal), viewDirection));
+  vec3 worldNormal = normalize(vWorldNormal);
+  float facing = abs(dot(worldNormal, viewDirection));
   float fresnel = pow(1.0 - facing, 2.15);
+  // Analytic key-light response: the cage reads as a lit object rather than
+  // a flat decal. The direction matches the scene's neutral key at
+  // [5.8, 7.8, 5.2]; every visible face receives one stable brightness from
+  // its world normal, so the cube's form survives the emissive-only shader.
+  const vec3 keyDirection = vec3(0.5261, 0.7075, 0.4717);
+  float keyLight = clamp(
+    dot(worldNormal, keyDirection) * 0.5 + 0.5,
+    0.0,
+    1.0
+  );
+  float faceLight = mix(0.62, 1.18, keyLight * keyLight);
+  // A face seen at a grazing angle compresses the 4x4 pattern into a noisy
+  // carpet. Quieting the inner grid there keeps the silhouette readable,
+  // but the lattice never fully switches off: it is one energized object.
+  float grazingFade = 0.22 + 0.78 * smoothstep(0.08, 0.42, facing);
   float shimmer = 0.5 + 0.5 * sin(
     uTime * 1.05 + vWorldPosition.y * 15.0 + vWorldPosition.x * 8.0
   );
@@ -737,40 +894,104 @@ void main() {
   float lineDistance = min(nearestLine.x, nearestLine.y);
   vec2 fragmentFootprint = fwidth(fragmentGrid);
   float lineAA = max(fragmentFootprint.x, fragmentFootprint.y) * 0.78;
-  float gridCore = 1.0 - smoothstep(
-    max(0.0, 0.036 - lineAA),
-    0.036 + lineAA,
-    lineDistance
-  );
-  float gridGlow = 1.0 - smoothstep(
-    max(0.0, 0.105 - lineAA * 1.35),
-    0.105 + lineAA * 1.35,
-    lineDistance
-  );
-  float gridLine = max(gridCore, gridGlow * 0.48);
-  float nodeDistance = length(nearestLine);
-  float gridNode = 1.0 - smoothstep(
-    max(0.0, 0.055 - lineAA * 1.25),
-    0.055 + lineAA * 1.25,
-    nodeDistance
-  );
-  float outerDistance = min(
+  float faceBoundaryDistance = min(
     min(vUv.x, 1.0 - vUv.x),
     min(vUv.y, 1.0 - vUv.y)
   );
   vec2 uvFootprint = fwidth(vUv);
-  float edgeAA = max(uvFootprint.x, uvFootprint.y) * 0.9;
-  float outerCore = 1.0 - smoothstep(
-    max(0.0, 0.024 - edgeAA),
-    0.024 + edgeAA,
-    outerDistance
+  float boundaryAA = max(uvFootprint.x, uvFootprint.y) * 1.1;
+  // Bars are masked per orientation: x holds bars running vertically
+  // (constant U), y holds bars running horizontally (constant V). The
+  // boundary suppression quiets only the bars running parallel to that
+  // boundary — they would double the thin frame into a heavy border.
+  // Perpendicular bars keep their tips and visibly weld into the frame
+  // instead of stopping short of it.
+  vec2 edgeCore = vec2(
+    1.0 - smoothstep(
+      max(0.0, 0.036 - lineAA),
+      0.036 + lineAA,
+      nearestLine.x
+    ),
+    1.0 - smoothstep(
+      max(0.0, 0.036 - lineAA),
+      0.036 + lineAA,
+      nearestLine.y
+    )
   );
-  float outerGlow = 1.0 - smoothstep(
-    max(0.0, 0.115 - edgeAA * 1.4),
-    0.115 + edgeAA * 1.4,
-    outerDistance
+  vec2 edgeGlow = vec2(
+    1.0 - smoothstep(
+      max(0.0, 0.12 - lineAA * 1.35),
+      0.12 + lineAA * 1.35,
+      nearestLine.x
+    ),
+    1.0 - smoothstep(
+      max(0.0, 0.12 - lineAA * 1.35),
+      0.12 + lineAA * 1.35,
+      nearestLine.y
+    )
   );
-  float outerEdge = max(outerCore, outerGlow * 0.52);
+  vec2 edgeFilament = vec2(
+    1.0 - smoothstep(
+      max(0.0, 0.016 - lineAA),
+      0.016 + lineAA,
+      nearestLine.x
+    ),
+    1.0 - smoothstep(
+      max(0.0, 0.016 - lineAA),
+      0.016 + lineAA,
+      nearestLine.y
+    )
+  );
+  vec2 barInterior = vec2(
+    smoothstep(
+      max(0.0, 0.030 - boundaryAA),
+      0.052 + boundaryAA,
+      min(vUv.x, 1.0 - vUv.x)
+    ),
+    smoothstep(
+      max(0.0, 0.030 - boundaryAA),
+      0.052 + boundaryAA,
+      min(vUv.y, 1.0 - vUv.y)
+    )
+  );
+  float gridCore = max(
+    edgeCore.x * barInterior.x,
+    edgeCore.y * barInterior.y
+  );
+  float gridGlow = max(
+    edgeGlow.x * barInterior.x,
+    edgeGlow.y * barInterior.y
+  );
+  float gridFilament = max(
+    edgeFilament.x * barInterior.x,
+    edgeFilament.y * barInterior.y
+  );
+  float gridLine = max(gridCore, gridGlow * 0.48);
+  float nodeDistance = length(nearestLine);
+  float nodeInterior = max(barInterior.x, barInterior.y);
+  float gridNode = (1.0 - smoothstep(
+    max(0.0, 0.055 - lineAA * 1.25),
+    0.055 + lineAA * 1.25,
+    nodeDistance
+  )) * nodeInterior;
+  // A tight bright pin at every crossing anchors the lattice: intersections
+  // read as welded knots instead of accidental line overlaps.
+  float nodePin = (1.0 - smoothstep(
+    max(0.0, 0.028 - lineAA),
+    0.028 + lineAA,
+    nodeDistance
+  )) * nodeInterior;
+  float frameCore = 1.0 - smoothstep(
+    max(0.0, 0.012 - boundaryAA),
+    0.012 + boundaryAA,
+    faceBoundaryDistance
+  );
+  float frameGlow = 1.0 - smoothstep(
+    max(0.0, 0.050 - boundaryAA * 1.25),
+    0.050 + boundaryAA * 1.25,
+    faceBoundaryDistance
+  );
+  float frameEdge = max(frameCore, frameGlow * 0.28);
   float scan = 0.5 + 0.5 * sin(
     fragmentGrid.y * 1.35 - uTime * 1.4 + surfaceNoise * 2.2
   );
@@ -781,10 +1002,14 @@ void main() {
   float breakupGlow =
     1.0 - smoothstep(0.0, 0.045, abs(uDissolve - breakTime));
   float structure = max(
-    outerEdge,
-    max(gridLine * (0.72 + scan * 0.28), gridNode * 0.86)
+    frameEdge,
+    max(
+      max(gridLine * (0.72 + scan * 0.28), gridNode * 0.86),
+      nodePin * 0.9
+    )
   );
-  float breakupStructure = breakupGlow * (0.16 + gridLine * 0.84);
+  float breakupStructure = breakupGlow *
+    (0.16 + gridLine * 0.84 * grazingFade);
 
   if (max(structure * fragmentLife, breakupStructure) < 0.025) discard;
 
@@ -792,21 +1017,30 @@ void main() {
   vec3 reactorMint = vec3(0.37, 0.95, 0.67);
   vec3 waveBlue = vec3(0.141, 0.298, 1.0);
   float highlight = clamp(
-    0.10 + fresnel * 0.42 + shimmer * 0.08 + uWarmth * 0.13,
+    0.10 + fresnel * 0.30 + shimmer * 0.08 + uWarmth * 0.13,
     0.0,
     0.52
   );
   vec3 color = mix(reactorGreen, reactorMint, highlight);
   color *= 0.78 + surfaceNoise * 0.31;
-  color += reactorMint * (gridCore * 0.16 + outerCore * 0.21);
+  color *= faceLight;
+  // One shared recipe for every lattice element: bars, knots, and the
+  // frame all combine the same mint shoulder with the same white-hot
+  // filament, so no element reads as a different material or hue.
+  color += reactorMint *
+    (gridCore * 0.19 + frameGlow * 0.19 + nodePin * 0.35 * grazingFade);
+  color += vec3(0.82, 1.0, 0.9) *
+    (gridFilament * grazingFade + frameCore) * 0.42;
   color += waveBlue * breakupStructure * 0.82;
 
   float structureAlpha =
-    gridCore * (0.42 + scan * 0.12) +
-    gridGlow * 0.075 +
-    gridNode * 0.16 +
-    outerCore * (0.54 + fresnel * 0.22) +
-    outerGlow * 0.085;
+    (gridCore * (0.58 + scan * 0.13) +
+      gridGlow * 0.10 +
+      gridNode * 0.17 +
+      gridFilament * 0.20 +
+      nodePin * 0.16) * grazingFade +
+    frameCore * (0.42 + fresnel * 0.12) +
+    frameGlow * 0.04;
   float alpha = uOpacity * (
     fragmentLife * structureAlpha + breakupStructure * 0.27
   );
@@ -852,6 +1086,12 @@ export function createPlasmaMaterial() {
       uRadii: {
         value: new Vector3(PLASMA_RADIUS, PLASMA_RADIUS, PLASMA_RADIUS),
       },
+      uArcStream: {
+        value: [new Vector4(), new Vector4(), new Vector4()],
+      },
+      uSurfAxis: { value: [new Vector4(), new Vector4(), new Vector4()] },
+      uSurfTan: { value: [new Vector4(), new Vector4(), new Vector4()] },
+      uSurfParam: { value: [new Vector4(), new Vector4(), new Vector4()] },
       uNoiseTexture: { value: PLASMA_NOISE_TEXTURE },
     },
     vertexShader: plasmaVertexShader,
@@ -913,6 +1153,21 @@ export function updatePlasmaMaterial(
   radii: Vector3,
   expansion: number,
   compact: boolean,
+  arcStreams?: readonly {
+    strand: number
+    head: number
+    envelope: number
+    seed: number
+  }[],
+  arcSurfaces?: readonly {
+    axis: readonly [number, number, number]
+    tanA: readonly [number, number, number]
+    headAngle: number
+    span: number
+    radius: number
+    seed: number
+    envelope: number
+  }[],
 ) {
   material.uniforms.uTime.value = time
   material.uniforms.uOpacity.value = opacity
@@ -925,6 +1180,40 @@ export function updatePlasmaMaterial(
     : 38 + expansion * 26
   material.uniforms.uCenter.value.copy(center)
   material.uniforms.uRadii.value.copy(radii)
+  if (arcStreams) {
+    const streamUniforms = material.uniforms.uArcStream.value as Vector4[]
+    for (let index = 0; index < streamUniforms.length; index += 1) {
+      const stream = arcStreams[index]
+      const target = streamUniforms[index]
+      if (!stream || !target) continue
+      target.set(stream.strand, stream.head, stream.envelope, stream.seed)
+    }
+  }
+  if (arcSurfaces) {
+    const axisUniforms = material.uniforms.uSurfAxis.value as Vector4[]
+    const tanUniforms = material.uniforms.uSurfTan.value as Vector4[]
+    const paramUniforms = material.uniforms.uSurfParam.value as Vector4[]
+    for (let index = 0; index < axisUniforms.length; index += 1) {
+      const surface = arcSurfaces[index]
+      const axisTarget = axisUniforms[index]
+      const tanTarget = tanUniforms[index]
+      const paramTarget = paramUniforms[index]
+      if (!surface || !axisTarget || !tanTarget || !paramTarget) continue
+      axisTarget.set(
+        surface.axis[0],
+        surface.axis[1],
+        surface.axis[2],
+        surface.envelope,
+      )
+      tanTarget.set(
+        surface.tanA[0],
+        surface.tanA[1],
+        surface.tanA[2],
+        surface.seed,
+      )
+      paramTarget.set(surface.headAngle, surface.span, surface.radius, 0)
+    }
+  }
 }
 
 export function updateGridMaterial(

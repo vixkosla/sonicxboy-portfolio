@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-18
+Updated: 2026-07-20
 
 ## Start here
 
@@ -32,14 +32,16 @@ This visual-refinement pass is user-approved. Treat the following as the baselin
 - the blue upper plasma grows out of the lower sphere and keeps its irregular noisy
   contour; it must not return to a smooth enveloping dome;
 - the cold-white assembly pulse reaches its peak as the last cubelets lock, then
-  fades while the unchanged `0.72s` edge roll is already moving;
+  contracts into a mint-white support-edge band while the unchanged `0.72s` edge
+  roll is moving; a restrained contact beat peaks as the next face lands;
 - the pulse adds no pause, phase offset, or change to the roll/lift/spin behavior;
 - compact/mobile rendering stays at DPR `1` and 32 ray steps, with the current
   texture-backed noise and culling bounds.
 
 The next planned art pass is materials and lighting. Begin there without retuning
 motion or reopening the two effects above unless a new visual regression is found.
-Useful development URLs are `/?assembly-glow-preview` for the pulse peak and
+Useful development URLs are `/?assembly-glow-preview` for the pulse peak,
+`/?assembly-glow-preview=roll` and `=landing` for the contact states, and
 `/?plasma-preview` for the settled final plasma.
 
 ### Materials prototype — plate circuit pass awaiting visual approval
@@ -88,6 +90,15 @@ layout survives the handoff. Random parameters are evaluated in the vertex shade
 and sent with `flat` interpolation; this prevents pixel-level seed noise and avoids
 rehashing in every fragment. Orthogonal trace distance uses square-cap math without
 square roots. Cubelets keep their cheaper standard material.
+
+Densified 2026-07-20 at the user's art direction (`reactor-circuit-surface-v8`):
+per plate the etch now adds two extra microvias, hashed breakout stubs from the
+first two vias to the frame, a second hub branch with its own pad, a second
+component footprint, corner fiducial pads on roughly half the plates, and a
+finer micro grid (`11..16` cells, was `8..12`). The flow pulses run over the
+new conductors automatically, and the plates themselves were thinned
+(`0.055 -> 0.03`). Software-WebGL parity was re-measured (old vs new shader
+within machine noise); this pass awaits the user's visual review.
 
 The upper `WEBGL` line receives a static dark-metal/emerald CSS gradient; the lower
 `DEVELOPER` line and its three orbit waves are unchanged. In development,
@@ -145,6 +156,137 @@ session-close wording in `docs/session-handoff.md` and
 `docs/animation-choreography.md` is a small uncommitted follow-up; preserve or
 commit those two documentation edits when the next session starts.
 
+### Electric-discharge pass — awaiting visual approval
+
+Motivation: the user art-directed that the electric (reactor plates) and the
+living flame read as two separate worlds, and asked for periodic electric
+discharges that organically belong to the flame without overloading the scene.
+Two earlier iterations were rejected in review: a subtle strobing bead was
+"almost unnoticeable", and its sinusoidal flicker plus a rim crackle on the
+contained sphere read as an unmotivated stroboscope. The approved direction
+removes all sinusoidal strobing and the sphere crackle entirely, and goes
+bold. After the single-lane version landed, the user asked for groups of two
+or three strikes at a shorter interval plus arcs crawling across the big
+sphere from different sides. The final clarification was that hits inside
+each group must run in sequence, not concurrently; an earlier pass applied
+that sequencing only to the surface arcs and was the source of the last
+review mismatch. Implemented as phase 9 in
+`docs/animation-choreography.md`:
+
+- `src/lib/DischargeScheduler.ts` (new plain class, no per-frame allocation):
+  one deterministic upper burst clock starting at 70% of the final expansion
+  (`19.84s`). A burst contains two or three stream strikes, spaced `0.64s`
+  apart after the previous visible window has closed; burst starts repeat at
+  `3.55s ± 0.35s`. Consecutive hits select different members of the seven
+  streams and never overlap. The surface family was rolled back on user
+  request to the earlier approved state ("the moment the zone was shifted
+  up"): three independent lanes (`2.8s ± 0.8s` each) starting at `10.55s`
+  while the core is still revving behind the plates — concurrent arcs are
+  possible again (79.2% duty, 35.6% with two or more, measured over `111s`).
+  Cross-family causal chains: a surface arc cues the next complete stream
+  burst early with 55% probability after `0.22..0.62s` rather than adding an
+  unscheduled fourth hit; a stream strike grounds back as a surface arc with
+  35% probability after `0.25..0.6s`; chains never chain further. The
+  scheduler exposes `peak` (max envelope across lanes) for the scene light.
+- `src/lib/FireEffect.ts`: uniform arrays (`uArcStream[3]`, `uSurfAxis/Tan/
+  Param[3]`); stream lanes reuse the seven stream centerlines with hashed
+  zigzag kinks, a white-hot head, a strengthened glowing channel (spatial
+  decay `0.85`), one diagonal branch spur, core tube plus halo; surface
+  lanes are back to the approved smooth glide — soft `0.22s` attack, slow
+  `7/s` release, ease-in-out head glide over `0.45s`, one to two gentle
+  sinusoidal course sweeps per path (max about `30°`), core `0.05` plus
+  halo `0.13`, comet trail that never stubs at the origin — with the later
+  electric-texture additions (micro-jitter, spatial crackle, thin core,
+  radial spur, piecewise course) fully removed. A `0.94..1.01` radius band
+  rides the blue shell instead of crossing the warm orange body (where the
+  blue impulse lost its read) or drifting into empty space. Emission only —
+  silhouette untouched; every lane is gated behind its own uniform branch.
+- `src/components/HeroScene.tsx`: scheduler wiring, `SURFACE_AUTO_START`,
+  frozen previews, light lift/tint driven by `discharge.peak`.
+- Development URLs: `?plasma-preview=arc` (frozen stream strike),
+  `?plasma-preview=arcsurf` (frozen surface strike, enlarged envelope),
+  `?plasma-preview=arcrev` (frozen surface strike on the revving shell),
+  `?arc-baseline` (scheduler disabled for paired A/B).
+
+Validation after the surface rollback: `pnpm build` and `git diff --check`
+pass; the surface lanes measure 79.2% duty with 35.6% two-or-more concurrent
+across `111s`, radius band `[0.941, 1.009]`; headless Chromium captures of
+the enlarged-envelope and revving-phase surface strikes show the restored
+smooth glide with no shader or runtime errors; a 30s live full-timeline run
+produced no console errors. The stream side keeps the earlier verified burst
+behavior (77 hits in 32 complete bursts, minimum spacing `0.637s`, zero
+strand repeats, run-to-run identical). This remains a visual proposal until
+the user reviews it in the normal browser.
+
+### Grid-cage surface quality pass — awaiting visual approval
+
+Scope chosen by the user: the lattice cube only — the plasma core, motion,
+timings, and the discharge system are untouched. The work lives entirely in
+the existing `gridFragmentShader` in `src/lib/FireEffect.ts`; no uniforms,
+varyings, geometry, draw calls, textures, or per-frame allocations were
+added, and the `4 x 4` density, single thin outer frame, suppressed UV
+0/1 doubling, emerald `#18d383` palette, and FrontSide rendering are all
+preserved. Four changes:
+
+- an analytic key-light response gives every visible face one stable
+  brightness from its world normal against the scene key direction
+  (`0.62..1.18`), so the emissive-only cage reads as a lit object instead of
+  a flat decal;
+- the inner grid quiets at grazing view angles (`0.22` floor, never off),
+  ending the moire-like compressed-pattern noise on steep faces while the
+  silhouette frame survives;
+- every bar gained a thin white-hot filament (`0.016` UV) inside the bright
+  core, and every line crossing a tight welded-knot pin, both suppressed at
+  face boundaries like the other inner masks;
+- bars, knots, and the frame share one color recipe (the same mint shoulder
+  plus the same white-hot filament), so the frame no longer reads as a
+  duller, greener element next to the whiter inner lines;
+- boundary suppression is orientation-aware: only bars running parallel to a
+  face boundary are quieted (they would double the thin frame), while
+  perpendicular bars keep their tips and weld visibly into the frame —
+  inner lines no longer stop short of the edges;
+- modest presence increases: core alpha `0.42 -> 0.58` with the existing
+  scan modulation, glow reach `0.105 -> 0.12`, frame alpha `0.31 -> 0.42`,
+  fresnel weight lowered `0.42 -> 0.30` so it no longer fights the grazing
+  quieting.
+
+Validation: `pnpm build` passes; headless Chromium captures of the
+`grid`, `core`, and `warm` previews at `1400 x 1000` (full frame and 3x
+crops), a `390 x 844` compact pass, and the `19.2s` breakup stage show the
+intended response with zero console or shader errors. This remains a visual
+proposal until the user reviews it in the normal browser.
+
+### Internal lock/roll glow — awaiting visual approval
+
+The user asked for the internal glow of the lock/roll beat to read clearly
+again after the materials pass had left it nearly invisible (the cubelet
+emissive pulse contributes only `0.035` intensity of the dark `#063d2b`, and
+the seam overlay was a thin line). No timing, motion, or envelope changes —
+the beat lives in the same `0.10s`-lead pulse, the unchanged `0.72s` roll,
+and the same attack/hold/release constants. Three reinforcing channels, all
+driven by the existing `assemblyGlow`/`contactGlow` envelopes:
+
+- a new internal point light at the cube center (`distance 1.35`, `decay 2`,
+  peak intensity `3.5` with the seam's `10.5 rad/s` flicker), cold white
+  shifting to the contact mint. It lives inside the rolling group, lights
+  the inward-facing bevels through the gaps, and dies out past the shell —
+  outward faces turn away from it, so the glow stays internal;
+- the still-solid nucleus flares as the physical source of that light:
+  emissive lerps `#6cf3b3 -> #d1f0ff` by `assemblyGlow * 0.55` and gains
+  `innerGlow * 1.5` intensity, so hot slivers of the core show through the
+  bevel cracks;
+- the seam overlay is bolder: core `0.005..0.010 -> 0.007..0.013`, shoulder
+  `0.014..0.029 -> 0.022..0.055` with weight `0.19 -> 0.30`, contact-band
+  energy `1.50 -> 2.15`, mint mix `0.28 -> 0.40`, driver weights
+  `0.28/0.44 -> 0.34/0.60` with the cap `0.52 -> 0.68`.
+
+Validation: `pnpm build` and `git diff --check` pass. Headless Chromium
+captures of `?assembly-glow-preview`, `=roll`, and `=landing` (2x crops and
+a `1400 x 1000` full frame) show the intended internal glow with zero
+console errors; both envelopes are zero outside the beat, so the light costs
+nothing after the lift. This remains a visual proposal until the user
+reviews it in the normal browser.
+
 ## Collaboration contract
 
 - The user art-directs and does not edit the code; the agent owns implementation.
@@ -172,7 +314,10 @@ commit those two documentation edits when the next session starts.
 7. The 26 scaffold cubes morph and divide into 104 radial reactor plates.
 8. Two blue ionization waves shut down the covering; the plates release, one becomes
    an interface card, the grid cage disintegrates, and an upright plasma flame
-   fills the vacated reactor volume.
+   fills the vacated reactor volume. Lightning lives at two scales: arcs crawl
+   the blue shell from the revving phase onward, jagged strikes propagate up
+   the seven rising streams once expanded, and causal chains let each family
+   trigger the other.
 
 The full sequence and the latest plasma/glow refinements are approved as the current
 baseline. The next session starts with materials and lighting.
@@ -197,12 +342,17 @@ Implementation: `src/lib/LayeredAssembly.ts` and `src/lib/trajectoryData.ts`.
 - At the runtime path sampling resolution, the largest adjacent tangent change fell
   from about `35.1deg` in the removed piecewise model to about `3.29deg`; the actual
   evaluated polynomial remains spatially continuous.
-- The final `0.10s` of assembly starts a `0.64s` cold-white additive pulse. One box
-  shader draws the outer edge plus the `3 x 3` face seams. The former inset box was
-  removed after it read as a second cube. The original roll begins immediately; the
-  pulse fades over its first `0.54s` and is gone before the corner lift.
-- The pulse material is invisible outside the envelope, avoiding a permanent draw
-  call. Development URL `/?assembly-glow-preview` freezes the peak frame.
+- The final `0.10s` of assembly starts the cold-white additive lock pulse. One
+  26-instance shader pass reuses the rounded cubelet geometry; neighboring bevel
+  highlights form the face seams without a sharp enclosing box or illuminated
+  center instance. From 34% of the original roll, the same shader focuses its tail
+  against the virtual contact plane and peaks mint-white as the next face lands;
+  its `0.22s` release ends about `0.16s` into corner lift.
+- The global material emissive contribution is attenuated as the contact band grows,
+  so the metallic cubelets do not flatten into one bright box. The pulse mesh is
+  invisible outside the two envelopes, avoiding a permanent draw call. Development
+  URL `/?assembly-glow-preview` freezes the peak; `=roll` and `=landing` freeze the
+  new states.
 
 ## Roll, lift, and spin
 
@@ -289,8 +439,10 @@ The replacement is a real three-dimensional volume inside the center cube:
 
 The nucleus now changes during orbital departure. At `0.65s` of main spin time the
 solid cube crossfades into a surface-less `4 x 4` face grid whose main color is the
-same `#18d383` used by the reactor plates. Expansion begins at `2.45s`, synchronized
-with launch of the closest
+same `#18d383` used by the reactor plates. The face-boundary UV lines and the former
+heavy `outerEdge` are suppressed. One thinner explicit frame remains around the
+three internal separators; do not restore the doubled border or any filled inner
+volume. Expansion begins at `2.45s`, synchronized with launch of the closest
 octahedral/face-center class, and reaches `1.7x` (`0.85` side length) over `2.5s`.
 At the final shell this leaves about `0.05` local radial clearance to corner
 cubelets.
@@ -330,7 +482,9 @@ Replication is hierarchical and deterministic:
 
 - `26 -> 52` over `1.05s`;
 - `52 -> 104` over `1.2s`;
-- final tile size `0.28 x 0.28 x 0.055`;
+- final tile size `0.28 x 0.28 x 0.03` (thinned 2026-07-20 from `0.055` at the
+  user's art direction — flat PCB read; parent/lineage morph thickness scaled
+  to `0.07`/`0.05` to match);
 - final centers use a 104-point Fibonacci sphere at `SHELL_RADIUS`;
 - balanced nearest assignment gives every original cube exactly four descendants;
 - paired descendants share an intermediate lineage direction.
@@ -491,15 +645,41 @@ The current three-polyhedron model was sampled at 600 FPS with two checks:
   desktop composition and the compact `warm` stage. GLSL 3 / `sampler3D` compiled
   without runtime errors, the blue shoulder no longer contains the clipped
   height band, the seven streams remain visible, and `pnpm build` passes.
-- The latest source-relative blue contour and the assembly seam pulse were captured
-  in Chromium. The upper layer emerges from inside the lower sphere with an
-  irregular edge, while the assembled cube briefly shows a readable cold-white
-  `3 x 3` grid and outer edge without a runtime shader error.
+- The latest source-relative blue contour and assembly pulse were captured in
+  Chromium. The upper layer emerges from inside the lower sphere with an irregular
+  edge. The pulse now follows the real rounded cubelet bevels; their adjacent rims
+  form readable cold-white seams without an enclosing or internal cube silhouette.
 - The final assembly timing was captured as an eight-frame Chromium sequence: the
-  grid peaks when the cube closes, remains attached while the original edge roll
-  starts immediately, fades through the roll, and is absent before corner lift.
-  The original spin-delta formula was restored exactly; no choreography phase was
+  grid peaks when the cube closes and the original edge roll starts immediately.
+  The material-aware follow-up focuses that glow at the virtual support edge from
+  34% of the roll, peaks at landing, and clears during the first `0.16s` of corner
+  lift. The original spin-delta formula remains unchanged; no choreography phase is
   delayed. Final `pnpm build` and `git diff --check` pass.
+- Compact framing was revalidated in a hydrated Firefox iframe with an exact
+  `390 x 844` viewport (not a wide `compact-preview` approximation). The Canvas
+  measured `390 x 844`; at `tiles` the reactor center projected to `x = 195px`
+  exactly and `y = 385.8px`, while `scatter` remained horizontally centered. A
+  six-frame live pass kept the complete assembly visible as it began slightly left
+  and rolled into the settled center. The earlier Fable browser failure exposed an
+  unhydrated default `300 x 150` canvas, so screenshots from that failed tab are not
+  valid evidence of camera framing. `?compact-preview` forces compact camera/scale
+  parameters but does not reproduce a phone aspect ratio by itself.
+- The follow-up real-mobile regression exposed what the iframe could not: the
+  no-wrap technology ribbon had `max-width: none`, so its `938px` intrinsic width
+  expanded a `390px` mobile layout viewport to roughly `959px`; the fixed Canvas
+  followed that width and R3F selected desktop mode. The ribbon now stretches only
+  to its parent (`width/max-width: 100%`, `min-width: 0`) and scrolls internally.
+  Mobile Chromium validation passed at `390 x 844`, `320 x 568`, and `430 x 932`
+  (English card), plus landscape `667 x 375`, `844 x 390`, and `1024 x 768`:
+  document and Canvas dimensions exactly matched every viewport, horizontal page
+  overflow stayed zero, and compact rendering remained enabled. Portrait camera
+  aim is biased upward by `0.72` world units so the reactor projects into the clear
+  middle band; at `390 x 844` the card begins at `y = 284.8px`, after the headline's
+  `y = 268.7px` bottom, and all contacts remain visible. Short portrait cards and
+  narrow landscape panels scroll internally to reachable actions. Landscape uses a
+  44% identity rail/right information panel and never introduces document scroll.
+  Safe-area insets and `viewport-fit=cover` now protect all four edges. Final
+  `pnpm build` and `git diff --check` pass.
 
 These values are coupled to class axes, radii, speeds, symmetry quaternions, capture
 offsets, easing functions, and scale envelopes. Rerun equivalent validation after
@@ -507,8 +687,11 @@ changing any of them.
 
 ## Files and constraints
 
-- `src/components/HeroScene.tsx`: R3F scene and phases 2-8, plus the React card.
-- `src/lib/AssemblyGlow.ts`: transient six-face seam shader; no inset box.
+- `src/components/HeroScene.tsx`: R3F scene and phases 2-9, plus the React card.
+- `src/lib/AssemblyGlow.ts`: transient rounded-bevel seam shader; no enclosing or
+  inset box.
+- `src/lib/DischargeScheduler.ts`: deterministic sequential stream bursts and
+  independent-lane surface-arc timing.
 - `src/lib/LayeredAssembly.ts`: phase 1 path and time sampling.
 - `src/lib/trajectoryData.ts`: phase 1 curve and spacetime data.
 - `src/lib/SpinSimulation.ts`: angular physics.
@@ -565,13 +748,19 @@ cluster without per-instance offsets and keeps tangent-facing lineage motion.
 
 ### Assembly synergy pulse — completed
 
-Starting `0.10s` before the last cubelet locks, a cold-white additive box shader
-traces the `3 x 3` contact grid and the big cube's outer edges. The lower-opacity
-inset box was removed because it created a nested-cube silhouette. The original roll
-begins without a pause or timing change. The `0.46s` release travels with the cube
-through the first `0.54s` of that roll, then disappears before corner lift. The
-remaining material is marked invisible outside the `0.64s` envelope, so it does not
-add a steady-state draw call.
+Starting `0.10s` before the last cubelet locks, a cold-white additive 26-instance
+shader reuses the real rounded cubelet geometry. Its bevel highlights join into the
+contact seams while retaining curved corners. No center instance or enclosing glow
+box is rendered, preventing a nested-cube silhouette. The original roll
+begins without a pause or timing change. The original `0.46s` lock release remains,
+but from 34% of the roll a second envelope spatially contracts the overlay toward
+the virtual support plane. Upper seams dim, the contact edge turns mint-white, and
+the response reaches the first seam row and peaks as the next face lands before
+clearing over `0.22s`. At the same
+time the uniform emissive/roughness pulse on the structural material is suppressed,
+so the more metallic cubelets retain their individual form. The same transient
+instanced mesh is marked invisible outside both envelopes and adds no steady-state
+draw call.
 
 ### Final blue plasma contour — source-relative
 

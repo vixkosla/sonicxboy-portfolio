@@ -46,14 +46,28 @@ direction change between adjacent path samples fell from about `35.1deg` in the 
 piecewise path to about `3.29deg`.
 
 During the last `0.10s` of assembly, a short cold-white synergy pulse appears in
-the contact gaps. A six-sided additive overlay traces the assembled cube's outer
-edge and its `3 x 3` face seams. The former inset glow box was removed because it
-read as an extra cube inside the structure. The attack lasts `0.12s`, the
-full-strength hint lasts `0.06s`, and the `0.46s` release follows the cube through
-the first `0.54s` of its existing edge roll. It is gone before the corner lift. The
-overlay material is hidden outside the `0.64s` envelope, so the beat adds no
-persistent draw call. In development, `?assembly-glow-preview` freezes the cube at
-the pulse peak.
+the contact gaps. One 26-instance additive pass reuses the actual rounded cubelet
+geometry and traces each surface bevel; adjacent bevels combine into the assembled
+cube's face seams. There is no large sharp overlay or illuminated center instance,
+so the pulse follows the material's rounded corners without producing an extra cube
+inside the structure. The beat reads as energy released inside the closed cube:
+an internal point light at the cube center lights the inward-facing bevels through
+the gaps and dies out just past the shell, while the still-solid nucleus flares
+toward cold white as the physical source of that light, its hot slivers leaking
+through the same cracks. The lock pulse keeps its `0.12s`
+attack, `0.06s` hold, and `0.46s` release. From 34% of the unchanged edge roll, a
+second restrained envelope moves the remaining energy into a world-space band at
+the virtual contact plane: upper seams dim, the support edge turns mint-white, and
+the band reaches the first seam row and peaks as the next face lands. Its `0.22s`
+release begins at 92% of the roll and dies during the first `0.16s` of corner lift.
+The internal light and the nucleus flare follow the same two envelopes and share
+the contact mint shift, so all three channels rise and clear together.
+The shared structural material's
+global emissive pulse is suppressed as this contact envelope grows, preventing the
+new metallic cubelets from reading as one uniformly glowing box. The overlay is
+still one transient instanced mesh and is hidden outside these two envelopes. In
+development, `?assembly-glow-preview` freezes the lock peak; values `roll` and
+`landing` expose the two new contact states.
 
 ### 2. Edge roll and corner lift
 
@@ -156,9 +170,23 @@ cube directions at `SHELL_RADIUS = 1.22`.
 The nucleus transformation begins during orbital departure rather than after the
 handoff. At `0.65s` of main spin time its opaque material starts dissolving into an
 emissive `4 x 4` grid on every face. The larger cells expose more of the source.
-Each line has an antialiased bright core plus a restrained emissive shoulder, and
-rear faces are deliberately dimmed so overlapping sides do not turn into moire.
-The grid uses the same `#18d383` base color as
+Every lattice element shares one color recipe — a mint emissive shoulder around
+a thin white-hot filament — so bars, crossings, and the frame read as one
+material. Every bar carries that filament inside its antialiased bright core,
+a restrained emerald shoulder bleeds around it, and a tight bright pin anchors
+every line crossing like a welded knot. Only the
+camera-facing sides are rendered; instead of transmitted rear structure, the
+cube receives its three-dimensional read from an analytic key-light response —
+each face takes one stable brightness from its world normal against the scene
+key direction — and from a grazing-angle quieting of the inner grid, which
+keeps steep faces from compressing the pattern into a moire carpet while the
+silhouette frame survives. The lattice never switches fully off at any angle.
+The three internal separators are paired with one thin controlled outer frame.
+Boundary suppression is orientation-aware: only bars running parallel to a face
+boundary are quieted, since they would double the frame into the heavy
+nested-cube silhouette rejected during lookdev, while perpendicular bars keep
+their tips and weld visibly into the frame. The grid
+uses the same `#18d383` base color as
 the reactor plates, with a brighter same-hue highlight rather than a separate
 translucent palette. Expansion waits until `2.45s`, when the last and closest octahedral class
 launches, then grows the grid cube to `1.7x` over `2.5s`.
@@ -245,7 +273,7 @@ The plates then divide like cells in two generations:
 
 - generation one: `26 -> 52` over `1.05s`;
 - generation two: `52 -> 104` over `1.2s`;
-- final tiles measure `0.28 x 0.28 x 0.055`.
+- final tiles measure `0.28 x 0.28 x 0.03`.
 
 The core aperture continues across this mesh handoff. At the first morph frame the
 reactor orientation is still identity, then over `0.68s` the covering turns as one
@@ -318,9 +346,15 @@ edge, the WebGL mesh fades while a fixed DOM card enters from the same side and
 settles downward into the lower-left composition. Its coral-red arrival edge decays back
 to the established emerald interface palette. Existing technology badges fade out
 at this handoff so the new information surface has a clean landing area. The hero
-subtitle fades with them. The card is now a true viewport-wide lower layout strip:
-it is anchored to all three lower edges, has no side radius, and uses the same
-responsive page gutters as the hero text.
+subtitle fades with them. On desktop the card is a true viewport-wide lower layout
+strip: it is anchored to all three lower edges, has no side radius, and uses the
+same responsive page gutters as the hero text. Compact portrait keeps the identity
+block above it: the card's top edge is derived from the same eyebrow/title sizing
+formula and lands one rem below the headline, with internal vertical scrolling only
+on short phones. Short landscape screens (`<=1180 x 800`) keep identity in a 44%
+left rail and turn the card into a safe-area-aware right panel. Neither compact
+layout may enlarge the document viewport; the technology ribbon is
+width-constrained and scrolls inside its own box.
 
 The stable palette is deliberately singular: plates, cage lines, card border,
 labels, and its `18px` microgrid with restrained `72px` major lines all use
@@ -368,6 +402,79 @@ same envelope.
 
 Development previews add `waves`, `signal`, `scatter`, and `card`. The empty
 `?plasma-preview` value now shows the settled interface handoff.
+
+### 9. Electric discharges
+
+The flame carries periodic lightning strikes — the electric signature that
+ties the plasma to the reactor's circuit world. Strikes are scheduled by the
+deterministic `DischargeScheduler` (story time and hashed event indices,
+never frame deltas). Two families coexist at two scales, all with flat
+brightness through the strike — there is deliberately no sinusoidal strobing
+anywhere in the effect:
+
+- **Surface strikes** (three independent lanes, each firing every
+  `2.8s ± 0.8s`, so the shell carries activity most of the time) glide
+  across the blue ionization shell. They begin while the core is still
+  revving up behind the reactor covering (`10.55s` of main-spin time,
+  right after rim ignition completes) and continue through the settled
+  flame. The lane glides — a soft `0.22s` smoothstep attack, a slow `7/s`
+  exponential release, an ease-in-out head glide over `0.45s`, and one to
+  two gentle sinusoidal course sweeps per path (max about `30°`, below the
+  requested `45°`) wrapping the core from different sides; all turn
+  coefficients derive from the event seed in-shader, so no extra uniforms
+  are spent. The lane radius is a
+  factor of the blue envelope scale hashed in a `0.94..1.01` band riding
+  the shell and its outer crest: dipping lower would drag the arc across
+  the warm orange body where the blue impulse loses its read, and higher
+  would detach it into empty space. The same code hugs the compact
+  pre-expansion shell — visible through the camera aperture — and the
+  enlarged outer envelope, the largest visible surface. Each event rolls
+  a hashed start point, a hashed endpoint `60..140°` away, and a hashed
+  travel direction, so arcs cross the envelope from different sides in
+  different directions. The trail is a comet: a fixed-length window
+  behind the head (dark at the head, full a quarter radian behind, gone
+  beyond one and a half radians), so the visible segment grows gradually
+  with the head and never leaves a dying stub at the origin. Far-side arcs
+  are attenuated naturally by the flame's own transmittance.
+- **Stream strikes** begin at 70% of the final expansion (`19.84s`) and
+  propagate up the seven existing stream centerlines in deterministic bursts.
+  Each burst contains two or three hits. Starts inside the burst are spaced
+  `0.64s` apart, beyond the prior hit's complete `0.54s` visible window, so
+  the hits are perceived in order and never concurrently. Burst starts repeat
+  every `3.55s ± 0.35s`; a hashed 58% gate decides whether the third hit is
+  present. Consecutive hits are assigned to different streams. The lane follows
+  the stream's braid but carries
+  hashed per-event zigzag kinks (about one kink per `0.08` normalized
+  height units), and one short diagonal branch spur lights at a hashed
+  height once the head has traveled past it. A bright white-hot head leads;
+  behind it, a strengthened glowing channel trails far down the strand
+  (spatial decay `0.85`) like a lightning leader's lit path. The head
+  travels from height `0.3` to a hashed `3.4..3.9` over `0.3s` with a slight
+  `t^1.25` acceleration.
+- **Causal chains** bind the two families without metronome alternation: a
+  surface arc cues the next complete upper burst early with 55% probability
+  after `0.22..0.62s`; it never inserts a fourth or overlapping stream hit.
+  A stream strike grounds back as a surface arc
+  with 35% probability after `0.25..0.6s`. Chains never chain further, fire
+  only when the destination sequence is clear, and are dropped deterministically
+  otherwise. During the revving phase (before stream strikes exist), surface
+  arcs fire alone.
+
+Each stream strike attacks effectively instantly (`0.02s`), holds flat
+brightness, then releases with a lingering exponential afterglow; the surface
+family keeps the separate soft envelope described above. Strikes render as a
+core tube plus a soft halo, reuse the established ionization palette
+(electric blue plus a white-hot head), add emission only — never density —
+so the flame silhouette is untouched, and slightly thicken the ridden strand
+beneath stream strikes. No new hue, texture, geometry, or draw call is
+introduced; all strike math sits behind per-lane uniform branches that are
+skipped whenever the lane is idle. The warm point light receives a small
+intensity lift and a restrained blue tint driven by the peak envelope across
+all lanes. Development previews: `?plasma-preview=arc` freezes a mid-column
+stream strike, `?plasma-preview=arcsurf` freezes a surface strike on the
+enlarged envelope, `?plasma-preview=arcrev` freezes one on the revving shell
+behind the plates, and `?arc-baseline` disables the scheduler for paired A/B
+measurements.
 
 ## Collision and continuity invariants
 
@@ -421,8 +528,11 @@ motion.
 - Interface plate: one standalone unit-box mesh and one short-range red point light;
   both remain hidden until the selected reactor instance hands off.
 - Nucleus: one normal mesh.
-- Assembly pulse: one seam-overlay box, invisible outside the `0.64s` pulse
-  envelope and therefore adding no persistent draw call. There is no inset box.
+- Assembly pulse: one 26-instance overlay sharing the rounded cubelet geometry,
+  invisible outside the lock/contact envelopes and therefore adding no persistent
+  draw call. Its shader derives light from each real bevel and focuses the roll tail
+  against the virtual support plane; there is no sharp enclosing box, illuminated
+  center instance, or added light.
 - All scratch vectors/quaternions/object transforms are preallocated. Do not allocate
   Three.js objects inside `useFrame`.
 - The external Drei `Environment` preset was removed because HDR loading delayed the

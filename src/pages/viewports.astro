@@ -1,0 +1,1479 @@
+---
+import '@fontsource-variable/onest'
+import '@fontsource-variable/jetbrains-mono'
+
+const popularViewports = [
+  {
+    id: '390x844',
+    width: 390,
+    height: 844,
+    name: 'Основной',
+    stat: 'мировой №3 · РФ №5',
+  },
+  {
+    id: '375x812',
+    width: 375,
+    height: 812,
+    name: 'iPhone compact',
+    stat: 'РФ №1 · 19,08%',
+  },
+  {
+    id: '414x896',
+    width: 414,
+    height: 896,
+    name: 'Large mobile',
+    stat: 'мировой №1 · РФ №2',
+  },
+  {
+    id: '393x873',
+    width: 393,
+    height: 873,
+    name: 'Modern mobile',
+    stat: 'РФ №3 · 7,99%',
+  },
+  {
+    id: '360x800',
+    width: 360,
+    height: 800,
+    name: 'Android compact',
+    stat: 'мировой №2 · 9,21%',
+  },
+  {
+    id: '384x832',
+    width: 384,
+    height: 832,
+    name: 'Android medium',
+    stat: 'мировой №6 · 3,93%',
+  },
+] as const
+
+const extraViewports = [
+  {
+    id: '430x932',
+    width: 430,
+    height: 932,
+    name: 'Верхняя граница',
+    stat: 'проверка крупного телефона',
+  },
+  {
+    id: '320x568',
+    width: 320,
+    height: 568,
+    name: 'Стресс-тест',
+    stat: 'минимальная ширина',
+  },
+] as const
+
+const allViewports = [...popularViewports, ...extraViewports]
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="theme-color" content="#07100c" />
+    <title>Viewport Lab — SonicXBoy</title>
+  </head>
+  <body>
+    <main class="lab">
+      <header class="toolbar">
+        <div class="heading">
+          <p class="eyebrow"><span class="status-dot"></span> Developer tool</p>
+          <h1>Viewport Lab</h1>
+          <p class="heading__note">
+            Точная мобильная область в CSS-пикселях — без ручного перетягивания.
+          </p>
+        </div>
+
+        <div class="controls" aria-label="Настройки предпросмотра">
+          <div class="control control--mode">
+            <span class="control__label">Режим</span>
+            <div class="segmented" role="group" aria-label="Режим просмотра">
+              <button type="button" data-mode="single" aria-pressed="true">
+                Один экран
+              </button>
+              <button type="button" data-mode="grid" aria-pressed="false">
+                Сетка
+              </button>
+            </div>
+          </div>
+
+          <label class="control" data-device-control>
+            <span class="control__label">Размер</span>
+            <select name="device">
+              <optgroup label="Популярные · июнь 2026">
+                {popularViewports.map((viewport) => (
+                  <option value={viewport.id} selected={viewport.id === '390x844'}>
+                    {viewport.width} × {viewport.height} — {viewport.name}
+                  </option>
+                ))}
+              </optgroup>
+              <optgroup label="Контрольные">
+                {extraViewports.map((viewport) => (
+                  <option value={viewport.id}>
+                    {viewport.width} × {viewport.height} — {viewport.name}
+                  </option>
+                ))}
+              </optgroup>
+            </select>
+          </label>
+
+          <label class="control">
+            <span class="control__label">Момент</span>
+            <select name="stage">
+              <option value="tiles" selected>Реактор · собран</option>
+              <option value="waves">Импульсы · волна</option>
+              <option value="signal">Импульсы · сигнал</option>
+              <option value="scatter">Разлёт</option>
+              <option value="card">Финальная карточка</option>
+              <option value="grid">Сферическая решётка</option>
+              <option value="live">Вся анимация с начала</option>
+            </select>
+          </label>
+
+          <label class="control control--lang">
+            <span class="control__label">Язык</span>
+            <select name="lang">
+              <option value="ru" selected>RU</option>
+              <option value="en">EN</option>
+            </select>
+          </label>
+
+          <div class="actions">
+            <button class="icon-button" type="button" data-reload title="Перезапустить кадр">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M20 6v5h-5M4 18v-5h5" />
+                <path d="M6.1 9a7 7 0 0 1 11.6-2.4L20 9M4 15l2.3 2.4A7 7 0 0 0 18 15" />
+              </svg>
+              <span>Заново</span>
+            </button>
+            <a class="open-button" data-open-target href="/?viewport-lab=single&plasma-preview=tiles" target="_blank" rel="noreferrer">
+              Открыть сайт
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M14 5h5v5M19 5l-8 8" />
+                <path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </header>
+
+      <section class="workspace" data-workspace aria-live="polite">
+        <div class="canvas-hint" data-grid-only hidden>
+          <span>6 популярных размеров · июнь 2026</span>
+          <span>Перетаскивай фон · Ctrl/⌘ + колесо — масштаб</span>
+        </div>
+        <div class="preview-grid" data-preview-grid></div>
+        <div class="empty-state" data-empty-state hidden>
+          Не удалось создать предпросмотр.
+        </div>
+        <div class="pan-shield" data-pan-shield aria-hidden="true"></div>
+        <div class="canvas-controls" data-grid-only hidden>
+          <button
+            type="button"
+            class="canvas-controls__button"
+            data-pan-tool
+            aria-pressed="false"
+            title="Рука: перетаскивать полотно"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8.5 11V6.5a1.5 1.5 0 0 1 3 0V10M11.5 10V5.5a1.5 1.5 0 0 1 3 0V10M14.5 10V7a1.5 1.5 0 0 1 3 0v5M8.5 10V8.5a1.5 1.5 0 0 0-3 0v5.2c0 4 2.7 6.3 6.2 6.3H13c4.2 0 6.5-2.8 6.5-6.5V11a1.5 1.5 0 0 0-3 0v1" />
+            </svg>
+            <span>Рука</span>
+          </button>
+          <span class="canvas-controls__separator" aria-hidden="true"></span>
+          <button
+            type="button"
+            class="canvas-controls__button canvas-controls__button--square"
+            data-zoom-out
+            aria-label="Уменьшить масштаб"
+          >−</button>
+          <input
+            class="canvas-controls__range"
+            data-zoom-range
+            type="range"
+            min="15"
+            max="100"
+            step="1"
+            value="50"
+            aria-label="Общий масштаб экранов"
+          />
+          <output class="canvas-controls__output" data-zoom-output>50%</output>
+          <button
+            type="button"
+            class="canvas-controls__button canvas-controls__button--square"
+            data-zoom-in
+            aria-label="Увеличить масштаб"
+          >+</button>
+          <span class="canvas-controls__separator" aria-hidden="true"></span>
+          <button type="button" class="canvas-controls__button" data-fit-grid>
+            Вписать
+          </button>
+        </div>
+      </section>
+
+      <footer class="source-note">
+        <span>Популярность: июнь 2026</span>
+        <span aria-hidden="true">·</span>
+        <a href="https://gs.statcounter.com/screen-resolution-stats/mobile/russian-federation" target="_blank" rel="noreferrer">StatCounter · РФ</a>
+        <span aria-hidden="true">·</span>
+        <a href="https://gs.statcounter.com/screen-resolution-stats/mobile/worldwide" target="_blank" rel="noreferrer">StatCounter · мир</a>
+        <span aria-hidden="true">·</span>
+        <span>Размеры iframe указаны в CSS px</span>
+      </footer>
+    </main>
+
+    <script define:vars={{ allViewports, popularViewports }}>
+      const MODES = new Set(['single', 'grid'])
+      const STAGES = new Set([
+        'tiles',
+        'waves',
+        'signal',
+        'scatter',
+        'card',
+        'grid',
+        'live',
+      ])
+      const LANGUAGES = new Set(['ru', 'en'])
+      const viewportById = new Map(
+        allViewports.map((viewport) => [viewport.id, viewport]),
+      )
+
+      const modeButtons = Array.from(document.querySelectorAll('[data-mode]'))
+      const deviceControl = document.querySelector('[data-device-control]')
+      const deviceSelect = document.querySelector('select[name="device"]')
+      const stageSelect = document.querySelector('select[name="stage"]')
+      const langSelect = document.querySelector('select[name="lang"]')
+      const reloadButton = document.querySelector('[data-reload]')
+      const openTarget = document.querySelector('[data-open-target]')
+      const workspace = document.querySelector('[data-workspace]')
+      const previewGrid = document.querySelector('[data-preview-grid]')
+      const emptyState = document.querySelector('[data-empty-state]')
+      const gridOnlyElements = Array.from(document.querySelectorAll('[data-grid-only]'))
+      const panToolButton = document.querySelector('[data-pan-tool]')
+      const zoomRange = document.querySelector('[data-zoom-range]')
+      const zoomOutput = document.querySelector('[data-zoom-output]')
+      const zoomOutButton = document.querySelector('[data-zoom-out]')
+      const zoomInButton = document.querySelector('[data-zoom-in]')
+      const fitGridButton = document.querySelector('[data-fit-grid]')
+
+      let state = readState()
+      let previewCards = []
+      let panToolActive = false
+      let spacePanActive = false
+      let activePan = null
+      const gridView = {
+        zoom: state.zoom ?? 0.5,
+        panX: 0,
+        panY: 0,
+        initialized: false,
+      }
+
+      function clamp(value, minimum, maximum) {
+        return Math.min(maximum, Math.max(minimum, value))
+      }
+
+      function readState() {
+        const params = new URLSearchParams(window.location.search)
+        const requestedMode = params.get('mode')
+        const requestedDevice = params.get('device')
+        const requestedStage = params.get('stage')
+        const requestedLang = params.get('lang')
+        const requestedZoom = params.has('zoom')
+          ? Number(params.get('zoom'))
+          : Number.NaN
+
+        return {
+          mode: MODES.has(requestedMode) ? requestedMode : 'single',
+          device: viewportById.has(requestedDevice) ? requestedDevice : '390x844',
+          stage: STAGES.has(requestedStage) ? requestedStage : 'tiles',
+          lang: LANGUAGES.has(requestedLang) ? requestedLang : 'ru',
+          zoom: Number.isFinite(requestedZoom)
+            ? clamp(requestedZoom / 100, 0.15, 1)
+            : null,
+        }
+      }
+
+      function targetUrl(mode = state.mode) {
+        const path = state.lang === 'en' ? '/en/' : '/'
+        const params = new URLSearchParams({ 'viewport-lab': mode })
+        if (state.stage !== 'live') params.set('plasma-preview', state.stage)
+        return `${path}?${params.toString()}`
+      }
+
+      function labUrl(viewport) {
+        const params = new URLSearchParams({
+          mode: 'single',
+          device: viewport.id,
+          stage: state.stage,
+          lang: state.lang,
+        })
+        return `${window.location.pathname}?${params.toString()}`
+      }
+
+      function syncUrl() {
+        const params = new URLSearchParams({
+          mode: state.mode,
+          device: state.device,
+          stage: state.stage,
+          lang: state.lang,
+        })
+        if (state.mode === 'grid' && state.zoom !== null) {
+          params.set('zoom', String(Math.round(state.zoom * 100)))
+        }
+        window.history.replaceState(null, '', `${window.location.pathname}?${params}`)
+      }
+
+      function createPreviewCard(viewport) {
+        const card = document.createElement('article')
+        card.className = 'preview-card'
+        card.dataset.viewport = viewport.id
+
+        const cardHeader = document.createElement('header')
+        cardHeader.className = 'preview-card__header'
+
+        const identity = document.createElement('div')
+        identity.className = 'preview-card__identity'
+
+        const deviceIcon = document.createElement('span')
+        deviceIcon.className = 'preview-card__device-icon'
+        deviceIcon.setAttribute('aria-hidden', 'true')
+        deviceIcon.innerHTML = '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.2"/><path d="M10 5h4M11 18.7h2"/></svg>'
+
+        const title = document.createElement('strong')
+        title.textContent = `${viewport.width} × ${viewport.height}`
+
+        const deviceName = document.createElement('span')
+        deviceName.textContent = viewport.name
+
+        identity.append(deviceIcon, title, deviceName)
+
+        const badge = document.createElement('span')
+        badge.className = 'preview-card__badge'
+        badge.textContent = viewport.stat
+
+        const directLink = document.createElement('a')
+        directLink.className = 'preview-card__link'
+        directLink.href = labUrl(viewport)
+        directLink.target = '_blank'
+        directLink.rel = 'noreferrer'
+        directLink.setAttribute('aria-label', `Открыть ${viewport.width} на ${viewport.height}`)
+        directLink.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8"/><path d="M18 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>'
+
+        cardHeader.append(identity, badge, directLink)
+
+        const viewportShell = document.createElement('div')
+        viewportShell.className = 'preview-card__viewport-shell'
+
+        const viewportFrame = document.createElement('div')
+        viewportFrame.className = 'preview-card__viewport-frame'
+        viewportFrame.style.width = `${viewport.width}px`
+        viewportFrame.style.height = `${viewport.height}px`
+
+        const iframe = document.createElement('iframe')
+        iframe.title = `Портфолио — ${viewport.width} × ${viewport.height}`
+        iframe.width = String(viewport.width)
+        iframe.height = String(viewport.height)
+        iframe.loading = 'eager'
+
+        const loader = document.createElement('div')
+        loader.className = 'preview-card__loader'
+        loader.setAttribute('role', 'status')
+
+        const loaderSpinner = document.createElement('span')
+        loaderSpinner.className = 'preview-card__spinner'
+        loaderSpinner.setAttribute('aria-hidden', 'true')
+
+        const loaderStatus = document.createElement('span')
+        loaderStatus.className = 'preview-card__loader-status'
+        loaderStatus.textContent = 'Загружаю WebGL…'
+
+        const retryButton = document.createElement('button')
+        retryButton.className = 'preview-card__retry'
+        retryButton.type = 'button'
+        retryButton.textContent = 'Повторить'
+        retryButton.hidden = true
+
+        loader.append(loaderSpinner, loaderStatus, retryButton)
+
+        let loadAttempt = 0
+        const watchCanvasReadiness = () => {
+          const currentAttempt = ++loadAttempt
+          const startedAt = performance.now()
+          card.classList.remove('is-ready', 'has-error')
+          loaderStatus.textContent = 'Загружаю WebGL…'
+          retryButton.hidden = true
+
+          const probe = () => {
+            if (currentAttempt !== loadAttempt || !card.isConnected) return
+
+            const elapsed = performance.now() - startedAt
+            const readySignal =
+              iframe.contentDocument?.documentElement?.dataset.heroCanvasReady ===
+              'true'
+            if (readySignal) {
+              card.classList.remove('has-error')
+              card.classList.add('is-ready')
+              return
+            }
+
+            if (elapsed >= 20_000 && !card.classList.contains('has-error')) {
+              card.classList.add('has-error')
+              loaderStatus.textContent = 'WebGL загружается дольше обычного'
+              retryButton.hidden = false
+            }
+
+            window.setTimeout(
+              probe,
+              card.classList.contains('has-error') ? 500 : 150,
+            )
+          }
+
+          probe()
+        }
+
+        let loadingStarted = false
+        const startLoading = () => {
+          if (loadingStarted || !card.isConnected) return
+          loadingStarted = true
+          iframe.addEventListener('load', watchCanvasReadiness)
+          iframe.src = targetUrl(state.mode)
+        }
+
+        retryButton.addEventListener('click', () => {
+          loadAttempt += 1
+          card.classList.remove('is-ready', 'has-error')
+          loaderStatus.textContent = 'Загружаю WebGL…'
+          retryButton.hidden = true
+          const retryUrl = new URL(iframe.src)
+          retryUrl.searchParams.set('_lab_reload', String(Date.now()))
+          iframe.src = retryUrl.href
+        })
+
+        viewportFrame.append(iframe)
+        viewportShell.append(viewportFrame, loader)
+        card.append(cardHeader, viewportShell)
+
+        return {
+          card,
+          shell: viewportShell,
+          frame: viewportFrame,
+          viewport,
+          startLoading,
+        }
+      }
+
+      function fitPreview(preview) {
+        if (state.mode === 'grid') {
+          preview.card.style.width = `${preview.viewport.width}px`
+          preview.shell.style.width = `${preview.viewport.width}px`
+          preview.shell.style.height = `${preview.viewport.height}px`
+          preview.shell.removeAttribute('data-scale')
+          preview.frame.style.left = '0'
+          preview.frame.style.transform = 'none'
+          preview.frame.style.transformOrigin = 'top left'
+          return
+        }
+
+        const availableWidth = Math.max(0, preview.shell.clientWidth)
+        const availableHeight = Math.max(
+          0,
+          window.innerHeight - preview.shell.getBoundingClientRect().top - 60,
+        )
+        const widthScale = availableWidth / preview.viewport.width
+        const heightScale = availableHeight / preview.viewport.height
+        const scale = Math.max(0.1, Math.min(1, widthScale, heightScale))
+
+        preview.frame.style.left = '50%'
+        preview.frame.style.transformOrigin = 'top center'
+        preview.frame.style.transform = `translateX(-50%) scale(${scale})`
+        preview.shell.style.width = '100%'
+        preview.shell.style.height = `${Math.round(preview.viewport.height * scale)}px`
+        preview.shell.dataset.scale = `${Math.round(scale * 100)}%`
+      }
+
+      function fitAllPreviews() {
+        previewCards.forEach(fitPreview)
+      }
+
+      function updateZoomUi() {
+        const percent = Math.round(gridView.zoom * 100)
+        zoomRange.value = String(percent)
+        zoomOutput.textContent = `${percent}%`
+      }
+
+      function applyGridTransform() {
+        if (state.mode !== 'grid') return
+        previewGrid.style.transform =
+          `translate3d(${gridView.panX}px, ${gridView.panY}px, 0) ` +
+          `scale(${gridView.zoom})`
+        updateZoomUi()
+      }
+
+      function centerGrid() {
+        if (state.mode !== 'grid') return
+        const worldWidth = previewGrid.offsetWidth
+        const worldHeight = previewGrid.offsetHeight
+        gridView.panX = (workspace.clientWidth - worldWidth * gridView.zoom) / 2
+        gridView.panY = (workspace.clientHeight - worldHeight * gridView.zoom) / 2
+        gridView.initialized = true
+        applyGridTransform()
+      }
+
+      function fitGrid() {
+        if (state.mode !== 'grid') return
+        const worldWidth = previewGrid.offsetWidth
+        const worldHeight = previewGrid.offsetHeight
+        if (worldWidth <= 0 || worldHeight <= 0) return
+
+        const availableWidth = Math.max(1, workspace.clientWidth - 72)
+        const availableHeight = Math.max(1, workspace.clientHeight - 112)
+        gridView.zoom = clamp(
+          Math.min(availableWidth / worldWidth, availableHeight / worldHeight),
+          0.15,
+          1,
+        )
+        state.zoom = gridView.zoom
+        centerGrid()
+        syncUrl()
+      }
+
+      function setGridZoom(nextZoom, clientX, clientY) {
+        if (state.mode !== 'grid') return
+        const zoom = clamp(nextZoom, 0.15, 1)
+        const bounds = workspace.getBoundingClientRect()
+        const anchorX = Number.isFinite(clientX)
+          ? clientX - bounds.left
+          : workspace.clientWidth / 2
+        const anchorY = Number.isFinite(clientY)
+          ? clientY - bounds.top
+          : workspace.clientHeight / 2
+
+        if (!gridView.initialized) centerGrid()
+        const worldX = (anchorX - gridView.panX) / gridView.zoom
+        const worldY = (anchorY - gridView.panY) / gridView.zoom
+        gridView.zoom = zoom
+        gridView.panX = anchorX - worldX * zoom
+        gridView.panY = anchorY - worldY * zoom
+        state.zoom = zoom
+        applyGridTransform()
+        syncUrl()
+      }
+
+      function syncPanMode() {
+        const enabled =
+          state.mode === 'grid' && (panToolActive || spacePanActive)
+        workspace.classList.toggle('is-pan-mode', enabled)
+        panToolButton.setAttribute('aria-pressed', String(panToolActive))
+      }
+
+      function render() {
+        modeButtons.forEach((button) => {
+          const active = button.dataset.mode === state.mode
+          button.setAttribute('aria-pressed', String(active))
+        })
+        deviceControl.toggleAttribute('hidden', state.mode === 'grid')
+        gridOnlyElements.forEach((element) => {
+          element.toggleAttribute('hidden', state.mode !== 'grid')
+        })
+        deviceSelect.value = state.device
+        stageSelect.value = state.stage
+        langSelect.value = state.lang
+        workspace.dataset.mode = state.mode
+        previewGrid.dataset.mode = state.mode
+        openTarget.href = targetUrl(state.mode)
+
+        const viewports =
+          state.mode === 'grid'
+            ? popularViewports
+            : [viewportById.get(state.device)].filter(Boolean)
+
+        previewGrid.replaceChildren()
+        previewCards = viewports.map(createPreviewCard)
+        previewCards.forEach((preview) => previewGrid.append(preview.card))
+        previewCards.forEach((preview, index) => {
+          const delay = state.mode === 'grid' ? index * 400 : 0
+          window.setTimeout(preview.startLoading, delay)
+        })
+        emptyState.hidden = previewCards.length > 0
+
+        if (state.mode !== 'grid') {
+          previewGrid.style.removeProperty('transform')
+        }
+
+        requestAnimationFrame(() => {
+          fitAllPreviews()
+          if (state.mode === 'grid') {
+            gridView.zoom = state.zoom ?? gridView.zoom
+            if (state.zoom === null) fitGrid()
+            else centerGrid()
+          }
+        })
+        syncPanMode()
+        syncUrl()
+      }
+
+      function update(nextState) {
+        if (nextState.mode && nextState.mode !== state.mode) {
+          gridView.initialized = false
+          panToolActive = false
+          spacePanActive = false
+        }
+        state = { ...state, ...nextState }
+        render()
+      }
+
+      modeButtons.forEach((button) => {
+        button.addEventListener('click', () => update({ mode: button.dataset.mode }))
+      })
+      deviceSelect.addEventListener('change', () => update({ device: deviceSelect.value }))
+      stageSelect.addEventListener('change', () => update({ stage: stageSelect.value }))
+      langSelect.addEventListener('change', () => update({ lang: langSelect.value }))
+      reloadButton.addEventListener('click', () => render())
+      zoomRange.addEventListener('input', () => {
+        setGridZoom(Number(zoomRange.value) / 100)
+      })
+      zoomOutButton.addEventListener('click', () => {
+        setGridZoom(gridView.zoom - 0.05)
+      })
+      zoomInButton.addEventListener('click', () => {
+        setGridZoom(gridView.zoom + 0.05)
+      })
+      fitGridButton.addEventListener('click', fitGrid)
+      panToolButton.addEventListener('click', () => {
+        panToolActive = !panToolActive
+        syncPanMode()
+      })
+
+      workspace.addEventListener('pointerdown', (event) => {
+        if (state.mode !== 'grid' || (event.button !== 0 && event.button !== 1)) {
+          return
+        }
+
+        const header = event.target.closest?.('.preview-card__header')
+        const interactiveHeaderTarget = event.target.closest?.('a, button')
+        const canvasTarget =
+          panToolActive ||
+          spacePanActive ||
+          event.target === workspace ||
+          event.target === previewGrid ||
+          (header && !interactiveHeaderTarget)
+        if (!canvasTarget) return
+
+        event.preventDefault()
+        activePan = {
+          pointerId: event.pointerId,
+          startX: event.clientX,
+          startY: event.clientY,
+          panX: gridView.panX,
+          panY: gridView.panY,
+        }
+        workspace.setPointerCapture(event.pointerId)
+        workspace.classList.add('is-dragging')
+      })
+
+      workspace.addEventListener('pointermove', (event) => {
+        if (!activePan || activePan.pointerId !== event.pointerId) return
+        gridView.panX = activePan.panX + event.clientX - activePan.startX
+        gridView.panY = activePan.panY + event.clientY - activePan.startY
+        applyGridTransform()
+      })
+
+      const finishPan = (event) => {
+        if (!activePan || activePan.pointerId !== event.pointerId) return
+        activePan = null
+        workspace.classList.remove('is-dragging')
+        if (workspace.hasPointerCapture(event.pointerId)) {
+          workspace.releasePointerCapture(event.pointerId)
+        }
+      }
+      workspace.addEventListener('pointerup', finishPan)
+      workspace.addEventListener('pointercancel', finishPan)
+
+      workspace.addEventListener('wheel', (event) => {
+        if (state.mode !== 'grid') return
+        event.preventDefault()
+
+        if (event.ctrlKey || event.metaKey) {
+          const factor = Math.exp(-event.deltaY * 0.002)
+          setGridZoom(gridView.zoom * factor, event.clientX, event.clientY)
+          return
+        }
+
+        if (event.shiftKey && Math.abs(event.deltaX) < 0.1) {
+          gridView.panX -= event.deltaY
+        } else {
+          gridView.panX -= event.deltaX
+          gridView.panY -= event.deltaY
+        }
+        applyGridTransform()
+      }, { passive: false })
+
+      window.addEventListener('keydown', (event) => {
+        const target = event.target
+        const editing =
+          target instanceof HTMLInputElement ||
+          target instanceof HTMLSelectElement ||
+          target instanceof HTMLTextAreaElement ||
+          target?.isContentEditable
+        if (event.code !== 'Space' || editing || state.mode !== 'grid') return
+        event.preventDefault()
+        spacePanActive = true
+        syncPanMode()
+      })
+
+      window.addEventListener('keyup', (event) => {
+        if (event.code !== 'Space') return
+        spacePanActive = false
+        syncPanMode()
+      })
+
+      window.addEventListener('resize', () => {
+        requestAnimationFrame(() => {
+          if (state.mode === 'grid') centerGrid()
+          else fitAllPreviews()
+        })
+      })
+      window.addEventListener('popstate', () => {
+        state = readState()
+        gridView.zoom = state.zoom ?? 0.5
+        gridView.initialized = false
+        render()
+      })
+
+      render()
+    </script>
+  </body>
+</html>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(html) {
+    color-scheme: dark;
+    background: #050907;
+  }
+
+  :global(body) {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    color: #dff7eb;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(24, 211, 131, 0.11), transparent 34rem),
+      linear-gradient(180deg, #07100c 0, #050907 28rem);
+    font-family: 'Onest Variable', system-ui, sans-serif;
+  }
+
+  :global(button),
+  :global(select),
+  :global(a) {
+    font: inherit;
+  }
+
+  :global(button),
+  :global(select) {
+    color: inherit;
+  }
+
+  :global(button:focus-visible),
+  :global(select:focus-visible),
+  :global(a:focus-visible) {
+    outline: 2px solid #2cf2a2;
+    outline-offset: 3px;
+  }
+
+  .lab {
+    width: min(100%, 1800px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: clamp(18px, 2.5vw, 36px);
+  }
+
+  .toolbar {
+    display: grid;
+    grid-template-columns: minmax(250px, 0.72fr) minmax(640px, 1.5fr);
+    gap: clamp(24px, 4vw, 68px);
+    align-items: end;
+    padding-bottom: 24px;
+    border-bottom: 1px solid rgba(109, 242, 179, 0.14);
+  }
+
+  .eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 6px;
+    color: rgba(197, 226, 211, 0.56);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 10px;
+    font-weight: 650;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #18d383;
+    box-shadow: 0 0 10px rgba(24, 211, 131, 0.8);
+  }
+
+  h1 {
+    margin: 0;
+    color: #f1fff8;
+    font-size: clamp(26px, 3vw, 42px);
+    font-weight: 620;
+    letter-spacing: -0.045em;
+    line-height: 1;
+  }
+
+  .heading__note {
+    max-width: 480px;
+    margin: 10px 0 0;
+    color: rgba(210, 234, 222, 0.58);
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: end;
+    justify-content: flex-end;
+  }
+
+  .control {
+    display: grid;
+    gap: 6px;
+  }
+
+  .control[hidden] {
+    display: none;
+  }
+
+  .control__label {
+    color: rgba(204, 232, 218, 0.48);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 9px;
+    font-weight: 650;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  select,
+  .segmented,
+  .icon-button,
+  .open-button {
+    min-height: 38px;
+    border: 1px solid rgba(113, 235, 177, 0.18);
+    border-radius: 9px;
+    background: rgba(10, 26, 19, 0.78);
+    box-shadow: inset 0 1px rgba(255, 255, 255, 0.025);
+  }
+
+  select {
+    min-width: 180px;
+    padding: 0 34px 0 11px;
+    color: rgba(231, 249, 240, 0.9);
+    font-size: 12px;
+  }
+
+  .control--lang select {
+    min-width: 68px;
+  }
+
+  .segmented {
+    display: flex;
+    padding: 3px;
+  }
+
+  .segmented button {
+    min-height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 6px;
+    color: rgba(204, 232, 218, 0.54);
+    background: transparent;
+    font-size: 11px;
+    cursor: pointer;
+  }
+
+  .segmented button[aria-pressed='true'] {
+    color: #eafff5;
+    background: rgba(24, 211, 131, 0.16);
+    box-shadow: 0 0 0 1px rgba(70, 241, 163, 0.14);
+  }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .icon-button,
+  .open-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 11px;
+    color: rgba(223, 247, 235, 0.75);
+    font-size: 11px;
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .open-button {
+    color: #06110c;
+    border-color: #18d383;
+    background: #18d383;
+    font-weight: 650;
+  }
+
+  .icon-button svg,
+  .open-button svg,
+  :global(.preview-card__link svg) {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .workspace {
+    position: relative;
+  }
+
+  .workspace[data-mode='single'] {
+    padding: clamp(20px, 3vw, 42px) 0 18px;
+  }
+
+  .workspace[data-mode='grid'] {
+    height: clamp(520px, calc(100dvh - 230px), 900px);
+    min-height: 520px;
+    margin-top: 20px;
+    overflow: hidden;
+    border: 1px solid rgba(105, 236, 174, 0.16);
+    border-radius: 14px;
+    background:
+      radial-gradient(circle, rgba(102, 224, 164, 0.13) 1px, transparent 1.2px) 0 0 / 20px 20px,
+      radial-gradient(circle at 50% 50%, rgba(24, 211, 131, 0.045), transparent 42%),
+      #040906;
+    box-shadow:
+      inset 0 0 80px rgba(0, 0, 0, 0.22),
+      0 20px 65px rgba(0, 0, 0, 0.18);
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .workspace[data-mode='grid'].is-dragging,
+  .workspace[data-mode='grid'].is-pan-mode {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .canvas-hint {
+    position: absolute;
+    top: 12px;
+    left: 14px;
+    z-index: 18;
+    display: flex;
+    gap: 14px;
+    padding: 7px 9px;
+    border: 1px solid rgba(103, 233, 171, 0.11);
+    border-radius: 7px;
+    color: rgba(201, 231, 216, 0.4);
+    background: rgba(4, 11, 7, 0.72);
+    backdrop-filter: blur(10px);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 8px;
+    pointer-events: none;
+  }
+
+  .canvas-hint[hidden] {
+    display: none;
+  }
+
+  .preview-grid {
+    display: grid;
+    gap: 22px;
+  }
+
+  .preview-grid[data-mode='single'] {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+  }
+
+  .preview-grid[data-mode='grid'] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 34px;
+    align-items: start;
+    width: max-content;
+    transform-origin: top left;
+    will-change: transform;
+  }
+
+  :global(.preview-card) {
+    min-width: 0;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(110, 240, 178, 0.15);
+    border-radius: 14px;
+    background: rgba(7, 17, 12, 0.84);
+    box-shadow: 0 18px 55px rgba(0, 0, 0, 0.2);
+  }
+
+  .preview-grid[data-mode='single'] :global(.preview-card) {
+    width: min(100%, 900px);
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card) {
+    flex: 0 0 auto;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  :global(.preview-card__header) {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    min-height: 54px;
+    padding: 9px 12px 9px 15px;
+    border-bottom: 1px solid rgba(110, 240, 178, 0.11);
+  }
+
+  :global(.preview-card__identity) {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    min-width: 0;
+  }
+
+  :global(.preview-card__device-icon) {
+    display: inline-grid;
+    flex: 0 0 auto;
+    width: 18px;
+    height: 22px;
+    place-items: center;
+    overflow: visible;
+    color: rgba(74, 229, 151, 0.72);
+  }
+
+  :global(.preview-card__device-icon svg) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.35;
+    stroke-linecap: round;
+  }
+
+  :global(.preview-card__identity strong) {
+    color: #f0fff7;
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 13px;
+    font-weight: 650;
+  }
+
+  :global(.preview-card__identity span:not(.preview-card__device-icon)) {
+    overflow: hidden;
+    color: rgba(205, 232, 219, 0.5);
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(.preview-card__badge) {
+    padding: 4px 7px;
+    border: 1px solid rgba(24, 211, 131, 0.14);
+    border-radius: 999px;
+    color: rgba(88, 235, 164, 0.75);
+    background: rgba(24, 211, 131, 0.06);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 8px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  :global(.preview-card__link) {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border-radius: 7px;
+    color: rgba(212, 240, 225, 0.58);
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__header) {
+    min-height: 64px;
+    padding: 0 4px;
+    border: 0;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__device-icon) {
+    width: 24px;
+    height: 30px;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__identity) {
+    gap: 12px;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__identity strong) {
+    font-size: 20px;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__identity > span:last-child) {
+    display: none;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__badge) {
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__link) {
+    width: 34px;
+    height: 34px;
+  }
+
+  :global(.preview-card__viewport-shell) {
+    position: relative;
+    width: 100%;
+    min-height: 120px;
+    overflow: hidden;
+    background:
+      linear-gradient(45deg, rgba(24, 211, 131, 0.018) 25%, transparent 25%) 0 0 / 14px 14px,
+      linear-gradient(-45deg, rgba(24, 211, 131, 0.018) 25%, transparent 25%) 0 0 / 14px 14px,
+      #030604;
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__viewport-shell) {
+    min-height: 0;
+    border: 0;
+    border-radius: 9px;
+    box-shadow:
+      inset 0 0 0 2px rgba(50, 231, 145, 0.74),
+      0 0 0 1px rgba(143, 255, 202, 0.08),
+      0 18px 50px rgba(0, 0, 0, 0.42),
+      0 0 28px rgba(24, 211, 131, 0.07);
+  }
+
+  .preview-grid[data-mode='grid'] :global(.preview-card__viewport-shell::after) {
+    display: none;
+  }
+
+  :global(.preview-card__viewport-shell::after) {
+    position: absolute;
+    right: 9px;
+    bottom: 8px;
+    content: attr(data-scale);
+    padding: 3px 6px;
+    border-radius: 4px;
+    color: rgba(213, 239, 226, 0.36);
+    background: rgba(3, 8, 5, 0.66);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 8px;
+    pointer-events: none;
+    z-index: 4;
+  }
+
+  :global(.preview-card__viewport-frame) {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    overflow: hidden;
+    border: 0;
+    background: #050907;
+    transform-origin: top center;
+  }
+
+  :global(.preview-card__viewport-frame iframe) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #050907;
+  }
+
+  :global(.preview-card__loader) {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: rgba(201, 232, 216, 0.62);
+    background:
+      radial-gradient(circle, rgba(24, 211, 131, 0.07), transparent 32%),
+      rgba(3, 8, 5, 0.94);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 9px;
+    letter-spacing: 0.06em;
+    transition:
+      opacity 0.24s ease,
+      visibility 0.24s ease;
+    pointer-events: none;
+  }
+
+  :global(.preview-card.is-ready .preview-card__loader) {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  :global(.preview-card.has-error .preview-card__loader) {
+    color: rgba(238, 194, 151, 0.8);
+    pointer-events: auto;
+  }
+
+  :global(.preview-card__spinner) {
+    width: 20px;
+    height: 20px;
+    border: 1px solid rgba(24, 211, 131, 0.18);
+    border-top-color: #18d383;
+    border-radius: 50%;
+    animation: viewport-spin 0.8s linear infinite;
+  }
+
+  :global(.preview-card.has-error .preview-card__spinner) {
+    display: none;
+  }
+
+  :global(.preview-card__retry) {
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid rgba(24, 211, 131, 0.32);
+    border-radius: 6px;
+    color: #baf6d7;
+    background: rgba(24, 211, 131, 0.09);
+    font-size: 9px;
+    cursor: pointer;
+  }
+
+  @keyframes viewport-spin {
+    to {
+      transform: rotate(1turn);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    :global(.preview-card__spinner) {
+      animation-duration: 1.8s;
+    }
+  }
+
+  .pan-shield {
+    position: absolute;
+    inset: 0;
+    z-index: 22;
+    display: none;
+    cursor: grab;
+  }
+
+  .workspace.is-pan-mode .pan-shield {
+    display: block;
+  }
+
+  .workspace.is-dragging .pan-shield {
+    cursor: grabbing;
+  }
+
+  .canvas-controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 5px;
+    border: 1px solid rgba(113, 235, 177, 0.2);
+    border-radius: 11px;
+    background: rgba(7, 18, 12, 0.9);
+    box-shadow:
+      0 14px 40px rgba(0, 0, 0, 0.42),
+      inset 0 1px rgba(255, 255, 255, 0.035);
+    backdrop-filter: blur(16px) saturate(130%);
+    transform: translateX(-50%);
+  }
+
+  .canvas-controls[hidden] {
+    display: none;
+  }
+
+  .canvas-controls__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-width: 34px;
+    min-height: 32px;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 7px;
+    color: rgba(218, 243, 230, 0.62);
+    background: transparent;
+    font-size: 10px;
+    cursor: pointer;
+  }
+
+  .canvas-controls__button:hover,
+  .canvas-controls__button[aria-pressed='true'] {
+    color: #eafff5;
+    background: rgba(24, 211, 131, 0.14);
+  }
+
+  .canvas-controls__button--square {
+    padding: 0;
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 17px;
+  }
+
+  .canvas-controls__button svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.45;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .canvas-controls__separator {
+    width: 1px;
+    height: 22px;
+    background: rgba(122, 234, 179, 0.13);
+  }
+
+  .canvas-controls__range {
+    width: 130px;
+    accent-color: #18d383;
+    cursor: ew-resize;
+  }
+
+  .canvas-controls__output {
+    width: 38px;
+    color: rgba(217, 243, 230, 0.68);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 9px;
+    text-align: center;
+  }
+
+  .empty-state {
+    padding: 60px 20px;
+    color: rgba(220, 244, 232, 0.5);
+    text-align: center;
+  }
+
+  .source-note {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    justify-content: center;
+    padding: 15px 0 4px;
+    color: rgba(202, 229, 215, 0.38);
+    font-family: 'JetBrains Mono Variable', monospace;
+    font-size: 9px;
+  }
+
+  .source-note a {
+    color: rgba(73, 220, 149, 0.58);
+    text-underline-offset: 3px;
+  }
+
+  @media (max-width: 1120px) {
+    .toolbar {
+      grid-template-columns: 1fr;
+    }
+
+    .controls {
+      justify-content: flex-start;
+    }
+  }
+
+  @media (max-width: 680px) {
+    .lab {
+      padding: 16px 12px 24px;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      width: 100%;
+    }
+
+    .control--mode,
+    .actions {
+      grid-column: 1 / -1;
+    }
+
+    select,
+    .segmented,
+    .control--lang select {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .segmented button,
+    .actions > * {
+      flex: 1;
+    }
+
+    .workspace[data-mode='grid'] {
+      height: 620px;
+      min-height: 520px;
+      margin-top: 14px;
+    }
+
+    .preview-grid[data-mode='single'] :global(.preview-card__header) {
+      grid-template-columns: 1fr auto;
+    }
+
+    .preview-grid[data-mode='single'] :global(.preview-card__badge) {
+      display: none;
+    }
+
+    .canvas-hint span:last-child {
+      display: none;
+    }
+
+    .canvas-controls {
+      bottom: 10px;
+      width: calc(100% - 20px);
+      justify-content: center;
+    }
+
+    .canvas-controls__range {
+      min-width: 50px;
+      width: min(24vw, 100px);
+    }
+
+    .canvas-controls__button span {
+      display: none;
+    }
+  }
+</style>

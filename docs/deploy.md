@@ -54,7 +54,9 @@ sonicxboy.io — свободны**. Юзернейм **@sonicxboy в Telegram �
       `dig +norecurse NS sonicxboy.dev @ns-tld1.charlestonroadregistry.com`
 - [x] `www.sonicxboy.dev` → 308-редирект на apex (PATCH через Vercel API,
       2026-07-19); зона Vercel DNS готова (apex ALIAS + wildcard)
-- [ ] После пропагации: проверить https://sonicxboy.dev и SSL
+- [x] После пропагации: проверить https://sonicxboy.dev и SSL — проверено
+      2026-07-21: apex отвечает HTTP/2 200 через Vercel, `www` перенаправляет
+      на apex кодом 308, HTTPS и HSTS активны
 - [ ] Опционально после пропагации: сделать sonicxboy.vercel.app
       редиректом на домен (пока оставлен как резервный URL)
 - [x] og:image (`public/og.png`, 1200×630, собран из эмблемы BrandMark;
