@@ -498,6 +498,10 @@ void main() {
     // flame silhouette is untouched; brightness is flat: no strobing.
     vec3 arcEmission = vec3(0.0);
     float arcBoost = 0.0;
+    // Thunderclap flash field: accumulated per surface lane and injected
+    // into the blue shell's own emission below, so the glow is shaped by
+    // the shell's real density — volumetric and occluded like the flame.
+    float arcFlash = 0.0;
     for (int arcSlot = 0; arcSlot < 3; arcSlot++) {
       vec4 arcStream = uArcStream[arcSlot];
       if (arcStream.z > 0.001 && plumeJoin > 0.001) {
@@ -643,10 +647,10 @@ void main() {
         // Thunderclap shell illumination: like a real lightning flash, the
         // glow around the channel's midpoint ignites only after the head
         // has traveled a stretch of path and lingers while the strike
-        // travels on. A circular gradient centered halfway along the
-        // visible channel lights the neighboring blocks of the blue shell;
-        // the shell's own noise structure breaks the glow into patches
-        // instead of a flat disc, and a radial band keeps it on the shell.
+        // travels on. The field is a circular gradient centered halfway
+        // along the visible channel with a radial band that keeps it on
+        // the shell; its visible shape comes from the shell's own density
+        // (injected into shellColor below), not from a painted disc.
         float surfIllum = surfParam.w;
         if (surfIllum > 0.001) {
           float illumCenter = surfParam.x * 0.5;
@@ -660,15 +664,7 @@ void main() {
           float illumRadial = exp(
             -abs(sphereRadius - surfParam.z * blueEnvelopeScale) * 5.0
           );
-          float illumStructure = 0.45 + 0.55 * smoothstep(
-            0.2,
-            0.8,
-            broadNoise * 0.55 + ridgeNoise * 0.45
-          );
-          arcEmission +=
-            (vec3(0.45, 0.72, 1.0) * 2.6 + vec3(0.95, 0.98, 1.0) * 0.8) *
-            illumFall * illumRadial * illumStructure * surfIllum *
-            uRimProgress;
+          arcFlash += illumFall * illumRadial * surfIllum;
         }
       }
     }
@@ -795,6 +791,13 @@ void main() {
     vec3 shellColor =
       vec3(0.016, 0.19, 1.0) *
       (baseBlueShell + tailBlueShell * bluePlumeJoin) * 2.45 * uRimProgress;
+    // Thunderclap flash, integrated into the shell's own density: nearby
+    // blocks of the blue shell light from within, so the flash reads
+    // volumetric and deep rather than projected onto the surface.
+    shellColor +=
+      (vec3(0.45, 0.72, 1.0) * 1.9 + vec3(0.95, 0.98, 1.0) * 0.55) *
+      (baseBlueShell + tailBlueShell * bluePlumeJoin) *
+      arcFlash * 3.2 * uRimProgress;
     float spectralLift = smoothstep(0.72, 3.9, height);
     vec3 strandPaleColor = mix(
       vec3(1.0, 0.93, 0.68),

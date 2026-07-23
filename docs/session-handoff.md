@@ -27,6 +27,42 @@ for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
 ## Next session start point
 
+Third pass on 2026-07-23 (storm behavior + ring-wall depth illusion),
+awaiting the user's visual review in the normal browser:
+
+- **Natural storm cadence for surface discharges** (user's art direction,
+  "real facts from nature"): the three metronome lane clocks became one
+  irregular flash clock — long-tailed `2.6..6s` intervals, `18%` quick
+  cluster follow-ups (`1.0..1.8s`), `12%` lulls (`8..12s`). One flash is
+  usually a multi-stroke network: solo `20%`, two strokes `35%`, three
+  `45%` — forked branches share the main hub and light `0.12..0.5s`
+  apart. Measured over `300s`: mean interval `4.79s`, groups `10/25/26`
+  (solo/pair/triple), deterministic.
+- **Independent arcs never cross**: hashed candidate paths pass an
+  angular clearance check (mid-arc beyond summed half-spans `+0.3` rad,
+  hub `0.45` rad) against active arcs AND committed pending branches;
+  network members are exempt only versus their own group; colliding
+  branch forks flip side or drop; blocked flashes defer `0.5s` and retry
+  re-seeded. Sim: **zero** independent crossings in `300s`.
+- **Volumetric thunderclap flash** (user's note): the flash field moved
+  from flat additive emission into the blue shell's own `shellColor`
+  emission — the glow is shaped by the shell's real density and occluded
+  by its transmittance, so blocks light from within.
+- **Oval v3 — the depth illusion**: every ring split into a far arc
+  (svg before the text) and a near arc (mirrored svg after it), so the
+  flat copy occludes far halves while near halves pass in front. Storeys
+  `7 -> 11`, tighter stack, whole wall raised (`bottom: 14vh`) so the
+  subtitle and badges sit inside it. Paired arcs share timing
+  (diametrically opposite pulses).
+- New dev preview `?plasma-preview=arcnet` freezes a three-stroke
+  branched network with the thunderclap glow.
+
+Validation: `pnpm build` and `git diff --check` pass; headless Chromium
+captures of `arcnet`/`arcsurf`/`arcrev` show the volumetric patchy glow
+and the forked network; oval captured at two desktop moments (near arcs
+cross in front of the badges, far arcs hidden behind the subtitle) and
+`390 x 844` compact; zero console errors.
+
 Follow-up on the same day (2026-07-23), also awaiting the user's visual
 review in the normal browser:
 
@@ -42,18 +78,16 @@ review in the normal browser:
   (previously unused); the per-event active window extends to
   `travel + 0.8s`. Numerics re-measured: duty `71.5%`, two-or-more
   `23.7%`, radius band `[0.941, 1.009]`, deterministic.
-- **Oval v2 (revised same day after user correction)**: one ellipse line
-  (`560 x 70`) repeated in seven vertical storeys — the lanes stand as
-  **walls of an elliptical cylinder**; crossings emerge only in the
-  viewer's projection, never by construction (the first v2 draft's
-  deliberately crossing ellipses were rejected). Greens grade vertically
-  (`#0f6e4a` base → `#18d383` mid → `#7dffc9` top rim), size matches the
-  measured headline width (`75vh` desktop / `84vw` compact), and the wall
-  is raised so its upper storeys pass behind the subtitle and badges
-  (`bottom: 9vh`; compact: tucked at the headline's lower edge). The oval
-  is hidden until the first orbit title wave reaches the headline —
-  `HeroScene` sets `data-oval-on` at that beat (`1.6s` fade-in) — and
-  still fades with `reactor-card-visible`.
+- **Oval v2 (revised same day after user correction, superseded by v3
+  above)**: one ellipse line (`560 x 70`) repeated in vertical storeys —
+  the lanes stand as **walls of an elliptical cylinder**; crossings
+  emerge only in the viewer's projection, never by construction (the
+  first v2 draft's deliberately crossing ellipses were rejected). Greens
+  grade vertically (`#0f6e4a` base → `#18d383` mid → `#7dffc9` top rim),
+  size matches the measured headline width (`75vh` desktop / `84vw`
+  compact). The oval is hidden until the first orbit title wave reaches
+  the headline — `HeroScene` sets `data-oval-on` at that beat (`1.6s`
+  fade-in) — and still fades with `reactor-card-visible`.
 
 Validation: `pnpm build` and `git diff --check` pass; headless Chromium
 captures of `?plasma-preview=arcsurf`/`=arcrev` show the thunderclap glow

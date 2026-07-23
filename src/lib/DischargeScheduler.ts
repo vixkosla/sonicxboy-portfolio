@@ -6,8 +6,13 @@
 //   streams in short two-or-three-hit bursts; hits inside a burst are
 //   strictly sequential rather than simultaneous;
 // - surface strikes: jagged electric arcs darting across the outer blue
-//   ionization envelope from a hashed side to a hashed side, on independent
-//   lanes — the same lightning read as the streams, wrapped onto the shell.
+//   ionization envelope. Their cadence follows real storm behavior rather
+//   than a metronome: irregular long-tailed intervals, quick cluster
+//   follow-ups, occasional lulls, and multi-stroke flashes — one flash is
+//   often a branched network of two or three forked channels. Independent
+//   flashes never cross: each picks its path from hashed candidates with
+//   an angular clearance check against every active arc, while strokes of
+//   one network are exempt — they ARE the coordinated group.
 //
 // All timing derives from story time and hashed event indices, never from
 // frame deltas, so every run reproduces the same discharge choreography.
@@ -33,6 +38,21 @@ export interface SurfaceDischargeState {
    * outlives it with a slower afterglow while the strike travels on.
    */
   illum: number
+  /** Path start point (unit vector) — hub input for clearance checks. */
+  from: [number, number, number]
+  /** Path midpoint direction (unit vector) — clearance input. */
+  mid: [number, number, number]
+  /** Strokes of one multi-stroke flash share this group id. */
+  groupId: number
+}
+
+interface SurfacePath {
+  from: [number, number, number]
+  to: [number, number, number]
+  mid: [number, number, number]
+  span: number
+  radius: number
+  seed: number
 }
 
 const STRIKE_ATTACK = 0.02
@@ -67,9 +87,25 @@ const STREAM_BURST_STAGGER = STREAM_ACTIVE_WINDOW + 0.1
 const STREAM_BURST_PERIOD = 3.55
 const STREAM_BURST_JITTER = 0.35
 const STREAM_THIRD_HIT_CHANCE = 0.58
-// Surface arcs glide on three independent lanes.
-const SURFACE_LANE_PERIOD = 2.8
-const SURFACE_LANE_JITTER = 0.8
+
+// Surface cadence borrows from real storms: flashes cluster (a quick
+// follow-up 1.0..1.8s later), breathe (an 8..12s lull now and then), and
+// otherwise arrive on irregular long-tailed 2.6..6s intervals. One flash
+// is a multi-stroke event more often than not: solo 20%, one forked
+// branch 35%, two branches 45% — the branched network the user asked for.
+const FLASH_CLUSTER_CHANCE = 0.18
+const FLASH_LULL_CHANCE = 0.12
+const FLASH_SOLO_CHANCE = 0.2
+const FLASH_TWO_BRANCH_CHANCE = 0.5625
+// Independent flashes never cross: a candidate path must keep its mid-arc
+// direction this far (in radians, beyond the two half-spans) from every
+// active arc, and its hub this far from every active hub. Up to four
+// hashed candidates are tried before the flash is deferred half a second.
+const FLASH_CLEARANCE_MARGIN = 0.3
+const FLASH_HUB_CLEARANCE = 0.45
+const FLASH_CANDIDATES = 4
+const FLASH_RETRY_DELAY = 0.5
+const FLASH_PENDING_COUNT = 6
 
 // Cross-family causal chains: a surface arc may cue the next stream burst
 // early, while a stream strike may ground back as a surface arc. Chains never
@@ -91,6 +127,28 @@ function normalize3(v: [number, number, number]) {
   v[1] /= length
   v[2] /= length
   return v
+}
+
+function cross3(
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+): [number, number, number] {
+  return [
+    a[1] * b[2] - a[2] * b[1],
+    a[2] * b[0] - a[0] * b[2],
+    a[0] * b[1] - a[1] * b[0],
+  ]
+}
+
+function angleBetween(
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+) {
+  const dot = Math.min(
+    1,
+    Math.max(-1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]),
+  )
+  return Math.acos(dot)
 }
 
 function strikeEnvelope(elapsed: number, travelDuration: number) {
@@ -126,6 +184,8 @@ export class DischargeScheduler {
   surfaceStart = Number.POSITIVE_INFINITY
   previewStream: StreamDischargeState | null = null
   previewSurface: SurfaceDischargeState | null = null
+  /** Extra frozen strokes for the network preview (slots 1..n). */
+  previewSurfacesExtra: SurfaceDischargeState[] = []
 
   private readonly streamLanes: {
     next: number
@@ -134,9 +194,20 @@ export class DischargeScheduler {
     endHeight: number
   }[] = []
   private readonly surfaceLanes: {
-    next: number
-    index: number
     start: number
+  }[] = []
+  private readonly surfaceFlash = {
+    next: Number.NaN,
+    index: 0,
+    attempt: 0,
+  }
+  private readonly pendingStrokes: {
+    time: number
+    seed: number
+    groupId: number
+    from: [number, number, number]
+    to: [number, number, number]
+    radius: number
   }[] = []
   private readonly pendingChains: {
     time: number
@@ -165,15 +236,24 @@ export class DischargeScheduler {
         seed: 0,
         envelope: 0,
         illum: 0,
+        from: [1, 0, 0],
+        mid: [1, 0, 0],
+        groupId: -1,
       })
-      this.surfaceLanes.push({
-        next: Number.NaN,
-        index: lane * 53 + 11,
-        start: Number.NaN,
-      })
+      this.surfaceLanes.push({ start: Number.NaN })
     }
     for (let slot = 0; slot < CHAIN_SLOT_COUNT; slot += 1) {
       this.pendingChains.push({ time: Number.NaN, surface: false, seed: 0 })
+    }
+    for (let slot = 0; slot < FLASH_PENDING_COUNT; slot += 1) {
+      this.pendingStrokes.push({
+        time: Number.NaN,
+        seed: 0,
+        groupId: -1,
+        from: [1, 0, 0],
+        to: [0, 1, 0],
+        radius: 0.97,
+      })
     }
   }
 
@@ -190,6 +270,11 @@ export class DischargeScheduler {
     if (this.previewStream) Object.assign(this.streams[0], this.previewStream)
     if (this.previewSurface) {
       Object.assign(this.surfaces[0], this.previewSurface)
+      for (let index = 0; index < this.previewSurfacesExtra.length; index += 1) {
+        const slot = this.surfaces[index + 1]
+        const extra = this.previewSurfacesExtra[index]
+        if (slot && extra) Object.assign(slot, extra)
+      }
     }
     if (this.previewStream || this.previewSurface) {
       this.peak = 1
@@ -204,8 +289,16 @@ export class DischargeScheduler {
         state.next = this.autonomousStart + lane * STREAM_BURST_STAGGER
       }
     }
+    if (Number.isNaN(this.surfaceFlash.next)) {
+      this.surfaceFlash.next = this.surfaceStart + 0.4
+    }
 
     this.processChains(now)
+    this.processPendingStrokes(now)
+
+    if (now >= this.surfaceFlash.next && now >= this.surfaceStart) {
+      this.fireFlashGroup(this.surfaceFlash.next)
+    }
 
     for (let lane = 0; lane < this.streamLanes.length; lane += 1) {
       const state = this.streamLanes[lane]
@@ -251,24 +344,6 @@ export class DischargeScheduler {
     for (let lane = 0; lane < this.surfaceLanes.length; lane += 1) {
       const state = this.surfaceLanes[lane]
       const output = this.surfaces[lane]
-      if (Number.isNaN(state.next)) {
-        state.next = this.surfaceStart + 0.4 + lane * 0.9
-      }
-      if (now >= state.next) {
-        this.fireSurface(lane, state.next, state.index)
-        // A surface arc may cue the next complete upper burst early.
-        if (hash(state.index, 79) < SURFACE_TO_STREAM_CHANCE) {
-          this.pushChain(
-            state.next + 0.22 + hash(state.index, 83) * 0.4,
-            false,
-            state.index,
-          )
-        }
-        state.next +=
-          SURFACE_LANE_PERIOD +
-          (hash(state.index, 23 + lane * 17) * 2 - 1) * SURFACE_LANE_JITTER
-        state.index += 1
-      }
       const elapsed = now - state.start
       if (
         Number.isNaN(state.start) ||
@@ -295,6 +370,228 @@ export class DischargeScheduler {
     }
   }
 
+  // One irregular storm clock drives every surface flash. Each flash picks
+  // a clearance-checked main path, fires its forked branches as a
+  // coordinated network, then draws the next interval from the long-tailed
+  // storm distribution (quick cluster follow-up, common mid range, rare
+  // lull).
+  private fireFlashGroup(time: number) {
+    const index = this.surfaceFlash.index
+    const path = this.pickClearPath(index, time)
+    if (!path) {
+      // No clear corridor right now: defer deterministically and retry
+      // with re-seeded candidates once the active arcs have decayed.
+      this.surfaceFlash.attempt += 1
+      this.surfaceFlash.next = time + FLASH_RETRY_DELAY
+      return
+    }
+    this.surfaceFlash.attempt = 0
+    const slot = this.freeSurfaceSlot(time)
+    if (slot >= 0) {
+      this.applySurfacePath(slot, path, time, index)
+      // A surface arc may cue the next complete upper burst early; only
+      // the main stroke carries the chain, branches never chain further.
+      if (hash(index, 79) < SURFACE_TO_STREAM_CHANCE) {
+        this.pushChain(time + 0.22 + hash(index, 83) * 0.4, false, index)
+      }
+      const branches =
+        hash(index, 61) < FLASH_SOLO_CHANCE
+          ? 0
+          : hash(index, 63) < FLASH_TWO_BRANCH_CHANCE
+            ? 2
+            : 1
+      for (let branch = 1; branch <= branches; branch += 1) {
+        this.queueBranchStroke(time, index, branch, path)
+      }
+    }
+    const roll = hash(index, 5)
+    let interval: number
+    if (roll < FLASH_CLUSTER_CHANCE) {
+      interval = 1.0 + hash(index, 7) * 0.8
+    } else if (roll >= 1 - FLASH_LULL_CHANCE) {
+      interval = 8.0 + hash(index, 9) * 4.0
+    } else {
+      interval = 2.6 + Math.pow(hash(index, 7), 1.6) * 3.4
+    }
+    this.surfaceFlash.next = time + interval
+    this.surfaceFlash.index += 1
+  }
+
+  // Forked companion strokes of one flash: the branch shares the main
+  // hub and diverges by a rotated endpoint, lighting shortly after the
+  // main stroke like a real multi-stroke flash. Network membership only
+  // exempts a branch from crossing ITS OWN group — it must still keep
+  // clearance from every other active or committed arc; if the first
+  // fork direction would cross one, the opposite side is tried before
+  // the branch is dropped deterministically.
+  private queueBranchStroke(
+    time: number,
+    groupId: number,
+    branch: number,
+    main: SurfacePath,
+  ) {
+    const seed = groupId * 7 + branch * 13
+    const thetaBase = 0.35 + hash(seed, 3) * 0.35
+    for (const sign of [branch % 2 === 1 ? 1 : -1, branch % 2 === 1 ? -1 : 1]) {
+      const theta = thetaBase * sign
+      const axis = main.from
+      const cross = cross3(axis, main.to)
+      const dot =
+        axis[0] * main.to[0] + axis[1] * main.to[1] + axis[2] * main.to[2]
+      const cos = Math.cos(theta)
+      const sin = Math.sin(theta)
+      const to = normalize3([
+        main.to[0] * cos + cross[0] * sin + axis[0] * dot * (1 - cos),
+        main.to[1] * cos + cross[1] * sin + axis[1] * dot * (1 - cos),
+        main.to[2] * cos + cross[2] * sin + axis[2] * dot * (1 - cos),
+      ])
+      const candidate: SurfacePath = {
+        from: [...main.from],
+        to,
+        mid: normalize3([
+          main.from[0] + to[0],
+          main.from[1] + to[1],
+          main.from[2] + to[2],
+        ]),
+        span: angleBetween(main.from, to),
+        radius: Math.min(
+          1.01,
+          Math.max(0.94, main.radius + (hash(seed, 9) - 0.5) * 0.03),
+        ),
+        seed: hash(seed, 11) * 100,
+      }
+      if (!this.pathIsClear(candidate, time, groupId)) continue
+      for (const pending of this.pendingStrokes) {
+        if (Number.isNaN(pending.time)) {
+          pending.time =
+            time +
+            branch * (0.12 + hash(seed, 5) * 0.14) +
+            hash(seed, 7) * 0.08
+          pending.seed = seed
+          pending.groupId = groupId
+          pending.from = [...main.from]
+          pending.to = to
+          pending.radius = candidate.radius
+          return
+        }
+      }
+      return
+    }
+  }
+
+  private processPendingStrokes(now: number) {
+    for (const pending of this.pendingStrokes) {
+      if (Number.isNaN(pending.time) || now < pending.time) continue
+      const time = pending.time
+      const path: SurfacePath = {
+        from: [...pending.from],
+        to: [...pending.to],
+        mid: normalize3([
+          pending.from[0] + pending.to[0],
+          pending.from[1] + pending.to[1],
+          pending.from[2] + pending.to[2],
+        ]),
+        span: angleBetween(pending.from, pending.to),
+        radius: pending.radius,
+        seed: hash(pending.seed, 11) * 100,
+      }
+      const groupId = pending.groupId
+      pending.time = Number.NaN
+      // Network members skip the clearance check — the fork is the point.
+      const slot = this.freeSurfaceSlot(time)
+      if (slot >= 0) this.applySurfacePath(slot, path, time, groupId)
+    }
+  }
+
+  // Clearance test against every currently active arc and every committed
+  // pending branch stroke. Strokes of the same flash group are exempt —
+  // the forked network is meant to share space.
+  private pathIsClear(path: SurfacePath, time: number, groupId: number) {
+    for (let lane = 0; lane < this.surfaces.length; lane += 1) {
+      const active = this.surfaces[lane]
+      const start = this.surfaceLanes[lane].start
+      if (
+        Number.isNaN(start) ||
+        time - start > SURFACE_ACTIVE_WINDOW ||
+        time < start ||
+        active.groupId === groupId
+      ) {
+        continue
+      }
+      if (
+        angleBetween(path.mid, active.mid) <
+        (path.span + active.span) * 0.5 + FLASH_CLEARANCE_MARGIN
+      ) {
+        return false
+      }
+      if (angleBetween(path.from, active.from) < FLASH_HUB_CLEARANCE) {
+        return false
+      }
+    }
+    for (const pending of this.pendingStrokes) {
+      if (Number.isNaN(pending.time) || pending.groupId === groupId) {
+        continue
+      }
+      const pendingMid = normalize3([
+        pending.from[0] + pending.to[0],
+        pending.from[1] + pending.to[1],
+        pending.from[2] + pending.to[2],
+      ])
+      const pendingSpan = angleBetween(pending.from, pending.to)
+      if (
+        angleBetween(path.mid, pendingMid) <
+        (path.span + pendingSpan) * 0.5 + FLASH_CLEARANCE_MARGIN
+      ) {
+        return false
+      }
+      if (angleBetween(path.from, pending.from) < FLASH_HUB_CLEARANCE) {
+        return false
+      }
+    }
+    return true
+  }
+
+  // Candidate path search with angular clearance from every active arc.
+  // Returns null when all candidates would cross a live one.
+  private pickClearPath(index: number, time: number): SurfacePath | null {
+    for (let candidate = 0; candidate < FLASH_CANDIDATES; candidate += 1) {
+      const path = this.rollSurfacePath(
+        index * 13 + candidate * 97 + this.surfaceFlash.attempt * 911,
+      )
+      if (this.pathIsClear(path, time, -1)) return path
+    }
+    return null
+  }
+
+  private freeSurfaceSlot(time: number) {
+    for (let lane = 0; lane < this.surfaceLanes.length; lane += 1) {
+      const start = this.surfaceLanes[lane].start
+      if (Number.isNaN(start) || time - start > SURFACE_ACTIVE_WINDOW) {
+        return lane
+      }
+    }
+    return -1
+  }
+
+  private applySurfacePath(
+    lane: number,
+    path: SurfacePath,
+    time: number,
+    groupId: number,
+  ) {
+    const output = this.surfaces[lane]
+    this.surfaceLanes[lane].start = time
+    output.axis = normalize3(cross3(path.from, path.to))
+    output.tanA = [...path.from]
+    output.from = [...path.from]
+    output.mid = [...path.mid]
+    output.span = path.span
+    output.radius = path.radius
+    output.seed = path.seed
+    output.groupId = groupId
+    output.headAngle = 0
+  }
+
   private pushChain(time: number, surface: boolean, seed: number) {
     for (const slot of this.pendingChains) {
       if (Number.isNaN(slot.time)) {
@@ -316,21 +613,12 @@ export class DischargeScheduler {
       // pattern deterministic.
       slot.time = Number.NaN
       if (surface) {
-        for (let lane = 0; lane < this.surfaceLanes.length; lane += 1) {
-          const state = this.surfaceLanes[lane]
-          const idle =
-            Number.isNaN(state.start) ||
-            time - state.start > SURFACE_ACTIVE_WINDOW
-          const noClash =
-            Number.isNaN(state.next) ||
-            state.next > time + SURFACE_ACTIVE_WINDOW
-          if (idle && noClash) {
-            this.fireSurface(lane, time, seed)
-            state.next = Number.isNaN(state.next)
-              ? time + SURFACE_LANE_PERIOD * 0.6
-              : Math.max(state.next, time + SURFACE_LANE_PERIOD * 0.6)
-            break
-          }
+        // A chain-grounded arc is an independent event: it takes the same
+        // clearance check as any flash (fewer candidates, then dropped).
+        const path = this.pickClearPath(seed, time)
+        const target = path ? this.freeSurfaceSlot(time) : -1
+        if (path && target >= 0) {
+          this.applySurfacePath(target, path, time, -seed - 1)
         }
       } else if (time >= this.autonomousStart) {
         let sequenceClear = true
@@ -384,16 +672,10 @@ export class DischargeScheduler {
     output.seed = hash(seed, 11) * 100
   }
 
-  private fireSurface(lane: number, time: number, seed: number) {
-    const state = this.surfaceLanes[lane]
-    state.start = time
-    this.rollSurfacePath(seed, this.surfaces[lane])
-  }
-
   // A hashed start point on the sphere and a hashed endpoint 60..140 degrees
   // away; travel direction flips per event, so arcs cross the envelope from
   // different sides in different directions.
-  private rollSurfacePath(index: number, output: SurfaceDischargeState) {
+  private rollSurfacePath(index: number): SurfacePath {
     const z = hash(index, 31) * 2 - 1
     const phi = hash(index, 37) * Math.PI * 2
     const radial = Math.sqrt(Math.max(1 - z * z, 0))
@@ -403,11 +685,7 @@ export class DischargeScheduler {
       hash(index, 43) - 0.5,
       hash(index, 47) - 0.5,
     ]
-    const perp = normalize3([
-      start[1] * helper[2] - start[2] * helper[1],
-      start[2] * helper[0] - start[0] * helper[2],
-      start[0] * helper[1] - start[1] * helper[0],
-    ])
+    const perp = normalize3(cross3(start, helper))
     const span = (60 + hash(index, 51) * 80) * (Math.PI / 180)
     const end = normalize3([
       start[0] * Math.cos(span) + perp[0] * Math.sin(span),
@@ -417,19 +695,18 @@ export class DischargeScheduler {
     const flip = hash(index, 57) < 0.5
     const from = flip ? end : start
     const to = flip ? start : end
-    output.axis = normalize3([
-      from[1] * to[2] - from[2] * to[1],
-      from[2] * to[0] - from[0] * to[2],
-      from[0] * to[1] - from[1] * to[0],
-    ])
-    output.tanA = from
-    output.span = span
-    // Radius is a factor of the blue envelope scale, so the same lane hugs
-    // the compact pre-expansion shell and the enlarged outer envelope alike.
-    // The band rides the blue shell (~0.92) and its outer crest: dipping
-    // lower would drag the arc across the warm orange body, where the blue
-    // impulse loses its read; higher would detach it into empty space.
-    output.radius = 0.94 + hash(index, 61) * 0.07
-    output.seed = hash(index, 67) * 100
+    return {
+      from,
+      to,
+      mid: normalize3([from[0] + to[0], from[1] + to[1], from[2] + to[2]]),
+      span,
+      // Radius is a factor of the blue envelope scale, so the same lane hugs
+      // the compact pre-expansion shell and the enlarged outer envelope alike.
+      // The band rides the blue shell (~0.92) and its outer crest: dipping
+      // lower would drag the arc across the warm orange body, where the blue
+      // impulse loses its read; higher would detach it into empty space.
+      radius: 0.94 + hash(index, 61) * 0.07,
+      seed: hash(index, 67) * 100,
+    }
   }
 }

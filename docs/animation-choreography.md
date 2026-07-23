@@ -412,10 +412,24 @@ never frame deltas). Two families coexist at two scales, all with flat
 brightness through the strike — there is deliberately no sinusoidal strobing
 anywhere in the effect:
 
-- **Surface strikes** (three independent lanes, each firing every
-  `2.8s ± 0.8s`, so the shell carries activity most of the time) dart
-  across the blue ionization shell with the same jagged lightning read as
-  the stream family. They begin while the core is still
+- **Surface strikes** dart across the blue ionization shell with the same
+  jagged lightning read as the stream family, on a cadence borrowed from
+  real storms rather than a metronome: one irregular flash clock fires
+  long-tailed intervals (mostly `2.6..6s`, skewed low), quick cluster
+  follow-ups (`18%`, `1.0..1.8s` later, like real storm series), and
+  occasional lulls (`12%`, `8..12s` of breathing room). One flash is a
+  multi-stroke event more often than not — solo `20%`, two strokes `35%`,
+  three strokes `45%`: forked branches share the main hub, diverge by a
+  rotated endpoint, and light `0.12..0.5s` after the main stroke, so the
+  group reads as one organized branched network. **Independent flashes
+  never cross**: every main or chain-grounded path is picked from up to
+  four hashed candidates with an angular clearance check (mid-arc
+  direction beyond the summed half-spans plus `0.3` rad, hub separation
+  `0.45` rad) against every active arc and every committed pending
+  branch; network members are exempt only versus their own group, and a
+  branch whose fork would cross a foreign arc flips to the other side or
+  is dropped. A flash with no clear corridor defers `0.5s` and retries
+  with re-seeded candidates. They begin while the core is still
   revving up behind the reactor covering (`10.55s` of main-spin time,
   right after rim ignition completes) and continue through the settled
   flame. The lane strikes — a near-instant `0.03s` attack, a `10/s`
@@ -449,13 +463,15 @@ anywhere in the effect:
   travel (`0.09s` ramp), and the glow lingers with a slow `3.2/s` afterglow
   while the strike travels on. The gradient is centered halfway along the
   currently traveled channel (so it trails the head), spans about `0.55`
-  radians with a squared shoulder, is confined to the shell by a radial
-  band at the lane's radius, and is broken into patches by the shell's own
-  broad/ridged noise — neighboring blocks of the blue shell light up
-  rather than a flat disc being painted. The scheduler passes the
-  illumination envelope in the previously unused `uSurfParam.w`; the
-  active window per event extends to `travel + 0.8s` so the afterglow is
-  never clipped.
+  radians with a squared shoulder, and is confined to the shell by a
+  radial band at the lane's radius. The flash field is **injected into
+  the blue shell's own emission** (`shellColor`), so its visible shape
+  comes from the shell's real density — neighboring blocks of the blue
+  shell light from within, volumetric and occluded by the same
+  transmittance as the rest of the flame, instead of a projected disc.
+  The scheduler passes the illumination envelope in the previously
+  unused `uSurfParam.w`; the active window per event extends to
+  `travel + 0.8s` so the afterglow is never clipped.
 - **Stream strikes** begin at 70% of the final expansion (`19.84s`) and
   propagate up the seven existing stream centerlines in deterministic bursts.
   Each burst contains two or three hits. Starts inside the burst are spaced
@@ -506,15 +522,19 @@ alive as a separate graphic figure while the on-sphere arcs returned to the
 jagged electric read.
 
 - One ellipse line (`560 x 70` in a `1200 x 360` viewBox,
-  `pathLength=100`) repeated in seven vertical storeys, so the lanes
-  stand as walls of an elliptical cylinder — crossings emerge only in the
-  viewer's projection, never by construction. Desktop width matches the
+  `pathLength=100`) repeated in eleven tight vertical storeys, so the
+  lanes stand as walls of an elliptical cylinder — crossings emerge only
+  in the viewer's projection, never by construction. Every ring is split
+  into a far arc (an svg painted before the text) and a near arc (a
+  mirrored, identically positioned svg painted after it), so the flat
+  copy occludes the far halves while the near halves pass in front — the
+  text stands inside the wall. Paired arcs share their timing, keeping
+  the two comet pulses diametrically opposite. Desktop width matches the
   measured headline width (`75vh`, the `11vh` font cap) and is
-  left-aligned with the hero gutter; the wall is raised so its upper
-  storeys pass behind the subtitle and badges (`bottom: 9vh`). On compact
-  viewports it anchors at the headline's lower edge with the same offset
-  math as the reactor card top, at `84vw` (the mobile headline measures
-  ~`83vw`).
+  left-aligned with the hero gutter; the wall is raised so the subtitle
+  and badges sit inside it (`bottom: 14vh`). On compact viewports it
+  anchors at the headline's lower edge with the same offset math as the
+  reactor card top, at `84vw` (the mobile headline measures ~`83vw`).
 - Each storey carries a three-layer pulse — a wide faint emerald halo
   (`20%` dash), a body (`13%`) tinted from the site's green family in a
   vertical grade (`#0f6e4a` deep at the base through `#18d383` emerald

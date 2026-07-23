@@ -66,7 +66,10 @@ import {
   updateReactorMetamaterial,
   updateStructuralMetamaterial,
 } from '../lib/ReactorMetamaterial'
-import { DischargeScheduler } from '../lib/DischargeScheduler'
+import {
+  DischargeScheduler,
+  type SurfaceDischargeState,
+} from '../lib/DischargeScheduler'
 
 const EMERALD = new Color('#18d383')
 const WAVE_BLUE = new Color('#244cff')
@@ -949,7 +952,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         envelope: 1,
         seed: 5.1,
       }
-    } else if (previewStage === 'arcsurf' || previewStage === 'arcrev') {
+    } else if (
+      previewStage === 'arcsurf' ||
+      previewStage === 'arcrev' ||
+      previewStage === 'arcnet'
+    ) {
       const from = new Vector3(0.9, 0.15, 0.41).normalize()
       const to = new Vector3(-0.35, 0.55, 0.76).normalize()
       const axis = new Vector3().crossVectors(from, to).normalize()
@@ -963,6 +970,45 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         seed: 8.3,
         envelope: 1,
         illum: 1,
+        from: [from.x, from.y, from.z],
+        mid: [0.28, 0.35, 0.59],
+        groupId: 1,
+      }
+      if (previewStage === 'arcnet') {
+        // Frozen branched network: two forked companions share the main
+        // hub and diverge by rotated endpoints, slightly behind in travel.
+        const mid = new Vector3()
+          .addVectors(from, to)
+          .normalize()
+        scheduler.previewSurface.mid = [mid.x, mid.y, mid.z]
+        scheduler.previewSurfacesExtra = [0.42, -0.55].map(
+          (theta, branchIndex) => {
+            const rotated = to
+              .clone()
+              .applyAxisAngle(from, theta)
+              .normalize()
+            const branchAxis = new Vector3()
+              .crossVectors(from, rotated)
+              .normalize()
+            const branchSpan = from.angleTo(rotated)
+            const branchMid = new Vector3()
+              .addVectors(from, rotated)
+              .normalize()
+            return {
+              axis: [branchAxis.x, branchAxis.y, branchAxis.z],
+              tanA: [from.x, from.y, from.z],
+              headAngle: branchSpan * (0.5 - branchIndex * 0.12),
+              span: branchSpan,
+              radius: 0.96 + branchIndex * 0.03,
+              seed: 8.3 + (branchIndex + 1) * 2.17,
+              envelope: 0.92 - branchIndex * 0.14,
+              illum: 0.9 - branchIndex * 0.15,
+              from: [from.x, from.y, from.z],
+              mid: [branchMid.x, branchMid.y, branchMid.z],
+              groupId: 1,
+            } satisfies SurfaceDischargeState
+          },
+        )
       }
     }
     return scheduler
