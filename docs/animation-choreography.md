@@ -523,21 +523,24 @@ jagged electric read.
 
 - Nine nested cylindrical tubes (`1200 x 530` viewBox, `pathLength=100`):
   the first draft's concentric arrangement (larger outside, smaller
-  inside, never crossing by construction), each ellipse extruded upward
-  into a cylinder — a top rim (the same ring raised `80` units) plus two
-  silhouette wall lines (`560 x 209` outermost down to `382 x 104`).
-  Every rim is split into a far arc (an svg painted before the text)
-  and a near arc (a mirrored, identically positioned svg painted after
-  it), so the flat copy occludes the far halves while the near halves
-  and the wall lines pass in front — the text stands inside the tubes.
-  Rim pulses on both rings of a tube share their timing, so each comet
-  sweeps the wall vertically aligned; slow risers (`11..15s`) climb the
-  wall lines. Desktop width matches the measured headline width (`75vh`,
-  the `11vh` font cap) and is left-aligned with the hero gutter; the
-  oval is raised so the subtitle and badges sit inside it (`bottom:
-  14vh`). On compact viewports it anchors at the headline's lower edge
-  with the same offset math as the reactor card top, at `84vw` (the
-  mobile headline measures ~`83vw`).
+  inside, never crossing by construction), each ellipse completed into a
+  wireframe cylinder — a top rim (the same ring raised `80` units) plus
+  a fence of twelve vertical wall lines sitting ON the circumference
+  (`560 x 209` outermost down to `382 x 104`). Six of the twelve lines
+  are static hairlines carrying the wall; the other six are live risers
+  (`10..15s`). Every rim and every wall line is split by depth: far arcs
+  and back-half lines live in the svg painted before the text, near arcs
+  and front-half lines in a mirrored svg painted after it, so the flat
+  copy occludes the far structure while the near structure passes in
+  front — the text stands inside the tubes. Rim pulses on both rings of
+  a tube share their timing, so each comet sweeps the wall vertically
+  aligned. All geometry is generated once at build time from a small
+  lane table in the layout's frontmatter. Desktop width matches the
+  measured headline width (`75vh`, the `11vh` font cap) and is
+  left-aligned with the hero gutter; the oval is raised so the subtitle
+  and badges sit inside it (`bottom: 14vh`). On compact viewports it
+  anchors at the headline's lower edge with the same offset math as the
+  reactor card top, at `84vw` (the mobile headline measures ~`83vw`).
 - Each lane carries a three-layer pulse — a wide faint emerald halo
   (`20%` dash), a body (`13%`) tinted from the site's green family in a
   depth grade (`#0a5236` deep at the outermost lane through `#18d383`

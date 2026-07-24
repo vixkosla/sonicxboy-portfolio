@@ -48,15 +48,18 @@ awaiting the user's visual review in the normal browser:
   from flat additive emission into the blue shell's own `shellColor`
   emission — the glow is shaped by the shell's real density and occluded
   by its transmittance, so blocks light from within.
-- **Oval v5 — the nested rings extruded upward into cylinders** (user's
-  follow-up): each of the nine approved nested ellipses is now a tube —
-  a top rim (same ring raised `80` units) plus two silhouette wall
-  lines. Rim pulses on both rings share timing (vertically aligned
-  comets); slow risers (`11..15s`) climb the wall lines. The far/near
-  arc split (depth illusion) covers both rims and the walls. viewBox
-  `1200 x 530`. (v4's flat extrusion was an intermediate step; v3's
-  identical-ring stack and v2's deliberate crossings were both rejected
-  earlier.)
+- **Oval v5 — the nested rings completed into wireframe cylinders**
+  (user's follow-up, "complete the lines into walls"): each of the nine
+  approved nested ellipses is now a true tube — a top rim (same ring
+  raised `80` units) plus a fence of twelve vertical wall lines sitting
+  ON the circumference (six static hairlines carrying the wall, six live
+  risers at `10..15s`). Rim pulses on both rings share timing
+  (vertically aligned comets). The far/near split covers both rims AND
+  the wall lines, so the text stands inside the tubes. Geometry is
+  generated once at build time from a lane table in the layout
+  frontmatter. viewBox `1200 x 530`. (v4's two-tip-lines draft read as
+  floating rings, not walls; v3's identical-ring stack and v2's
+  deliberate crossings were both rejected earlier.)
 - New dev preview `?plasma-preview=arcnet` freezes a three-stroke
   branched network with the thunderclap glow.
 
