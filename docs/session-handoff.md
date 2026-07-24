@@ -25,6 +25,27 @@ pnpm astro dev --background
 larger than 500 kB. Runtime logs also contain upstream Three.js deprecation warnings
 for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
+## Public source release
+
+Published on 2026-07-24 at
+https://github.com/vixkosla/sonicxboy-portfolio as a public MIT repository:
+
+- The card's formerly duplicated Telegram icon is now a localized GitHub source
+  link; the large Telegram CTA remains the contact action, so mobile row geometry
+  does not change.
+- `README.md`, `docs/recreate.md`, `public/source-kit.json`, and the expanded
+  `public/llms.txt` provide human and machine-readable reconstruction context.
+- `.vscode/mcp.json` starts the pinned official Filesystem MCP server with only the
+  cloned workspace allowed. `AGENTS.md` remains the coding-agent implementation map.
+- A `SoftwareSourceCode` JSON-LD node, repository meta tag, and alternate JSON link
+  connect the live site to the repository and `/source-kit.json`.
+- The public package includes an MIT license, current preview, and GitHub Actions
+  build workflow. The working tree and full pre-publication Git history were scanned
+  for common credential/private-key patterns before push; none were found.
+- Astro was updated to `7.1.3`, SVGO resolves to `4.0.2`, and the workspace override
+  pins PostCSS to `8.5.22`. `pnpm audit --prod --audit-level high` reports no known
+  vulnerabilities, and `pnpm build` passes with only the existing chunk-size warning.
+
 ## Portrait-mobile camera story
 
 Completed on 2026-07-24 without changing scene-object choreography:
