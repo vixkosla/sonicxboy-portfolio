@@ -43,8 +43,10 @@ https://github.com/vixkosla/sonicxboy-portfolio as a public MIT repository:
   commands. The working tree and full pre-publication Git history were scanned for
   common credential/private-key patterns before push; none were found.
 - Astro was updated to `7.1.3`, SVGO resolves to `4.0.2`, and the workspace override
-  pins PostCSS to `8.5.22`. `pnpm audit --prod --audit-level high` reports no known
-  vulnerabilities, and `pnpm build` passes with only the existing chunk-size warning.
+  pins PostCSS to `8.5.22`; Node is constrained to `>=22.12 <23` so Vercel cannot
+  silently move this build onto a future major. `pnpm audit --prod --audit-level high`
+  reports no known vulnerabilities, and `pnpm build` passes with only the existing
+  chunk-size warning.
 
 ## Portrait-mobile camera story
 

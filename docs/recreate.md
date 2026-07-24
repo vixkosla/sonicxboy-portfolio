@@ -7,7 +7,7 @@ WebGL-объекта в обычный HTML-интерфейс.
 
 ## 1. Запуск исходника
 
-Нужны Node.js `>=22.12` и pnpm `11.11.0`.
+Нужны Node.js `>=22.12 <23` и pnpm `11.11.0`.
 
 ```bash
 git clone https://github.com/vixkosla/sonicxboy-portfolio.git

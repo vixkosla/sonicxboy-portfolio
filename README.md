@@ -26,7 +26,7 @@ the HTML interface.
 
 ## Quick start
 
-Requirements: Node.js `>=22.12` and pnpm `11.11.0`.
+Requirements: Node.js `>=22.12 <23` and pnpm `11.11.0`.
 
 ```bash
 git clone https://github.com/vixkosla/sonicxboy-portfolio.git

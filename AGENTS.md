@@ -10,7 +10,7 @@ The 3D scene is the centerpiece and where nearly all active work happens.
   the hero is a React island (`client:load`).
 - **React 19** + **Three.js 0.185** via **@react-three/fiber 9**, **@react-three/drei 10**,
   **@react-spring/three 10**.
-- **TypeScript strict** (`astro/tsconfigs/strict`). **pnpm**. Node ≥ 22.12.
+- **TypeScript strict** (`astro/tsconfigs/strict`). **pnpm**. Node ≥ 22.12 and < 23.
 
 ## Commands
 

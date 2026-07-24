@@ -7,7 +7,7 @@
   "repository": "https://github.com/vixkosla/sonicxboy-portfolio",
   "license": "MIT",
   "requirements": {
-    "node": ">=22.12.0",
+    "node": ">=22.12.0 <23",
     "packageManager": "pnpm@11.11.0"
   },
   "commands": {
