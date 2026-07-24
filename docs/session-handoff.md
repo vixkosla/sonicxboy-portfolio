@@ -39,9 +39,9 @@ https://github.com/vixkosla/sonicxboy-portfolio as a public MIT repository:
   cloned workspace allowed. `AGENTS.md` remains the coding-agent implementation map.
 - A `SoftwareSourceCode` JSON-LD node, repository meta tag, and alternate JSON link
   connect the live site to the repository and `/source-kit.json`.
-- The public package includes an MIT license, current preview, and GitHub Actions
-  build workflow. The working tree and full pre-publication Git history were scanned
-  for common credential/private-key patterns before push; none were found.
+- The public package includes an MIT license, current preview, and reproducible build
+  commands. The working tree and full pre-publication Git history were scanned for
+  common credential/private-key patterns before push; none were found.
 - Astro was updated to `7.1.3`, SVGO resolves to `4.0.2`, and the workspace override
   pins PostCSS to `8.5.22`. `pnpm audit --prod --audit-level high` reports no known
   vulnerabilities, and `pnpm build` passes with only the existing chunk-size warning.
