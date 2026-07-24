@@ -121,3 +121,18 @@ Three Fiber development, interactive 3D websites, 3D product configurators,
 immersive landing pages, data visualization, Mapbox development, custom GLSL
 shaders, WebGL performance optimization, browser engines, Chrome extensions
 and Manifest V3 development.
+
+## Открытый исходный код и воспроизводимость
+
+- Репозиторий портфолио: https://github.com/vixkosla/sonicxboy-portfolio
+- Живой машинно-читаемый source kit: https://sonicxboy.dev/source-kit.json
+- Руководство по созданию похожей WebGL-системы:
+  https://github.com/vixkosla/sonicxboy-portfolio/blob/main/docs/recreate.md
+- Контекст для coding agents:
+  https://github.com/vixkosla/sonicxboy-portfolio/blob/main/AGENTS.md
+- Спецификация хореографии:
+  https://github.com/vixkosla/sonicxboy-portfolio/blob/main/docs/animation-choreography.md
+- Локальный MCP-доступ к клону подготовлен в `.vscode/mcp.json` через официальный
+  filesystem server. Для чтения локального исходника GitHub token не требуется.
+- Код распространяется по лицензии MIT. В производной версии нужно заменить
+  личный бренд, биографию, контакты и заявления о проектах.

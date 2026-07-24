@@ -14,12 +14,33 @@ Its visual story is:
 6. the shell morphs and divides into a dense reactor covering;
 7. blue ionization waves release the covering while one plate crosses from WebGL
    into interface;
-8. the temporary grid cage disintegrates while the source expands into the
-   volume left behind as an upright flame.
+8. flying plates dematerialize into the cage's lattice language while the
+   temporary grid cage disintegrates and the source expands into the volume
+   left behind as an upright flame.
 
 Mathematics must remain invisible. It provides collision constraints, continuity,
 and repeatability, but the viewer should see momentum, attraction, and available
 space rather than perfect geometric construction steps.
+
+## Portrait-mobile camera story
+
+Portrait screens use a deterministic waypoint director from
+`src/lib/MobileCameraStory.ts`. It turns the same uninterrupted simulation into a
+sequence of authored views: nucleus, incoming swarm, cube lock, roll and balance,
+the three orbital symmetry classes, ignition, spherical capture, reactor surface,
+division, and the final panel handoff. Each transition interpolates both camera
+position and target with C2 `smootherstep`; shots hold between moves and allocate
+nothing in `useFrame`. The director changes only the view. Object timing, geometry,
+physics, and capture math remain shared with desktop.
+
+The last move reaches the original compact camera `0.08s` before signal-plate
+selection and then remains exactly still through the waves and UI launch. This is
+an invariant: the camera-relative plate choice and captured Bezier route must never
+be evaluated against a moving endpoint. Short portrait screens may widen and raise
+earlier shots, but must converge to this same handoff frame.
+
+The complete plot, point table, timing clocks, debug links, reduced-motion behavior,
+and final-second audit are documented in `docs/mobile-camera-story.md`.
 
 ## Current phases
 
@@ -185,10 +206,12 @@ The three internal separators are paired with one thin controlled outer frame.
 Boundary suppression is orientation-aware: only bars running parallel to a face
 boundary are quieted, since they would double the frame into the heavy
 nested-cube silhouette rejected during lookdev, while perpendicular bars keep
-their tips and weld visibly into the frame. The grid
-uses the same `#18d383` base color as
-the reactor plates, with a brighter same-hue highlight rather than a separate
-translucent palette. Expansion waits until `2.45s`, when the last and closest octahedral class
+their tips and weld visibly into the frame. The grid now uses a deeper teal-emerald
+derivative of the reactor's `#18d383`, with a saturated mint filament rather than
+the former near-white/cyan peak. The same three-color recipe is reused by flying
+plates during dematerialization, so it remains one material language instead of a
+separate translucent palette. Expansion waits until `2.45s`, when the last and
+closest octahedral class
 launches, then grows the grid cube to `1.7x` over `2.5s`.
 
 The final grid side is `0.85`. This is close to the largest axis-aligned cube that
@@ -255,25 +278,34 @@ production by `import.meta.env.DEV`.
 ### 7. Reactor-cell coverage
 
 The 26-cube spherical shell is an intermediate scaffold, not the final reactor
-covering. At `ORBIT_END + 0.55s`, every visible cube is handed to a third instanced
+covering. At `ORBIT_END + 0.18s`, every visible cube is handed to a third instanced
 mesh at the exact same position, scale, orientation, color, metalness, and roughness.
 The source instance disappears on the same frame, so the mesh swap itself is
 invisible.
 
-Over `0.9s`, each replacement cube rotates until its local normal is radial and its
-radial dimension flattens from `0.5` to `0.12`. Tangential dimensions settle near
-`0.43`, producing a square reactor shield plate as a direct geometric descendant of
-the cube. Every plate receives the same deterministic spherical tangent/bitangent
-frame, rather than only aligning its normal and inheriting an arbitrary in-plane
-roll. Neighbouring squares therefore follow the curvature coherently, including the
-three plates bordering the upper camera aperture. Metalness rises while roughness
-falls on the same morph envelope.
+Over `0.9s`, each replacement cube is compressed into a shield instead of shrinking
+as a cube and being visually replaced. Its tangential `0.5 x 0.5` footprint is held
+at first while radial thickness drops toward `0.07`; tangential width begins its
+slower move to `0.30` only after 16% of the morph. Radial orientation follows from
+8%, so the wafer silhouette is established before the cells fan around the core.
+Every plate receives the same deterministic spherical tangent/bitangent frame,
+rather than only aligning its normal and inheriting an arbitrary in-plane roll.
+Neighbouring squares therefore follow the curvature coherently, including the three
+plates bordering the upper camera aperture. Metalness rises while roughness falls on
+the same morph envelope.
 
 The plates then divide like cells in two generations:
 
-- generation one: `26 -> 52` over `1.05s`;
-- generation two: `52 -> 104` over `1.2s`;
-- final tiles measure `0.28 x 0.28 x 0.03`.
+- an `0.08s` punctuation separates morph from each division generation;
+- generation one: `26 -> 52` over `1.15s`;
+- generation two: `52 -> 104` over `1.30s`;
+- final tiles measure `0.27 x 0.27 x 0.03`.
+
+In both generations direction separation starts at 3.5% and the sibling becomes a
+visible material seam from 6%. Its area then grows over 78% / 82% of the generation,
+so separation retains a small geometric lead without the former long interval in
+which one full plate travelled alone. The result reads as a parent shield opening
+into two sides and passing the same impulse into the second generation.
 
 The core aperture continues across this mesh handoff. At the first morph frame the
 reactor orientation is still identity, then over `0.68s` the covering turns as one
@@ -333,11 +365,14 @@ wash the surface into pale coral.
 The release begins with a `0.15s` inward compression, like a plate loading against
 the reactor frame. The ordinary 103 plates then accelerate outward along directions
 that remain close to their radial normals, with deterministic tangent drift,
-rotation, speed, and up to `0.72s` of stagger. They remain full-size while readable.
-An instance is collapsed only after its projected center has left the viewport, it
-has passed the camera plane, or its camera distance has entered the nearly opaque
-end of the scene fog. A `4.4s` maximum flight is only a safety bound after the same
-accelerated path has already carried it beyond the visible composition.
+rotation, speed, and up to `0.72s` of stagger. Each instance keeps its geometric
+size while one allocation-free attribute advances a seeded surface transition:
+solid cells switch off, exposing the nucleus cage's `4 x 4` bars and welded nodes;
+those lattice cells then extinguish in their own order with a short ion-blue edge
+beat. The instance collapses only after the visible lattice is gone. Leaving the
+viewport, entering dense fog, passing the camera, and the `4.4s` maximum flight
+remain earlier safety exits. Shadow casting stops at release, preventing invisible
+plate boxes from leaving opaque shadows. The selected signal plate is exempt.
 
 The signal plate owns a different route. After the same recoil, it follows one
 cubic Bezier path around the left side, rotates until its face is camera-aligned,
@@ -350,15 +385,21 @@ subtitle fades with them. On desktop the card is a true viewport-wide lower layo
 strip: it is anchored to all three lower edges, has no side radius, and uses the
 same responsive page gutters as the hero text. Compact portrait keeps the identity
 block above it: the card's top edge is derived from the same eyebrow/title sizing
-formula and lands one rem below the headline, with internal vertical scrolling only
-on short phones. Short landscape screens (`<=1180 x 800`) keep identity in a 44%
+formula and lands one rem below the headline. Its three copy slabs become three
+native horizontal scroll-snap pages: one page is readable at a time, a narrow piece
+of the next remains visible as the swipe cue, and `01 / 03` labels preserve position.
+The header and contact row stay fixed inside the card; the card itself never scrolls
+vertically. On short portrait phones (`<=680px` high) the card starts immediately
+below the persistent brand rail so each page still has enough height. Short
+landscape screens (`<=1180 x 800`) keep identity in a 44%
 left rail and turn the card into a safe-area-aware right panel. Neither compact
 layout may enlarge the document viewport; the technology ribbon is
 width-constrained and scrolls inside its own box.
 
-The stable palette is deliberately singular: plates, cage lines, card border,
-labels, and its `18px` microgrid with restrained `72px` major lines all use
-`#18d383` or transparent/darker derivatives of it. The card circuit layer uses many
+The stable palette is deliberately singular: plates, card border, labels, and its
+`18px` microgrid with restrained `72px` major lines use `#18d383`; cage lines and
+dematerialized plates use deeper teal/mint spectral derivatives of that same hue.
+The card circuit layer uses many
 short fine routes, small varied pads, and the same pale-gold conductor family as the
 plates. Gold paths draw with staggered starts, then their darker grooves and the
 diagonal resin-grid reveal settle behind them. The red signal remains a temporary
@@ -521,34 +562,46 @@ attack, ease-in-out travel, lingering release), which the user asked to keep
 alive as a separate graphic figure while the on-sphere arcs returned to the
 jagged electric read.
 
-- Nine nested cylindrical tubes (`1200 x 530` viewBox, `pathLength=100`):
+- Nine nested cylindrical tubes (`1200 x 400` viewBox, `pathLength=100`):
   the first draft's concentric arrangement (larger outside, smaller
-  inside, never crossing by construction), each ellipse completed into a
-  wireframe cylinder — a top rim (the same ring raised `80` units) plus
-  a fence of twelve vertical wall lines sitting ON the circumference
-  (`560 x 209` outermost down to `382 x 104`). Six of the twelve lines
-  are static hairlines carrying the wall; the other six are live risers
-  (`10..15s`). Every rim and every wall line is split by depth: far arcs
-  and back-half lines live in the svg painted before the text, near arcs
-  and front-half lines in a mirrored svg painted after it, so the flat
-  copy occludes the far structure while the near structure passes in
-  front — the text stands inside the tubes. Rim pulses on both rings of
-  a tube share their timing, so each comet sweeps the wall vertically
-  aligned. All geometry is generated once at build time from a small
+  inside, never crossing by construction), with each original ellipse
+  extruded upward by `52` units into a continuous translucent wall
+  (`560 x 132` outermost down to `382 x 68`). Each wall is a closed SVG
+  strip between matching half-ellipses at the base and top; it is a real
+  surface, not a fence of disconnected vertical lines. A restrained
+  horizontal alpha falloff gives the strip cylindrical curvature. The
+  far half-surface lives in the svg painted before the text and the near
+  half-surface in the mirrored svg painted after it, so the flat copy
+  occludes the far wall while the near wall passes in front — the text
+  stands inside the tubes. All geometry is generated once at build time
+  from a small
   lane table in the layout's frontmatter. Desktop width matches the
   measured headline width (`75vh`, the `11vh` font cap) and is
-  left-aligned with the hero gutter; the oval is raised so the subtitle
-  and badges sit inside it (`bottom: 14vh`). On compact viewports it
-  anchors at the headline's lower edge with the same offset math as the
-  reactor card top, at `84vw` (the mobile headline measures ~`83vw`).
-- Each lane carries a three-layer pulse — a wide faint emerald halo
-  (`20%` dash), a body (`13%`) tinted from the site's green family in a
-  depth grade (`#0a5236` deep at the outermost lane through `#18d383`
-  emerald mid-band to `#4be8b3` pale mint innermost), and a white-hot
-  filament (`6%`) riding the body's leading edge —
-  plus a shorter echo pulse on the reverse course. Layered strokes
-  replace blur filters, mirroring the grid cage's core-plus-halo recipe.
-- Every pulse runs one lap per cycle: it fades in over the first 7%,
+  left-aligned with the hero gutter. The compressed profile is raised to
+  `bottom: 22vh`: its upper wall edge sits directly beneath
+  `DEVELOPER`, while its near wall panels wrap the tech-stack
+  badges instead of forming a separate portal below the copy. Compact portrait uses
+  a different stage composition: the oval is `84vw` wide, horizontally centred,
+  and starts at `57.2svh`. Its upper glow meets the settled shell near `62svh`, so
+  the figure reads as a low pedestal attached directly beneath the sphere rather
+  than as another layer behind the mobile headline.
+- The old moving stripe was not kept as a second layer. Each synchronized
+  top/base stripe pair was extruded into one `60`-unit wall panel on the
+  lane's middle ellipse. It preserves the original `13%` length, lane count,
+  duration, negative phase offset, peak, alternating direction, and green
+  depth grade (`#0a5236` outside through `#18d383` to `#4be8b3` inside).
+  The former halo, white-hot filament, reverse echo, experimental extra
+  colours, and nested core are removed. Thus every active mark is the old
+  stripe itself transformed into a panel, never a panel plus a line. Forced
+  square caps and miter joins give each material face a hard cut. Clip paths
+  and strokes are generated once in SVG; this adds no frame-loop work.
+- Depth of field follows the actual DOM depth split. The complete far SVG
+  (the half behind the copy plane) uses one composited `3.2px` blur with
+  reduced saturation/brightness; the near SVG and all typography remain
+  unfiltered and sharp. This makes the subtitle and tech-stack read as the
+  focal plane against the rear panels without softening the viewer-side
+  edge geometry.
+- Every panel runs one lap per cycle: it fades in over the first 7%,
   glides with a `cubic-bezier(0.37, 0, 0.63, 1)` ease-in-out, and fades
   out through the last quarter. Per-lane durations (`5.7..9.1s`), negative
   delays, peak opacities (`0.62..1.0`), and alternating directions are
@@ -558,9 +611,23 @@ jagged electric read.
 - The oval is hidden until the first orbit title wave
   (`data-orbit-title-wave='outer-approach'`) reaches the headline:
   `HeroScene` sets the persistent `data-oval-on` body attribute at that
-  one beat, and the oval fades in over `1.6s` — the energy wave that first
-  paints the title also powers its support. It fades back out with the
-  `reactor-card-visible` body class, together with the badges it supports.
+  one beat — the energy wave that first paints the title also powers its
+  support. The entrance is a compact depth sequence, not one global fade:
+  each continuous wall grows upward from its base, outside-in (`55ms`
+  lane offsets); its moving panels follow `160ms` later; the near halves
+  start `280ms` after the far halves so the final action is the front panel
+  wrapping the tech stack. With the final near-wall delay included, the
+  complete depth sequence settles in about `1.7s`, leaving the rest of its
+  short act fully active instead of spending it on a long dissolve.
+- `HeroScene` raises `data-oval-leaving` exactly `1.25s` before
+  `HERO_CARD_REVEAL`. CSS reverses both orders — near before far and inner
+  before outer — while collapsing the wall groups back toward their base;
+  only then does the shared parent opacity finish the release. The existing
+  `reactor-card-visible` selector is retained as a fallback terminal state.
+  This lifecycle costs two one-shot body-attribute writes and keeps all
+  per-lane timing in build-generated CSS variables; no work or allocation
+  was added to the frame hot path. Reduced-motion mode skips the staged
+  transitions and leaves restrained static wall panels.
 
 ## Collision and continuity invariants
 
@@ -593,20 +660,28 @@ motion.
 - The solid cubelets now share one phase-driven emerald metamaterial. Their color,
   metalness, roughness, and restrained emissive response move continuously from a
   dormant composite through crystallization/conductivity into the reactor state.
-  The cube material remains an ordinary `MeshStandardMaterial`; the existing
-  main/orbit/reactor mesh handoffs remain.
+  The cube material keeps `MeshStandardMaterial` lighting but now extends it through
+  the shared analytic surface hook. Every planar part of the six rounded-box faces
+  carries a quiet same-color circuit engraving from the first assembly frame. The
+  channels alter diffuse response, roughness, and the derivative-built surface
+  normal; they add no early gold or second material. The existing main/orbit/reactor
+  mesh handoffs remain.
 - The reactor plates extend `MeshStandardMaterial` once through `onBeforeCompile`.
-  Their UV-space surface is an analytic reactor circuit: an `8..12`-cell composite
-  microgrid, fine inset frame, recessed traces, pale-gold ENIG-like conductors,
-  microvias, small module outlines, and a restrained traveling current. Instance
-  seeds select one of three routing families, then vary hub position, branch count,
-  endpoints, trace width, grid density, axis swap, and mirrors. A diagonal shell
-  wave reveals each plate at a different time; within a plate the gold conductor
-  grows out from its hub before the resin microstructure settles behind it. The
-  reveal overlaps morph and both divisions instead of adding a new choreography
-  pause. Energy still inherits each instance color during the blue shutdown wave
-  and loses most of its current as the covering releases. No image textures, new
-  geometry, extra draw calls, or per-instance materials are used.
+  Their UV-space surface is a modern analytic reactor circuit: a subtle `28..36`
+  alternating glass-fibre weave under four independently distributed trace
+  corridors. Three corridors are consistently spaced differential-style pairs and
+  one is a restrained triple; horizontal/vertical runs meet through 45-degree
+  segments, with sparse octagonal vias, edge terminals, and two short registration
+  rails instead of a closed frame. Instance seeds vary corridor placement, pair
+  gaps, trace width, weave density, axis swap, and mirrors without changing the
+  balanced zoning. A diagonal shell wave reveals each plate at a different time;
+  within a plate the monochrome cuts become textolite and gold from the closest
+  corridor endpoint. The reveal overlaps morph and both divisions instead of adding
+  a new choreography pause. Energy still inherits each instance color during the
+  blue shutdown wave and loses most of its current as the covering releases. One
+  dynamic instanced scalar then drives the solid-cell-to-lattice-to-empty transition
+  inside that same shader; no new geometry, draw call, texture, per-frame allocation,
+  or per-instance material is used.
 - Cubelets use a one-segment rounded box whose duplicate vertices are merged from
   324 to 92. The 104 covering and standalone signal plate retain the original
   lightweight unit box. The standalone plate shares the same circuit shader so its
@@ -672,13 +747,14 @@ motion.
 The last pass resolved the four items that were previously queued for another
 session:
 
-1. The shell enters reactor morph only `0.18s` after capture. It shrinks
-   symmetrically during the first 24% before flattening, while aperture steering is
-   delayed until 52% of `REACTOR_MORPH_DURATION`. The result keeps the spherical
-   arrangement but removes the unattractive full-size cube pile.
-2. Both divisions now move along their target directions before child plates become
-   large. Separate early-clearance and delayed-birth envelopes eliminate the three
-   compressed plates after the second division without bespoke instance offsets.
+1. The shell enters reactor morph only `0.18s` after capture. Thickness compresses
+   first while the tangential footprint remains full; width and radial orientation
+   follow after the plate silhouette is readable. Aperture steering is still
+   delayed until 52% of `REACTOR_MORPH_DURATION`.
+2. Both divisions expose the sibling as a small seam almost immediately, then grow
+   it behind the shared separation envelope. `0.08s` phase punctuation and longer
+   division envelopes preserve the total transform end time while removing the old
+   stop/restart rhythm and one-sided budding gesture.
 3. The lower `DEVELOPER` line receives three emerald/cyan/ion-blue paint passes at
    consecutive horizontal crossings of the widest orbit (`pi/2`, `3pi/2`, `5pi/2`),
    then returns to its outlined state before morphing.

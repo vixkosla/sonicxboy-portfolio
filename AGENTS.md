@@ -125,3 +125,13 @@ Main phases, driven frame-by-frame in `HeroScene.tsx`'s `useFrame`:
 ## Docs
 
 Astro: https://docs.astro.build · r3f: https://r3f.docs.pmnd.rs · drei: https://drei.docs.pmnd.rs
+
+## Public source context
+
+- `README.md` is the public project entrypoint.
+- `docs/recreate.md` explains how to build a derivative without copying the
+  SonicXBoy identity.
+- `public/source-kit.json` is the machine-readable architecture and design map.
+- `.vscode/mcp.json` exposes only the cloned workspace through the pinned
+  official Filesystem MCP server; it includes write-capable tools, so respect
+  client confirmations before mutating files.

@@ -6,8 +6,10 @@ import {
   BackSide,
   BoxGeometry,
   Color,
+  DynamicDrawUsage,
   Euler,
   Fog,
+  InstancedBufferAttribute,
   Matrix4,
   Mesh,
   MeshBasicMaterial,
@@ -58,6 +60,8 @@ import {
 import {
   CONDUCTIVE_METALNESS,
   CONDUCTIVE_ROUGHNESS,
+  REACTOR_DEMATERIALIZE_DELAY,
+  REACTOR_DEMATERIALIZE_DURATION,
   REACTOR_METALNESS,
   REACTOR_ROUGHNESS,
   createMetamaterial,
@@ -70,6 +74,11 @@ import {
   DischargeScheduler,
   type SurfaceDischargeState,
 } from '../lib/DischargeScheduler'
+import {
+  MobileCameraStory,
+  type MobileCameraStoryTimings,
+} from '../lib/MobileCameraStory.ts'
+import { SOURCE_REPOSITORY } from '../i18n.ts'
 
 const EMERALD = new Color('#18d383')
 const WAVE_BLUE = new Color('#244cff')
@@ -113,9 +122,10 @@ const settledCenterX = (scale: number) =>
 // pulls the camera back along the same axis; fog and the scatter-hide
 // distance shift by the same delta to keep the depth story identical.
 const CAMERA_BASE_OFFSET = new Vector3(3.6, 3.4, 7.2)
+const CAMERA_BASE_DISTANCE = CAMERA_BASE_OFFSET.length()
 const COMPACT_CAMERA_PULLBACK = 1.45
 const COMPACT_CAMERA_EXTRA_DISTANCE =
-  CAMERA_BASE_OFFSET.length() * (COMPACT_CAMERA_PULLBACK - 1)
+  CAMERA_BASE_DISTANCE * (COMPACT_CAMERA_PULLBACK - 1)
 const FOG_NEAR = 10
 const FOG_FAR = 20
 const SCATTER_HIDE_DISTANCE = 18.35
@@ -138,6 +148,9 @@ const FREEZE_VIEWPORT_LAB_GRID =
 const FORCE_COMPACT_PREVIEW =
   DEVELOPMENT_PREVIEW_ENABLED &&
   PAGE_SEARCH_PARAMS?.has('compact-preview') === true
+const PREFERS_REDUCED_MOTION =
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const CUBE_EDGE_RADIUS = 0.0225
 const ASSEMBLY_GLOW_SCALE = 1.012
 const ASSEMBLY_GLOW_LEAD = 0.1
@@ -192,11 +205,11 @@ const REACTOR_APERTURE_DURATION = 0.68
 const REACTOR_APERTURE_ROLL_SPEED = 0.24
 const REACTOR_APERTURE_SAMPLE_COUNT = 4096
 const REACTOR_DIVIDE_ONE_START =
-  REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION + 0.18
-const REACTOR_DIVIDE_ONE_DURATION = 1.05
+  REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION + 0.08
+const REACTOR_DIVIDE_ONE_DURATION = 1.15
 const REACTOR_DIVIDE_TWO_START =
-  REACTOR_DIVIDE_ONE_START + REACTOR_DIVIDE_ONE_DURATION + 0.18
-const REACTOR_DIVIDE_TWO_DURATION = 1.2
+  REACTOR_DIVIDE_ONE_START + REACTOR_DIVIDE_ONE_DURATION + 0.08
+const REACTOR_DIVIDE_TWO_DURATION = 1.3
 const REACTOR_TRANSFORM_END =
   REACTOR_DIVIDE_TWO_START + REACTOR_DIVIDE_TWO_DURATION
 const REACTOR_CIRCUIT_REVEAL_START =
@@ -229,6 +242,10 @@ const HERO_PLATE_RECOIL_DURATION = 0.15
 const HERO_PLATE_FLIGHT_DURATION = 1.55
 const HERO_CARD_REVEAL =
   HERO_PLATE_LAUNCH_START + HERO_PLATE_RECOIL_DURATION + 1.27
+// Give the air-support oval its own closing beat before the card arrives.
+// CSS uses this lead to fold the near/inner lanes away first, instead of
+// cutting the entire figure on the same frame as the card reveal.
+const OVAL_EXIT_LEAD = 1.25
 const NUCLEUS_FINAL_EXPAND_START = REACTOR_SCATTER_START + 0.08
 const NUCLEUS_FINAL_EXPAND_DURATION = 2.45
 const NUCLEUS_REACTOR_SCALE = 4.35
@@ -245,6 +262,21 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 const DISCHARGE_AUTO_START =
   NUCLEUS_FINAL_EXPAND_START + NUCLEUS_FINAL_EXPAND_DURATION * 0.7
 const SURFACE_AUTO_START = PLASMA_RIM_START + PLASMA_RIM_DURATION + 0.5
+// Portrait-mobile camera story uses the scene's actual phase constants rather
+// than a duplicate wall-clock timeline. Values are SpinSimulation.elapsed,
+// including roll/lift before mainElapsed begins.
+const MOBILE_CAMERA_STORY_TIMINGS = {
+  roll: EDGE_ROLL_DURATION,
+  diamond: MAIN_SPIN_START,
+  spin: MAIN_SPIN_START + 0.55,
+  orbit: MAIN_SPIN_START + NUCLEUS_EXPAND_START + 0.5,
+  ignition: MAIN_SPIN_START + PLASMA_CORE_START,
+  capture: MAIN_SPIN_START + PLASMA_WARM_START + 0.65,
+  shell: MAIN_SPIN_START + ORBIT_END - 0.05,
+  reactor: MAIN_SPIN_START + REACTOR_TRANSFORM_START + 0.62,
+  division: MAIN_SPIN_START + REACTOR_DIVIDE_ONE_START + 0.72,
+  handoff: MAIN_SPIN_START + REACTOR_HERO_SELECT_TIME - 0.08,
+} satisfies MobileCameraStoryTimings
 const ARC_LIGHT_TINT = new Color('#8fb4ff')
 const NUCLEUS_BASE_EMISSIVE = new Color('#6cf3b3')
 const INNER_GLOW_COLD = new Color('#d1f0ff')
@@ -759,9 +791,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const selectedPlateIndex = useRef(-1)
   const heroLaunchCaptured = useRef(false)
   const cardRevealed = useRef(false)
+  const ovalExitStarted = useRef(false)
   const titleWaveStep = useRef(0)
   const reactorApertureFrozen = useRef(false)
   const viewportLabReady = useRef(false)
+  const cameraShotId = useRef('')
   const transform = useMemo(() => new Object3D(), [])
   const assemblyGlowTransform = useMemo(() => new Object3D(), [])
   const orbitTransform = useMemo(() => new Object3D(), [])
@@ -790,6 +824,15 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     useThree((state) =>
       isCompactViewport(state.size.width, state.size.height),
     ) || FORCE_COMPACT_PREVIEW
+  const portraitCompact =
+    useThree((state) =>
+      isPortraitCompactViewport(state.size.width, state.size.height),
+    ) || FORCE_COMPACT_PREVIEW
+  const shortPortrait = useThree(
+    (state) =>
+      isPortraitCompactViewport(state.size.width, state.size.height) &&
+      state.size.height <= 680,
+  )
   const setDpr = useThree((state) => state.setDpr)
   const sceneScale = compact ? COMPACT_SCENE_SCALE : DESKTOP_SCENE_SCALE
   const contactHalfExtent = (CUBE_SIZE / 2 + CUBE_STEP) * sceneScale
@@ -812,6 +855,32 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     [],
   )
   const previewAssemblyGlow = previewAssemblyGlowStage !== null
+  const cameraStory = useMemo(
+    () =>
+      new MobileCameraStory({
+        assemblyX: INITIAL_X,
+        settledX: settledCenterX(COMPACT_SCENE_SCALE),
+        timings: MOBILE_CAMERA_STORY_TIMINGS,
+        distanceScale: shortPortrait ? 1.16 : 1,
+        targetYBias: shortPortrait ? 0.5 : 0,
+      }),
+    [shortPortrait],
+  )
+  const previewCameraStoryId = useMemo(
+    () =>
+      DEVELOPMENT_PREVIEW_ENABLED
+        ? PAGE_SEARCH_PARAMS?.get('camera-story') ?? null
+        : null,
+    [],
+  )
+  const previewCamera = useMemo(
+    () => cameraStory.resolvePreview(previewCameraStoryId),
+    [cameraStory, previewCameraStoryId],
+  )
+  const previewCameraPoint = previewCamera?.point ?? null
+  const previewCameraStory = previewCamera !== null
+  const mobileCameraStoryEnabled =
+    portraitCompact && (!PREFERS_REDUCED_MOTION || previewCameraStory)
   const previewMaterialBaseline = useMemo(
     () =>
       DEVELOPMENT_PREVIEW_ENABLED &&
@@ -826,6 +895,25 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         : Math.min(window.devicePixelRatio, 1.5),
     )
   }, [compact, setDpr])
+  useLayoutEffect(() => {
+    if (import.meta.env.DEV) {
+      ;(window as unknown as Record<string, unknown>).__mobileCameraStory =
+        cameraStory
+    }
+
+    if (!mobileCameraStoryEnabled) {
+      document.body.removeAttribute('data-camera-shot')
+      cameraShotId.current = ''
+    }
+
+    return () => {
+      document.body.removeAttribute('data-camera-shot')
+      if (import.meta.env.DEV) {
+        delete (window as unknown as Record<string, unknown>)
+          .__mobileCameraStory
+      }
+    }
+  }, [cameraStory, mobileCameraStoryEnabled])
   const assembly = useMemo(() => {
     const simulation = new LayeredAssembly()
     if (previewAssemblyGlow) {
@@ -836,9 +924,20 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             ? EDGE_ROLL_DURATION * 0.96
             : 0.04
       simulation.time = simulation.endTime + previewElapsed
-    } else if (previewPlasma) simulation.time = simulation.endTime + 0.1
+    } else if (previewPlasma) {
+      simulation.time = simulation.endTime + 0.1
+    } else if (previewCamera?.clock === 'assembly') {
+      simulation.time = simulation.endTime * previewCamera.time
+    } else if (previewCamera?.clock === 'motion') {
+      simulation.time = simulation.endTime + 0.1
+    }
     return simulation
-  }, [previewAssemblyGlow, previewAssemblyGlowStage, previewPlasma])
+  }, [
+    previewAssemblyGlow,
+    previewAssemblyGlowStage,
+    previewCamera,
+    previewPlasma,
+  ])
   const reactorFamilies = useMemo(
     () => createReactorFamilies(assembly.motions.map((motion) => motion.target)),
     [assembly],
@@ -894,21 +993,37 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                                   0.2
       simulation.elapsed = MAIN_SPIN_START + previewMainElapsed
       simulation.settled = true
+    } else if (previewCamera?.clock === 'motion') {
+      while (simulation.elapsed < previewCamera.time - 1e-6) {
+        simulation.update(
+          Math.min(1 / 20, previewCamera.time - simulation.elapsed),
+        )
+      }
+      simulation.elapsed = previewCamera.time
+      simulation.settled = true
     }
     return simulation
   }, [
     previewAssemblyGlow,
     previewAssemblyGlowStage,
+    previewCamera,
     previewPlasma,
     previewStage,
   ])
   const cubeletMaterial = useMemo(
-    () =>
-      createMetamaterial(
+    () => {
+      const material = createMetamaterial(
         previewMaterialBaseline
           ? { color: '#18d383', metalness: 0.24, roughness: 0.28 }
           : undefined,
-      ),
+      )
+      return previewMaterialBaseline
+        ? material
+        : enableReactorCircuitSurface(material, {
+            engraving: 0.82,
+            allFaces: true,
+          })
+    },
     [previewMaterialBaseline],
   )
   const nucleusMaterial = useMemo(
@@ -1023,7 +1138,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       })
       return previewMaterialBaseline
         ? material
-        : enableReactorCircuitSurface(material)
+        : enableReactorCircuitSurface(material, { engraving: 0.92 })
     },
     [previewMaterialBaseline],
   )
@@ -1038,7 +1153,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       })
       return previewMaterialBaseline
         ? material
-        : enableReactorCircuitSurface(material)
+        : enableReactorCircuitSurface(material, { engraving: 0.92 })
     },
     [previewMaterialBaseline],
   )
@@ -1080,9 +1195,24 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           ),
     [previewMaterialBaseline],
   )
-  const reactorPlateGeometry = useMemo(
-    () => new BoxGeometry(1, 1, 1),
+  const reactorDematerializeAttribute = useMemo(
+    () =>
+      new InstancedBufferAttribute(
+        new Float32Array(REACTOR_INSTANCE_COUNT),
+        1,
+      ).setUsage(DynamicDrawUsage),
     [],
+  )
+  const reactorPlateGeometry = useMemo(
+    () => {
+      const geometry = new BoxGeometry(1, 1, 1)
+      geometry.setAttribute(
+        'instanceDematerialize',
+        reactorDematerializeAttribute,
+      )
+      return geometry
+    },
+    [reactorDematerializeAttribute],
   )
 
   const syncInstances = (mainElapsed = -1) => {
@@ -1616,6 +1746,10 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   ) => {
     const mesh = reactorMeshRef.current
     if (!mesh) return
+    // The visible material owns the scatter disappearance. Turning shadow
+    // casting off with the release prevents already-dematerialized plates
+    // from leaving opaque box shadows behind the lattice fragments.
+    mesh.castShadow = mainElapsed < REACTOR_SCATTER_START
 
     const morphRaw = Math.min(
       1,
@@ -1624,10 +1758,13 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         (mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
       ),
     )
-    // Keep a readable cube first: shrink it uniformly, then flatten it into a
-    // plate. The camera-facing aperture begins only after flattening is visible.
-    const morphShrinkProgress = smootherstep(morphRaw / 0.24)
-    const morphFlattenProgress = smootherstep((morphRaw - 0.18) / 0.82)
+    // Preserve the cube's tangential footprint while its depth is compressed:
+    // the viewer first reads one object changing state, not a small cube being
+    // swapped for a plate. Width and radial orientation follow only after the
+    // wafer silhouette is established.
+    const morphThicknessProgress = smootherstep(morphRaw / 0.52)
+    const morphWidthProgress = smootherstep((morphRaw - 0.16) / 0.84)
+    const morphOrientationProgress = smootherstep((morphRaw - 0.08) / 0.78)
     const divideOneRaw = Math.min(
       1,
       Math.max(
@@ -1636,10 +1773,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           REACTOR_DIVIDE_ONE_DURATION,
       ),
     )
+    // Separation starts just before birth, while the new branch is still a
+    // small seam of material. It becomes readable early, but reaches full area
+    // only after the two plate footprints have cleared one another.
     const divideOneSeparation = smootherstep(
-      (divideOneRaw - 0.02) / 0.66,
+      (divideOneRaw - 0.035) / 0.735,
     )
-    const divideOneSizeProgress = smootherstep(divideOneRaw / 0.62)
+    const divideOneBirthProgress = smootherstep(
+      (divideOneRaw - 0.06) / 0.78,
+    )
+    const divideOneSizeProgress = smootherstep(divideOneRaw / 0.82)
     const divideTwoRaw = Math.min(
       1,
       Math.max(
@@ -1649,9 +1792,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       ),
     )
     const divideTwoSeparation = smootherstep(
-      (divideTwoRaw - 0.02) / 0.64,
+      (divideTwoRaw - 0.035) / 0.72,
     )
-    const divideTwoSizeProgress = smootherstep(divideTwoRaw / 0.6)
+    const divideTwoBirthProgress = smootherstep(
+      (divideTwoRaw - 0.06) / 0.82,
+    )
+    const divideTwoSizeProgress = smootherstep(divideTwoRaw / 0.82)
 
     for (
       let familyIndex = 0;
@@ -1666,6 +1812,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         reactorTransform.quaternion.copy(IDENTITY_ORIENTATION)
         reactorTransform.scale.setScalar(0)
         reactorColor.copy(EMERALD)
+        let dematerializeProgress = 0
 
         if (mainElapsed >= REACTOR_TRANSFORM_START) {
           if (mainElapsed < REACTOR_DIVIDE_ONE_START) {
@@ -1676,26 +1823,23 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
               reactorTransform.quaternion.slerpQuaternions(
                 IDENTITY_ORIENTATION,
                 family.parentOrientation,
-                morphFlattenProgress,
+                morphOrientationProgress,
               )
               reactorTransform.scale.set(
                 CUBE_SIZE +
-                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphShrinkProgress,
+                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphWidthProgress,
                 CUBE_SIZE +
-                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphShrinkProgress,
+                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphWidthProgress,
                 CUBE_SIZE +
-                  (REACTOR_PARENT_WIDTH - CUBE_SIZE) * morphShrinkProgress +
-                  (REACTOR_PARENT_THICKNESS - REACTOR_PARENT_WIDTH) *
-                    morphFlattenProgress,
+                  (REACTOR_PARENT_THICKNESS - CUBE_SIZE) *
+                    morphThicknessProgress,
               )
             }
           } else if (mainElapsed < REACTOR_DIVIDE_TWO_START) {
             if (slot === 0 || slot === 2) {
               const lineageIndex = slot === 0 ? 0 : 1
               const birthProgress =
-                slot === 0
-                  ? 1
-                  : smootherstep((divideOneRaw - 0.3) / 0.5)
+                slot === 0 ? 1 : divideOneBirthProgress
               const plateWidth =
                 REACTOR_PARENT_WIDTH +
                 (REACTOR_LINEAGE_WIDTH - REACTOR_PARENT_WIDTH) *
@@ -1727,9 +1871,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           } else {
             const lineageIndex = slot < 2 ? 0 : 1
             const birthProgress =
-              slot % 2 === 0
-                ? 1
-                : smootherstep((divideTwoRaw - 0.34) / 0.48)
+              slot % 2 === 0 ? 1 : divideTwoBirthProgress
             const plateWidth =
               REACTOR_LINEAGE_WIDTH +
               (REACTOR_TILE_WIDTH - REACTOR_LINEAGE_WIDTH) *
@@ -1812,6 +1954,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                 } else {
                   const flightTime =
                     ejectionElapsed - HERO_PLATE_RECOIL_DURATION
+                  dematerializeProgress = previewMaterialBaseline
+                    ? 0
+                    : smootherstep(
+                        (flightTime - REACTOR_DEMATERIALIZE_DELAY) /
+                          REACTOR_DEMATERIALIZE_DURATION,
+                      )
                   const travelTime = Math.min(
                     flightTime,
                     REACTOR_SCATTER_MAX_FLIGHT,
@@ -1832,9 +1980,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                     .copy(tile.orientation)
                     .multiply(reactorSpinOrientation)
 
-                  // Keep every plate physically intact while it is readable.
-                  // It is removed only after fog, the viewport edge, or the
-                  // camera plane has already hidden it.
+                  // Visibility now ends on screen through the lattice
+                  // dematerialization. Fog/viewport/camera concealment remain
+                  // early-outs for pieces whose trajectory hides them first.
                   let concealed = false
                   if (group && camera) {
                     reactorWorldPosition
@@ -1865,9 +2013,15 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                       flightTime >= REACTOR_SCATTER_MAX_FLIGHT
                   }
                   reactorTransform.scale.set(
-                    concealed ? 0 : REACTOR_TILE_WIDTH,
-                    concealed ? 0 : REACTOR_TILE_WIDTH,
-                    concealed ? 0 : REACTOR_TILE_THICKNESS,
+                    concealed || dematerializeProgress >= 0.999
+                      ? 0
+                      : REACTOR_TILE_WIDTH,
+                    concealed || dematerializeProgress >= 0.999
+                      ? 0
+                      : REACTOR_TILE_WIDTH,
+                    concealed || dematerializeProgress >= 0.999
+                      ? 0
+                      : REACTOR_TILE_THICKNESS,
                   )
                   reactorColor.lerp(
                     WAVE_BLUE,
@@ -1890,11 +2044,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         reactorTransform.updateMatrix()
         mesh.setMatrixAt(instanceIndex, reactorTransform.matrix)
         mesh.setColorAt(instanceIndex, reactorColor)
+        reactorDematerializeAttribute.setX(
+          instanceIndex,
+          dematerializeProgress,
+        )
       }
     }
 
     mesh.instanceMatrix.needsUpdate = true
     if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true
+    reactorDematerializeAttribute.needsUpdate = true
   }
 
   useLayoutEffect(() => {
@@ -1919,6 +2078,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     document.body.classList.remove('reactor-card-visible')
     document.body.removeAttribute('data-orbit-title-wave')
     document.body.removeAttribute('data-oval-on')
+    document.body.removeAttribute('data-oval-leaving')
     if (previewMaterialBaseline) {
       document.body.setAttribute('data-material-baseline', '')
     } else {
@@ -1929,6 +2089,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     selectedPlateIndex.current = -1
     heroLaunchCaptured.current = false
     cardRevealed.current = false
+    ovalExitStarted.current = false
 
     return () => {
       cardRef.current?.classList.remove('is-visible')
@@ -1937,6 +2098,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       document.body.classList.remove('reactor-card-visible')
       document.body.removeAttribute('data-orbit-title-wave')
       document.body.removeAttribute('data-oval-on')
+      document.body.removeAttribute('data-oval-leaving')
       document.body.removeAttribute('data-material-baseline')
     }
   }, [
@@ -1951,14 +2113,52 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     transform,
   ])
 
-  useFrame(({ camera, clock }, delta) => {
+  const applyMobileCameraStory = (camera: Camera, scene: Scene) => {
+    if (!mobileCameraStoryEnabled) return
+
+    if (previewCameraPoint) {
+      cameraStory.samplePoint(previewCameraPoint)
+    } else if (previewCamera) {
+      cameraStory.sampleClock(previewCamera.clock, previewCamera.time)
+    } else {
+      cameraStory.sample(
+        Math.min(1, assembly.time / assembly.endTime),
+        spin.elapsed,
+      )
+    }
+
+    camera.position.copy(cameraStory.position)
+    camera.up.copy(UP)
+    camera.lookAt(cameraStory.target)
+    // The aperture, signal selection, and release paths read matrixWorld in
+    // this same frame, before Three's render traversal updates the camera.
+    camera.updateMatrixWorld(true)
+
+    // Every authored dolly keeps the subject at the same relative depth in
+    // the scene fog. Without this coupling, the wide assembly/orbit shots
+    // would dim their subject merely because the camera moved backwards.
+    if (scene.fog instanceof Fog) {
+      const storyDistance = camera.position.distanceTo(cameraStory.target)
+      const fogShift = storyDistance - CAMERA_BASE_DISTANCE
+      scene.fog.near = FOG_NEAR + fogShift
+      scene.fog.far = FOG_FAR + fogShift
+    }
+
+    const activeId = cameraStory.activePoint.id
+    if (cameraShotId.current !== activeId) {
+      document.body.dataset.cameraShot = activeId
+      cameraShotId.current = activeId
+    }
+  }
+
+  useFrame(({ camera, clock, scene }, delta) => {
     if (VIEWPORT_LAB_PREVIEW && !viewportLabReady.current) {
       viewportLabReady.current = true
       document.documentElement.dataset.heroCanvasReady = 'true'
     }
 
     const previousAssemblyTime = assembly.time
-    if (!previewAssemblyGlow) assembly.update(delta)
+    if (!previewAssemblyGlow && !previewCameraStory) assembly.update(delta)
 
     const assemblyGlowElapsed =
       assembly.time - (assembly.endTime - ASSEMBLY_GLOW_LEAD)
@@ -1971,7 +2171,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         (assemblyGlowElapsed - ASSEMBLY_GLOW_ATTACK - ASSEMBLY_GLOW_HOLD) /
           ASSEMBLY_GLOW_RELEASE,
       )
-    const assemblyGlow = previewPlasma
+    const assemblyGlow =
+      previewPlasma || previewCamera?.clock === 'motion'
       ? 0
       : assemblyGlowAttack * assemblyGlowRelease
     const contactRollProgress = assembly.complete
@@ -2053,14 +2254,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
     const group = groupRef.current
     if (!group || !assembly.complete) {
+      applyMobileCameraStory(camera, scene)
       syncInstances()
       return
     }
 
-    const spinDelta = previewPlasma
+    const spinDelta = previewPlasma || previewCameraStory
       ? 0
       : assembly.time - Math.max(previousAssemblyTime, assembly.endTime)
     spin.update(spinDelta)
+    applyMobileCameraStory(camera, scene)
 
     while (
       titleWaveStep.current < TITLE_WAVE_TIMES.length &&
@@ -2074,6 +2277,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         document.body.dataset.ovalOn = ''
       }
       titleWaveStep.current += 1
+    }
+
+    if (
+      spin.mainElapsed >= HERO_CARD_REVEAL - OVAL_EXIT_LEAD &&
+      !ovalExitStarted.current
+    ) {
+      document.body.dataset.ovalLeaving = ''
+      ovalExitStarted.current = true
     }
 
     syncInstances(spin.mainElapsed)
@@ -2466,9 +2677,9 @@ function ReactorWarmSpotlight() {
   )
 }
 
-/** Camera target: assembly point on desktop/landscape, settled post-roll
- * anchor plus a lower stage bias in compact portrait. The portrait cube
- * rolls into the clear band between the headline and the bottom copy. */
+/** Static camera and decorative drag for desktop/landscape. Portrait mobile
+ * is owned frame-by-frame by MobileCameraStory; mounting OrbitControls there
+ * would make its internal spherical state fight the authored shot track. */
 function SceneControls() {
   const camera = useThree((state) => state.camera)
   const scene = useThree((state) => state.scene)
@@ -2510,6 +2721,8 @@ function SceneControls() {
       }
     }
   }, [camera, scene, compact, portraitCompact, targetX, targetY])
+
+  if (portraitCompact) return null
 
   return (
     <OrbitControls
@@ -2595,6 +2808,7 @@ export interface HeroCardCopy {
   p3: string
   cta: string
   ariaNav: string
+  sourceLabel: string
 }
 
 const DEFAULT_CARD_COPY: HeroCardCopy = {
@@ -2604,6 +2818,7 @@ const DEFAULT_CARD_COPY: HeroCardCopy = {
   p3: 'Веду проект целиком и отвечаю за результат: концепция → прототип → продакшен. Инструменты подбираю по задаче — включая ИИ-инструменты; смотрю в сторону WebGPU. Чем страннее задача, тем интереснее — неформат приветствуется. Санкт-Петербург, работаю удалённо.',
   cta: 'Написать в Telegram',
   ariaNav: 'Соцсети и контакты',
+  sourceLabel: 'Исходный код сайта на GitHub',
 }
 
 const CARD_CIRCUIT_PATHS = [
@@ -2666,12 +2881,101 @@ export default function HeroScene({
   copy?: HeroCardCopy
 }) {
   const cardRef = useRef<HTMLElement | null>(null)
+  const cardBodyRef = useRef<HTMLDivElement | null>(null)
   const previewLightingBaseline = useMemo(
     () =>
       DEVELOPMENT_PREVIEW_ENABLED &&
       PAGE_SEARCH_PARAMS?.has('lighting-baseline') === true,
     [],
   )
+  const headingGlyphs = Array.from(copy.h2)
+  const headingInitial = headingGlyphs.shift() ?? ''
+  const headingRemainder = headingGlyphs.join('')
+
+  // Mobile pages and the wide desktop leaves have a real bounded area. Fit
+  // each paragraph independently so short copy does not drown in empty board
+  // space while long copy still remains fully readable and unclipped.
+  useLayoutEffect(() => {
+    const body = cardBodyRef.current
+    if (!body) return
+
+    const paragraphs = Array.from(
+      body.querySelectorAll<HTMLParagraphElement>('p'),
+    )
+    let animationFrame = 0
+    let disposed = false
+
+    const fitCopy = () => {
+      animationFrame = 0
+      const bodyStyle = window.getComputedStyle(body)
+      const horizontalPager = bodyStyle.scrollSnapType.includes('x')
+      const shortLandscape = window.matchMedia(
+        '(max-width: 1180px) and (max-height: 800px) and (orientation: landscape)',
+      ).matches
+      const wideDesktop = window.innerWidth > 960 && !shortLandscape
+      const shouldFit = horizontalPager || wideDesktop
+
+      body.toggleAttribute('data-copy-fit', shouldFit)
+      for (const paragraph of paragraphs) {
+        paragraph.style.removeProperty('--card-copy-fit')
+      }
+      if (!shouldFit) return
+
+      const minimum = horizontalPager ? 12 : 13
+      const maximum = horizontalPager ? 30 : 20
+      const safetyReduction = horizontalPager ? 0.3 : 0.18
+
+      for (const paragraph of paragraphs) {
+        paragraph.style.setProperty('--card-copy-fit', `${minimum}px`)
+        const availableHeight = paragraph.clientHeight
+        const availableWidth = paragraph.clientWidth
+        if (availableHeight <= 0 || availableWidth <= 0) continue
+
+        let low = minimum
+        let high = maximum
+        for (let step = 0; step < 9; step += 1) {
+          const candidate = (low + high) / 2
+          paragraph.style.setProperty(
+            '--card-copy-fit',
+            `${candidate.toFixed(3)}px`,
+          )
+          const fits =
+            paragraph.scrollHeight <= availableHeight + 0.5 &&
+            paragraph.scrollWidth <= availableWidth + 1
+          if (fits) low = candidate
+          else high = candidate
+        }
+
+        paragraph.style.setProperty(
+          '--card-copy-fit',
+          `${Math.max(minimum, low - safetyReduction).toFixed(3)}px`,
+        )
+      }
+    }
+
+    const scheduleFit = () => {
+      window.cancelAnimationFrame(animationFrame)
+      animationFrame = window.requestAnimationFrame(fitCopy)
+    }
+    const resizeObserver = new ResizeObserver(scheduleFit)
+    resizeObserver.observe(body)
+    window.addEventListener('resize', scheduleFit)
+    document.fonts.ready.then(() => {
+      if (!disposed) scheduleFit()
+    })
+    scheduleFit()
+
+    return () => {
+      disposed = true
+      window.cancelAnimationFrame(animationFrame)
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', scheduleFit)
+      body.removeAttribute('data-copy-fit')
+      for (const paragraph of paragraphs) {
+        paragraph.style.removeProperty('--card-copy-fit')
+      }
+    }
+  }, [copy.p1, copy.p2, copy.p3])
 
   return (
     <>
@@ -2796,11 +3100,30 @@ export default function HeroScene({
             <span>REACTOR NODE</span>
             <span>01 / ACTIVE</span>
           </div>
-          <h2>{copy.h2}</h2>
-          <div className="reactor-card__body">
-            <p>{copy.p1}</p>
-            <p>{copy.p2}</p>
-            <p>{copy.p3}</p>
+          <h2 aria-label={copy.h2}>
+            <span
+              className="reactor-card__heading-initial"
+              aria-hidden="true"
+            >
+              {headingInitial}
+            </span>
+            <span
+              className="reactor-card__heading-text"
+              aria-hidden="true"
+            >
+              {headingRemainder}
+            </span>
+          </h2>
+          <div
+            ref={cardBodyRef}
+            className="reactor-card__body"
+            role="region"
+            aria-label={copy.h2}
+            tabIndex={0}
+          >
+            <p data-page="01 / 03">{copy.p1}</p>
+            <p data-page="02 / 03">{copy.p2}</p>
+            <p data-page="03 / 03">{copy.p3}</p>
           </div>
           <nav className="reactor-card__actions" aria-label={copy.ariaNav}>
             <a
@@ -2827,13 +3150,14 @@ export default function HeroScene({
             </a>
             <a
               className="reactor-card__icon"
-              href="https://t.me/vixkosla"
+              href={SOURCE_REPOSITORY}
               target="_blank"
               rel="noopener"
-              aria-label="Telegram"
+              aria-label={copy.sourceLabel}
+              title={copy.sourceLabel}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                <path d="M12 .297a12 12 0 0 0-3.793 23.388c.6.111.82-.261.82-.577v-2.234c-3.338.725-4.042-1.416-4.042-1.416-.546-1.386-1.333-1.755-1.333-1.755-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.835 2.809 1.305 3.495.998.108-.776.419-1.305.762-1.605-2.665-.304-5.467-1.333-5.467-5.931 0-1.31.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.5 11.5 0 0 1 12 6.102c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.61-2.807 5.624-5.479 5.921.43.372.814 1.103.814 2.222v3.293c0 .319.216.694.825.576A12 12 0 0 0 12 .297Z" />
               </svg>
             </a>
             <a

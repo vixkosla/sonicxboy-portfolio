@@ -1,4 +1,5 @@
 export const SITE = 'https://sonicxboy.dev'
+export const SOURCE_REPOSITORY = 'https://github.com/vixkosla/sonicxboy-portfolio'
 
 export type Lang = 'ru' | 'en'
 
@@ -9,6 +10,7 @@ export interface HeroCardCopy {
   p3: string
   cta: string
   ariaNav: string
+  sourceLabel: string
 }
 
 export interface PageCopy {
@@ -42,6 +44,7 @@ export const translations: Record<Lang, PageCopy> = {
       p3: 'Веду работу целиком — от идеи и прототипа до продакшена и оптимизации. ИИ-агенты ускоряют производство, но постановка задачи, архитектура, визуальный выбор, проверка и ответственность остаются моими. Ценность для меня — работающий продукт, а не количество вручную написанных строк. Особенно люблю нестандартные задачи; Санкт-Петербург, работаю удалённо.',
       cta: 'Написать в Telegram',
       ariaNav: 'Соцсети и контакты',
+      sourceLabel: 'Исходный код сайта на GitHub',
     },
   },
   en: {
@@ -63,6 +66,7 @@ export const translations: Record<Lang, PageCopy> = {
       p3: 'I lead the work from idea and prototype through production and optimization. AI agents accelerate execution, while framing, architecture, visual decisions, verification and accountability stay with me. I value a working product over a count of manually typed lines. Unconventional work is especially welcome; based in Saint Petersburg, working remotely.',
       cta: 'Message me on Telegram',
       ariaNav: 'Social links and contacts',
+      sourceLabel: 'Website source code on GitHub',
     },
   },
 }

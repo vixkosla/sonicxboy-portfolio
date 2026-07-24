@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "name": "SonicXBoy Portfolio",
+  "description": "Open-source Astro, React Three Fiber and Three.js portfolio with authored WebGL choreography, responsive camera direction and an illuminated manuscript interface.",
+  "language": ["ru", "en"],
+  "liveUrl": "https://sonicxboy.dev/",
+  "repository": "https://github.com/vixkosla/sonicxboy-portfolio",
+  "license": "MIT",
+  "requirements": {
+    "node": ">=22.12.0",
+    "packageManager": "pnpm@11.11.0"
+  },
+  "commands": {
+    "install": "pnpm install --frozen-lockfile",
+    "develop": "pnpm dev",
+    "build": "pnpm build",
+    "preview": "pnpm preview"
+  },
+  "routes": {
+    "russian": "/",
+    "english": "/en/",
+    "responsiveLab": "/viewports/",
+    "llmContext": "/llms.txt",
+    "sourceKit": "/source-kit.json"
+  },
+  "entrypoints": {
+    "pageShell": "src/layouts/HomePage.astro",
+    "scene": "src/components/HeroScene.tsx",
+    "copy": "src/i18n.ts",
+    "mobileCamera": "src/lib/MobileCameraStory.ts",
+    "assembly": "src/lib/LayeredAssembly.ts",
+    "spin": "src/lib/SpinSimulation.ts",
+    "trajectories": "src/lib/trajectoryData.ts",
+    "plasma": "src/lib/FireEffect.ts",
+    "reactorMaterial": "src/lib/ReactorMetamaterial.ts"
+  },
+  "motionPipeline": [
+    "quintic-bezier assembly",
+    "edge roll and corner lift",
+    "fixed-step spinning-top simulation",
+    "symmetry-class orbital disassembly",
+    "symmetric spherical capture",
+    "plasma ignition and reactor metamaterial",
+    "physical-panel to DOM-card handoff"
+  ],
+  "design": {
+    "displayFont": "Ponomar",
+    "bodyFont": "Old Standard TT",
+    "cardPalette": {
+      "ivory": "#fffdf4",
+      "paper": "#f4f3e7",
+      "ink": "#123f2b",
+      "green": "#176b45",
+      "deepGreen": "#073c28",
+      "gold": "#c7a247",
+      "lightGold": "#ead99b"
+    }
+  },
+  "responsiveBehavior": {
+    "portraitMobile": "authored camera story plus three-leaf horizontal snap pager",
+    "shortLandscape": "scrollable right-side information panel",
+    "desktop": "static camera framing plus three-column information card",
+    "textFit": "per-leaf binary search after local fonts load and on ResizeObserver updates"
+  },
+  "debugUrls": {
+    "finalCard": "/?plasma-preview=card",
+    "cameraArrival": "/?camera-story=arrival",
+    "cameraReactor": "/?camera-story=reactor",
+    "cameraHandoff": "/?camera-story=handoff",
+    "exactMotionSample": "/?camera-story=motion:15.89"
+  },
+  "agentContext": [
+    "README.md",
+    "AGENTS.md",
+    "docs/recreate.md",
+    "docs/animation-choreography.md",
+    "docs/mobile-camera-story.md",
+    "public/llms.txt"
+  ],
+  "mcp": {
+    "workspaceConfig": ".vscode/mcp.json",
+    "server": "@modelcontextprotocol/server-filesystem@2026.7.10",
+    "scope": "the cloned repository only",
+    "warning": "The official server includes write-capable tools; review client confirmations before allowing mutations."
+  },
+  "recreationChecklist": [
+    "replace the original brand, personal copy, contacts and metadata",
+    "customize card-local CSS variables before individual selectors",
+    "keep Three.js hot paths allocation-free",
+    "stabilize object choreography before authoring mobile camera shots",
+    "verify reduced motion, both languages and the final-second handoff",
+    "run pnpm build before deployment"
+  ]
+}

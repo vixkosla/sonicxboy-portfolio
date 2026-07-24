@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-23
+Updated: 2026-07-24
 
 ## Start here
 
@@ -12,7 +12,7 @@ Project root:
 
 Read this file together with `docs/animation-choreography.md` before changing the
 animation. The development server was last confirmed running in Astro background
-mode at `http://localhost:4321/`. Manage it with:
+mode at `http://localhost:4322/`. Manage it with:
 
 ```bash
 pnpm astro dev status
@@ -25,10 +25,266 @@ pnpm astro dev --background
 larger than 500 kB. Runtime logs also contain upstream Three.js deprecation warnings
 for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
 
+## Portrait-mobile camera story
+
+Completed on 2026-07-24 without changing scene-object choreography:
+
+- `src/lib/MobileCameraStory.ts` now owns a deterministic two-clock camera track:
+  four assembly views and eleven motion views lead from the nucleus through swarm,
+  cube, orbit, ignition, capture, reactor, division, and UI handoff. Every destination
+  has an authored target, offset, arrival time, move window, Russian chapter title,
+  and story line.
+- Portrait mobile no longer mounts `OrbitControls`; the camera and its target move
+  together with C2 `smootherstep`, hold between beats, and allocate nothing per frame.
+  Dynamic fog compensation keeps wide shots from darkening. Desktop and landscape
+  retain their existing static framing and decorative drag.
+- Screens up to `680px` high use a wider, raised intermediate-shot tier so action
+  remains between the persistent title and subtitle. The final `handoff` point
+  deliberately ignores that tier and returns to the exact previous compact camera.
+  Reduced-motion users keep a static portrait camera.
+- Development query `?camera-story=<point>` freezes any named point; exact transition
+  samples use `?camera-story=assembly:<0..1>` or `?camera-story=motion:<seconds>`.
+  The active destination is also exposed as `body[data-camera-shot]`, and the track
+  is available as `window.__mobileCameraStory` in development.
+
+Visual validation covered every named point plus the intervening moves at real
+`390 x 844` and short `320 x 568` viewports. Active geometry stays in the available
+band without touching the headline, subtitle, or pedestal. A separate final-second
+CDP audit sampled motion times `15.365`, `15.89`, `16.414`, `16.415`, `16.915`, and
+`17.415`: the camera reaches its exact endpoint at `16.415`, remains identical in
+the later samples, Canvas and document stay `390 x 844`, and no runtime exceptions
+were reported. Signal-plate selection begins `0.08s` after that endpoint.
+
+The full plot and all direct preview links are in
+`docs/mobile-camera-story.md`.
+
+## Illuminated heading, inverted palette and maximum copy fit
+
+Completed on 2026-07-24 and followed by the ivory/green/gold inversion requested in
+the next visual pass. This extends the Slavic typography work without changing the
+dome, sphere, or scene choreography:
+
+- The whole information surface is now a light inversion: layered pearl white and
+  warm ivory paper carry dark forest-green copy, malachite circuitry, and antique-gold
+  rules and contacts. The pager leaves, social controls, Telegram CTA, signal rail,
+  circuit traces, pads, shadows, and arrival colour settle all use the same local card
+  palette; the former red and blue manuscript accents are gone.
+- The Ponomar heading remains a full manuscript composition. Its enlarged initial is
+  a white glyph with green edging over a faceted ivory, malachite, and gold plaque;
+  the remaining title alternates those three colour families across the letterforms
+  and segmented ornamental rule. The original string remains the heading's accessible
+  name, so splitting the painted glyphs does not change what assistive technology reads.
+- Each paragraph now measures its own bounded leaf and binary-searches for the largest
+  font size that fits after the local fonts load and whenever the card resizes. The fit
+  is independent per paragraph, driven by `ResizeObserver`, and capped at `30px` on the
+  horizontal mobile pager and `20px` on wide desktop. Short landscape and intermediate
+  tablet layouts retain their explicit CSS sizes instead of creating a circular
+  auto-height measurement.
+- At `390 x 844`, the three Russian leaves settle at `24.216px`, `19.575px`, and
+  `20.735px`; all remain inside the `434px` page viewport, the snap positions stay
+  `0 / 332 / 645`, and the fixed contact row remains visible. `320 x 568` still fits
+  its wrapped two-line heading, first page, next-page edge, and all actions. The English
+  `390 x 844` card also fills its page without clipping.
+- At `1440 x 900`, the three-column card remains only `307px` high and all text plus
+  actions fit without horizontal overflow. A fresh isolated Vivaldi restart cleared a
+  stale GPU/CDP tile left by repeated viewport switching; one clean Viewport Lab grid
+  is open again and all six frames render the enlarged copy.
+
+The inverted palette was visually rechecked at RU `390 x 844`, EN `390 x 844`, and
+desktop `1440 x 900`. Vivaldi's six-frame mobile grid has no horizontal document
+overflow; every pager leaf reports `scrollHeight == clientHeight`, fonts remain loaded,
+and the fixed action row stays visible. Validation: `pnpm build` and
+`git diff --check` pass. Current clean captures are
+`/home/vixkosla/.cache/portfolio-palette-390x844.png`,
+`/home/vixkosla/.cache/portfolio-palette-en-390x844.png`,
+`/home/vixkosla/.cache/portfolio-palette-1440x900.png`, and
+`/tmp/vivaldi-typography-grid.png`.
+
+## Slavic typography pass
+
+Completed on 2026-07-24; the dome/sphere geometry and choreography were deliberately
+left unchanged:
+
+- The reactor card no longer uses Rubik Mono One. `Ponomar` now carries the heading
+  and mobile folio numbers; it is the OFL Church-Slavonic display face based on the
+  Russian Synodal printing tradition. Long copy uses OFL `Old Standard TT`, which
+  keeps the old-book Cyrillic texture without turning three dense paragraphs into a
+  decorative cipher. Both fonts are self-hosted through Fontsource `5.3.0` and require
+  no request to Google Fonts at runtime.
+- Uppercase conversion was removed from the heading and paragraphs so the historical
+  Cyrillic forms remain visible. Ligatures are enabled where the font supplies them.
+  Desktop body copy was raised to `13.12px` at `1440 x 900`; the card grows by only
+  `3.8px` and every column plus the contact row still fits. Short landscape uses a
+  slightly larger `11.52px` book face and retains its scrollable right-panel layout.
+- Mobile keeps the completed three-page horizontal pager. At `390 x 844`, Ponomar
+  renders at `16.96px`, body copy at `12px`, all three pages fit their `437px` content
+  area, and the measured snap positions are `0`, `332`, and `645`. The document has
+  no horizontal overflow and all contact actions remain visible.
+- A clean Vivaldi pass used the isolated Viewport Lab profile. Direct captures passed
+  at `390 x 844`, `1440 x 900`, and `1024 x 768`; `document.fonts` confirmed both new
+  families loaded in each case. Viewport Lab was then reopened in grid mode and all
+  six common mobile frames reached the visible final card. Two stale diagnostic grids
+  from earlier sessions were closed first; the personal Vivaldi profile was untouched.
+  The English card also passed a `390 x 844` software-WebGL capture with all copy inside
+  its first page and the second-page edge visible.
+
+Validation: `pnpm build` and `git diff --check` pass. The only build warning remains
+the existing large Three.js chunk. Current audit images are in `/tmp` as
+`vivaldi-typography-390x844.png`, `vivaldi-typography-1440x900.png`,
+`vivaldi-typography-1024x768.png`, and `vivaldi-typography-grid-late.png`.
+
+## Mobile sphere pedestal and horizontal card pager
+
+Completed on 2026-07-24; this section supersedes the older mobile card notes below:
+
+- Compact portrait now has its own scene composition. The title oval is centred at
+  `84vw` and starts at `57.2svh`; in both `390 x 844` and `320 x 568` captures its
+  upper glow joins the bottom of the settled sphere, so the feature reads as the
+  sphere's low pedestal instead of sitting behind the headline.
+- The final reactor copy is no longer one vertical mobile stack. The existing three
+  paragraphs are three native horizontal scroll-snap pages, with a visible next-page
+  edge and `01 / 03`, `02 / 03`, `03 / 03` labels. Meta/title and all four contact
+  actions stay pinned inside the card while only the page rail moves horizontally.
+- Short portrait screens (`<=680px` high) start the card below the brand rail. At
+  `320 x 568` every Russian page fits its fixed page viewport without internal text
+  overflow, the contact row remains visible, and the document does not need vertical
+  card scrolling. The existing landscape right-panel composition remains separate.
+- The pager is a focusable labelled region and relies on native overflow plus
+  `scroll-snap-type: x mandatory`, so touch, trackpad, wheel/keyboard scrolling keep
+  browser-native inertia rather than adding a frame-loop controller.
+
+Validation: Chromium/SwiftShader screenshots passed at `390 x 844` and `320 x 568`
+for both `?plasma-preview=tiles` and `?plasma-preview=card`. A CDP layout audit measured
+three reachable snap positions at each size; all three page `scrollHeight` values fit
+inside their `offsetHeight`. `pnpm build` and `git diff --check` pass; only the existing
+large Three.js chunk warning remains.
+
+## Viewport Lab / Vivaldi mobile pass
+
+Completed on 2026-07-24:
+
+- The unpacked Viewport Lab source at
+  `/home/vixkosla/projects/main/browser-extensions/viewport-lab/extension` is
+  connected to an isolated Vivaldi profile at
+  `/home/vixkosla/.cache/vivaldi-viewport-lab`. The main personal Vivaldi profile
+  was not restarted or modified. Use the desktop entry `Vivaldi — Viewport Lab`
+  or `/home/vixkosla/.local/bin/vivaldi-viewport-lab` to reopen the same setup.
+- A real Vivaldi grid audit found that the previous card still needed `61px` of
+  internal scroll at `360 x 800` and `22px` at `375 x 812`. The new `380px`
+  breakpoint keeps all copy, all four actions, and the existing single-column
+  composition, while tightening only the card's internal rhythm. The action row
+  now ends at `791px` and `803px` respectively, with zero card scroll.
+- Vivaldi suspends CSS transitions in some offscreen extension iframes. Frozen
+  `viewport-lab=grid` previews now opt into a stable final card frame through an
+  early document data attribute; normal visits and normal card animation are
+  unchanged.
+
+Validation: Viewport Lab in Vivaldi passed all six common mobile sizes
+(`360 x 800`, `375 x 812`, `384 x 832`, `390 x 844`, `393 x 873`, and
+`414 x 896`). Every iframe reached a full-size Canvas and visible final card;
+all four actions fit, card scroll is zero, and neither horizontal nor document
+vertical overflow appears. `pnpm build` and `git diff --check` pass; only the
+existing large Three.js chunk warning remains.
+
 ## Next session start point
 
+Fable card completion pass on 2026-07-24 (finished):
+
+- The interrupted Devin session `gleaming-gorgonzola` was recovered. Its
+  `claude-5-fable-xhigh` work had already introduced Rubik Mono One and the
+  three uppercase, justified text slabs, but quota exhaustion stopped it
+  after capture generation and before responsive review or final handoff.
+- The RU/EN copy and all commercial search terms remain unchanged. Desktop
+  keeps three length-weighted columns; the slabs now stretch to one common
+  lower edge, use a restrained dark surface over the circuit engraving, and
+  render slightly larger without leaving the original compact card range.
+- The broken `1100px` state no longer collapses into two columns plus one
+  full-width ribbon. Three slabs remain intact above `960px`; below that,
+  the intentional tablet composition is two columns with a centered third
+  slab, and at `720px` it becomes a single vertical stack.
+- Mobile spacing was tightened without deleting text. At `390 x 844`, all
+  three paragraphs and every contact action fit inside the first card view.
+  At `320 x 568` and short landscape sizes, only the card scrolls and its
+  actions remain reachable; the document itself never gains horizontal
+  overflow. Thin branded scrollbars replace the default wide track.
+
+Validation: isolated Brave/CDP captures passed for RU at `1600 x 1000`,
+`1100 x 900`, `900 x 900`, `768 x 1024`, `390 x 844`, `320 x 568`,
+`667 x 375`, and `1024 x 768`, plus EN at `1600 x 1000` and `430 x 932`.
+Rubik Mono One was loaded in every run, all actions were reachable, and no
+runtime, layout-overflow, or horizontal-scroll errors appeared. `pnpm build`
+and `git diff --check` pass; the existing large Three.js chunk warning remains.
+
+Fourth pass on 2026-07-24 (continuous walls + staged oval lifecycle + Canvas audit),
+implementation complete; awaiting only the user's visual sign-off in the normal browser:
+
+- The last OpenCode/Kimi exchange was recovered from the local session DB.
+  The user's repeated direction was to **extrude the circumference lines
+  themselves into walls**. Commit `1be0135` still interpreted that as a
+  fence of twelve detached vertical posts per ellipse, so it was not the
+  requested result.
+- The fence and its live risers are now removed. Each of the nine approved
+  nested ellipses is represented by two closed SVG half-surfaces: the strip
+  between the base and the same half-ellipse raised `52` units. Together
+  they form one continuous translucent cylindrical wall. A soft horizontal
+  alpha falloff supplies curvature without reintroducing wireframe posts.
+- The established depth split remains exact: far wall halves and rims are
+  below the copy; near wall halves and rims are above it. The original
+  green lane grade, paired top/base comet timing, ignition beat, layout,
+  and card fade are unchanged.
+- User follow-up: the active title-colored rims were lifted and the whole
+  construction compressed vertically. The viewBox is now `1200 x 400`,
+  wall rise `52` (was `80`), and lane radii grade from `132` to `68`
+  (previously `209` to `104`). Desktop placement moved from `14vh` to
+  `22vh`: the upper wall edge sits under `DEVELOPER`, the far wall stays
+  behind the subtitle, and the near panels cross around the tech-stack row.
+  Compact placement was raised by `1.2rem` to preserve that same attachment
+  after the height compression. Horizontal scale, lane colors, and pulse
+  cadence are unchanged.
+- The oval now uses its short screen time as one authored mini-scene. On the
+  first title wave, far walls unfold from their lower circumference
+  outside-in, moving wall panels follow, and the near walls/panels arrive
+  last around the tech stack. Entry settles in about `1.7s`; the established
+  panel laps are already phase-offset and remain active for the full hold.
+  `HeroScene` emits a one-shot `data-oval-leaving` state `1.25s` before the
+  card: near/inner panels release first, then far/outer walls fold into their
+  base and the parent fade closes the act. The card-visible state remains a
+  hard fallback. No objects or arrays are allocated in `useFrame`.
+- Final clarification: panels and stripes must not coexist. Each original
+  synchronized top/base stripe pair is now replaced one-for-one by a single
+  clipped wall panel with the same `13%` length, nine-lane count, original
+  green colour, timing, phase, peak, and direction. All separate halo/body/
+  hot rim paths, the reverse echo, experimental blue/red/amber palette, and
+  the rejected nested core are removed. Ends remain forced square/mitered.
+  The entire far SVG behind the copy plane is composited
+  through `blur(3.2px) saturate(0.72) brightness(0.76)` while the near wall,
+  subtitle, and tech stack stay sharp. Desktop and `390 x 844` captures
+  confirm a readable focal plane and crisp viewer-side panel edges.
+- The dev server had been started in foreground mode while Astro's status
+  file still reported a stale PID. It was replaced with a clean background
+  server at `http://localhost:4321/` (manage it with the commands above).
+  A fresh Chromium runtime reports one visible full-viewport Canvas at
+  `1400 x 1000` and `390 x 844`, opacity `1`, with no runtime errors. An
+  old repeatedly-reloaded Chromium process reproduced a default `300 x 150`
+  canvas after its WebGL surface went stale; if Brave still shows no scene,
+  close/reopen that tab (or Brave) after the server restart rather than
+  changing scene code.
+
+Validation: `pnpm build` and `git diff --check` pass. Fresh Brave/CDP
+sequences at `1400 x 1000` and `390 x 844` sampled early/mid/settled entry
+and early/mid/completed exit: computed lane/rim opacity confirms both depth
+orders, screenshots preserve the compressed placement and copy occlusion,
+and Canvas remains full-size. The isolated software-WebGL audit only emitted
+SwiftShader/readback warnings; the persistent dev log also retains earlier
+failed-context messages from stale browser/test WebGL surfaces documented
+above. A final isolated Chromium integration pass also sampled the real
+`?plasma-preview=waves`, `=scatter`, and `=card` states at `1400 x 900`:
+the oval is fully visible in `waves`, fully released before the card state,
+and the visible card has `inert` removed with all actions inside the viewport.
+
 Third pass on 2026-07-23 (storm behavior + ring-wall depth illusion),
-awaiting the user's visual review in the normal browser:
+historical baseline; its wireframe-wall item is superseded by the fourth
+pass above:
 
 - **Natural storm cadence for surface discharges** (user's art direction,
   "real facts from nature"): the three metronome lane clocks became one
@@ -48,7 +304,7 @@ awaiting the user's visual review in the normal browser:
   from flat additive emission into the blue shell's own `shellColor`
   emission — the glow is shaped by the shell's real density and occluded
   by its transmittance, so blocks light from within.
-- **Oval v5 — the nested rings completed into wireframe cylinders**
+- **Oval v5 — superseded wireframe-cylinder attempt**
   (user's follow-up, "complete the lines into walls"): each of the nine
   approved nested ellipses is now a true tube — a top rim (same ring
   raised `80` units) plus a fence of twelve vertical wall lines sitting
@@ -155,7 +411,7 @@ Useful development URLs are `/?assembly-glow-preview` for the pulse peak,
 `/?assembly-glow-preview=roll` and `=landing` for the contact states, and
 `/?plasma-preview` for the settled final plasma.
 
-### Materials prototype — plate circuit pass awaiting visual approval
+### Materials prototype — engraved cube-to-textolite pass awaiting visual approval
 
 The first materials-only lookdev pass is now implemented without changing the
 lighting rig or choreography. `src/lib/ReactorMetamaterial.ts` treats the visible
@@ -172,23 +428,27 @@ solid system as one programmable emerald composite:
 Cubelets and the solid nucleus use a small one-segment rounded-box bevel so the
 surface catches a readable edge highlight. Duplicate rounded-box vertices are
 merged (`324 -> 92`); the 104 reactor plates deliberately keep the original light
-unit-box geometry. A trial procedural roughness texture was removed: it was barely
-visible at the scene scale but pushed the large orbit/104-plate software-WebGL
-tests across the frame boundary.
+unit-box geometry. The cubelet material now uses the circuit hook in a monochrome,
+all-face engraving mode: it changes base-color shading, roughness, and the analytic
+surface normal but introduces no gold before the reactor handoff. A trial procedural
+roughness texture was removed: it was barely visible at the scene scale but pushed
+the large orbit/104-plate software-WebGL tests across the frame boundary.
 
 After review showed that PBR value changes alone left the plates too plain, the
 covering received a dedicated analytic circuit surface. It extends the existing
 `MeshStandardMaterial` through `onBeforeCompile`, preserving all current lighting
 and shadows while adding:
 
-- a subdued per-instance `8..12`-cell composite microgrid and fine inset frame;
-- recessed circuit paths with pale-gold ENIG-like inner conductors, microvias,
-  compact module outlines, and smaller terminal pads;
-- deterministic random layouts from `gl_InstanceID`: three routing families vary
-  hub location, branch count, endpoints, trace width, grid density, axis swap, and
-  mirrors;
+- a subdued per-instance `28..36`-cell alternating warp/weft texture that reads as
+  fine glass-fibre textolite instead of graph paper;
+- four independent paired/triple trace corridors with constant lane spacing,
+  horizontal/vertical runs, 45-degree transitions, sparse octagonal vias, and
+  small edge terminals;
+- deterministic layouts from `gl_InstanceID`: seeds vary corridor placement, pair
+  gaps, trace width, weave density, axis swap, and mirrors while preserving the
+  same deliberate distribution across the whole square;
 - a diagonal shell reveal spanning morph and both divisions: a bright gold trace
-  leads locally from each hub, followed by the resin microgrid and recessed etch;
+  develops from the nearest corridor endpoint, followed by the resin weave and etch;
 - one slow emissive packet that inherits the current instance color, so it becomes
   blue under the ionization wave and red on the selected signal plate;
 - a current-strength envelope that drops through shutdown and scattering.
@@ -199,8 +459,10 @@ hook is shared by the 104-instance covering and standalone signal plate; the
 selected plate's instance index is copied to the standalone shader so its exact
 layout survives the handoff. Random parameters are evaluated in the vertex shader
 and sent with `flat` interpolation; this prevents pixel-level seed noise and avoids
-rehashing in every fragment. Orthogonal trace distance uses square-cap math without
-square roots. Cubelets keep their cheaper standard material.
+rehashing in every fragment. The horizontal, vertical, and 45-degree segments use
+specialized square/rotated-square cap math without per-pixel square roots. Cubelets
+reuse the same language in an engraving-only configuration, so the handoff changes
+material state rather than introducing an unrelated pattern.
 
 Densified 2026-07-20 at the user's art direction (`reactor-circuit-surface-v8`):
 per plate the etch now adds two extra microvias, hashed breakout stubs from the
@@ -210,6 +472,39 @@ finer micro grid (`11..16` cells, was `8..12`). The flow pulses run over the
 new conductors automatically, and the plates themselves were thinned
 (`0.055 -> 0.03`). Software-WebGL parity was re-measured (old vs new shader
 within machine noise); this pass awaits the user's visual review.
+
+Reworked 2026-07-24 at the user's art direction
+(`reactor-circuit-surface-v9`): the former single-hub layout was removed. Three
+spatially separated nodes now own local edge branches and detail groups, while only
+two orthogonal trunks connect the groups. This removes the crowded star/empty-corner
+read. The same topology is visible from the beginning on every planar cubelet face
+as a restrained same-color cut; derivative-based normal perturbation gives the cut
+a shallow physical response. During reactor morph the existing reveal turns those
+cuts into green textolite and pale gold without a shader swap or choreography change.
+
+Reworked again 2026-07-24 at the user's direction
+(`reactor-circuit-surface-v10`): v9 still read as an archival PCB because its closed
+frame, square modules, visible grid, and many right-angle branches dominated the
+surface. The production layout now uses four independently placed high-speed-style
+corridors made from consistently spaced pairs (plus one restrained triple), with
+45-degree transitions and much fewer vias. The closed frame became two short corner
+registration rails, and the grid became a quiet alternating glass-fibre weave.
+Engraving depth and conductor lift were raised slightly (`0.22 -> 0.28` normal
+strength, with a stronger signed relief height). A visually correct generic segment
+SDF was rejected after profiling; v10 uses a specialized axis/45-degree SDF that
+keeps the same shape without repeated fragment `sqrt` work.
+
+Release dematerialization added 2026-07-24
+(`reactor-circuit-surface-v11`): ordinary plates no longer remain solid until fog or
+the viewport hides them. Each flying instance receives one dynamic scalar (stored in
+an `InstancedBufferAttribute`, updated without allocation) that turns its solid
+surface into the nucleus cage's `4 x 4` lattice. Solid cells shut off in a seeded
+order, the exposed emerald/mint bars and welded nodes linger, then those lattice
+cells extinguish with a short ion-blue edge beat before the instance collapses.
+The selected red interface plate is intentionally exempt. Reactor shadow casting
+ends at release so vanished boxes cannot leave opaque shadows. The nucleus cage and
+plate lattice now share a deeper teal-emerald base, saturated mint filament, and
+ion-blue breakup accent; the previous near-white/cyan blowout was reduced.
 
 The upper `WEBGL` line receives a static dark-metal/emerald CSS gradient; the lower
 `DEVELOPER` line and its three orbit waves are unchanged. In development,
@@ -231,6 +526,26 @@ headless Firefox sample at both `1400 x 1000` and `500 x 759`. Static captures a
 `12.2s`, `13.25s`, and the completed tile stage confirmed the intended ordering:
 isolated gold leaders first, varied resin/circuit detail behind them, then a fully
 etched 104-plate shell. This was a cap check rather than a paired benchmark.
+
+The v10 follow-up was checked in Brave 150 at `1400 x 1000` on the actual NVIDIA
+GTX 1060 Vulkan/ANGLE renderer. Cubelet, mid-morph, and 104-tile captures produced
+no shader compile/runtime errors. A short paired rAF sample held `60 FPS` for both
+engraved cubelets and `material-baseline`; a ten-frame sample of the already-heavy
+tile preview measured `30.00 FPS` for both the modern circuit and baseline in the
+same concurrently loaded desktop session. This establishes paired parity, not an
+absolute performance certification. `pnpm build` passes. The screenshots were
+inspected at full frame and close crop; this pass still awaits the user's
+normal-browser review.
+
+The v11 release pass was captured in isolated Brave 150 at `1400 x 1000` on the
+actual NVIDIA GTX 1060 Vulkan/ANGLE renderer for the nucleus-grid and scatter
+stages. The scatter frame shows solid plates, exposed `4 x 4` lattices, and
+partially extinguished cells together; the grid frame confirms the darker
+emerald/mint balance. A short post-capture sample held `59.99 FPS` at scatter and
+`29.99 FPS` at the already-heavy tile stage, matching the previous v10 tile sample;
+these are smoke samples, not a formal benchmark. No GLSL or runtime errors were
+emitted beyond existing Three.js/readback warnings. `pnpm build` and
+`git diff --check` pass.
 
 ### Lighting prototype — awaiting visual approval
 
@@ -328,13 +643,15 @@ the user reviews it in the normal browser.
 
 ### Grid-cage surface quality pass — awaiting visual approval
 
-Scope chosen by the user: the lattice cube only — the plasma core, motion,
-timings, and the discharge system are untouched. The work lives entirely in
+Original scope chosen by the user: the lattice cube only — the plasma core, motion,
+timings, and the discharge system were untouched. The work lives entirely in
 the existing `gridFragmentShader` in `src/lib/FireEffect.ts`; no uniforms,
 varyings, geometry, draw calls, textures, or per-frame allocations were
 added, and the `4 x 4` density, single thin outer frame, suppressed UV
-0/1 doubling, emerald `#18d383` palette, and FrontSide rendering are all
-preserved. Four changes:
+0/1 doubling, and FrontSide rendering are preserved. The later v11 release pass
+rebalanced its color to the same deeper teal-emerald/mint recipe used by flying
+plate lattices, reducing the former near-white highlight without changing geometry.
+The surface-quality changes are:
 
 - an analytic key-light response gives every visible face one stable
   brightness from its world normal against the scene key direction
@@ -581,16 +898,18 @@ values select an exact main-spin time. The preview branch is gated behind
 Implementation: `src/components/HeroScene.tsx`.
 
 The final 26-cube sphere now hands off to a 104-instance reactor mesh at
-`ORBIT_END + 0.55s`. The first 26 active instances initially reproduce the old cubes
-exactly. They then rotate radially and flatten to square shield plates over `0.9s`,
-while the shared material moves from the cube's surface response toward a slightly
-more metallic reactor finish.
+`ORBIT_END + 0.18s`. The first 26 active instances initially reproduce the old cubes
+exactly. Over `0.9s`, depth compresses first while the full tangential footprint is
+held; width reduction and radial orientation follow once the shield silhouette is
+readable. The shared material moves from the cube's surface response toward a
+slightly more metallic reactor finish on the same continuous object.
 
 Replication is hierarchical and deterministic:
 
-- `26 -> 52` over `1.05s`;
-- `52 -> 104` over `1.2s`;
-- final tile size `0.28 x 0.28 x 0.03` (thinned 2026-07-20 from `0.055` at the
+- `26 -> 52` over `1.15s`;
+- `52 -> 104` over `1.30s`;
+- only `0.08s` of punctuation remains between morph and each generation;
+- final tile size `0.27 x 0.27 x 0.03` (thinned 2026-07-20 from `0.055` at the
   user's art direction — flat PCB read; parent/lineage morph thickness scaled
   to `0.07`/`0.05` to match);
 - final centers use a 104-point Fibonacci sphere at `SHELL_RADIUS`;
@@ -639,8 +958,9 @@ The previously deferred closing beat is now implemented:
   the source;
 - the other 103 plates recoil, then eject near their radial normals with up to
   `0.72s` of deterministic stagger, tangent drift, and spin;
-- plates keep their physical size until scene fog, a viewport exit, or passage
-  behind the camera has already concealed them; only then is the instance collapsed.
+- plates keep their geometric size while their solid cells expose a `4 x 4`
+  lattice, then the lattice cells extinguish and the instance collapses; scene fog,
+  a viewport exit, or passage behind the camera can still conceal one earlier.
 
 The signal plate begins its own release at `17.545s` of main-spin time. It follows a
 lower world-space cubic Bezier route toward the lower-left viewport, rotates face-on,
@@ -651,14 +971,18 @@ The card is a viewport-wide bottom strip with responsive hero gutters and a
 `220px..292px` responsive minimum height. It has no side/bottom border or radius.
 Placeholder Russian copy currently describes interactive WebGL systems.
 Its top border, `18px` microgrid with restrained `72px` major divisions, labels,
-reactor plates, and nucleus grid all derive from the same `#18d383` reactor color.
+and solid reactor plates derive from the same `#18d383` reactor color. The nucleus
+cage and dematerialized plates use deeper teal/mint spectral derivatives of it.
 The former few oversized SVG routes are replaced by short fine traces and smaller
 varied pads. Gold draws first with per-route stagger; recessed grooves and the
 diagonal resin-grid reveal settle behind it. Red remains only the launch warning;
 after three pulses its vertical signal edge settles to emerald over `2.4s`.
 
-The final source expansion overlaps the release. The grid cage still follows the
-`4.35x` scale envelope, but only as a transient demolition volume: its deterministic
+The final source expansion overlaps the release. Ordinary plates now expose a
+per-instance `4 x 4` lattice while flying and disappear cell-by-cell from that
+matrix; trajectory concealment remains only an earlier safety exit. The grid cage
+still follows the `4.35x` scale envelope, but only as a transient demolition
+volume: its deterministic
 `4 x 4` face cells disappear with staggered timing and a short blue line flash,
 leaving no oversized cage in the settled composition.
 
@@ -840,19 +1164,20 @@ outlined state before reactor morphing starts.
 ### Cube-to-plate handoff — completed
 
 `REACTOR_TRANSFORM_START` now follows capture by only `0.18s`. The morph first
-performs a fast, symmetric size reduction over the first 24% and only then flattens
-the geometry. Camera-facing aperture steering waits until 52% of the morph, when the
-objects already read as plates. This preserves the spherical voxel shell, avoids a
-new invented intermediate solid, and removes the former full-size arbitrary pile
-around the nucleus.
+compresses local thickness while preserving the cube's full tangential footprint;
+width and radial orientation follow once the geometry reads as a wafer.
+Camera-facing aperture steering waits until 52% of the morph. This preserves the
+spherical voxel shell and makes the shield a visible state change of the same
+material instead of a small-cube-to-plate asset swap.
 
 ### Division clearance — completed
 
 Both division stages now separate before their children become visually large.
-Direction/orientation interpolation uses a dedicated early separation curve, parent
-sizes fall immediately, and child birth is delayed (`0.30` in division one, `0.34`
-in division two). This systemic ordering removes the repeated three-plate compressed
-cluster without per-instance offsets and keeps tangent-facing lineage motion.
+Direction/orientation interpolation begins at 3.5%; sibling material appears as a
+small seam at 6% and grows over 78% / 82% of the phase. This gives clearance a lead
+without the former long one-sided travel. The systemic ordering removes the repeated
+compressed cluster without per-instance offsets and keeps tangent-facing lineage
+motion.
 
 ### Assembly synergy pulse — completed
 
@@ -894,3 +1219,27 @@ viewports render the WebGL canvas at DPR `1` with 32 ray steps; desktop retains 
 `38 -> 64` ramp and DPR ceiling `1.5`. The production build and `git diff --check`
 pass after this set. The next visual stage can proceed to materials and lighting
 from this source-relative contour.
+
+## 2026-07-24 cube-to-plate story refinement
+
+The reactor handoff now reads as one physical state change. During the `0.9s` morph,
+local depth compresses from `0.50` to `0.07` before tangential width settles from
+`0.50` to `0.30`; radial orientation begins after the compression is visible. This
+removes the former intermediate image of 26 small cubes and makes every shield a
+credible descendant of its original shell cube.
+
+The two division pauses were reduced from `0.18s` to `0.08s`, while generation
+durations increased to `1.15s` and `1.30s`. The resulting
+`REACTOR_TRANSFORM_END` is unchanged, so waves, signal selection, scatter, card
+handoff, and the mobile camera story keep their established downstream timing.
+Sibling material appears from 6% of each generation and grows gradually behind the
+separation curve instead of staying absent while a full parent travels alone.
+
+The final desktop Brave storyboard was sampled at 16 points from `10.900s` through
+`14.450s`. The mesh handoff remained invisible, plate identity preceded spherical
+opening, both generations carried continuous outward momentum, and the final 104
+tiles resumed the established shell state. The isolated browser reported no runtime
+or shader-console errors. A 0.001-step OBB audit of both generation envelopes found
+that each paired footprint cleared before half of its phase, while the new sibling
+was still only about 51% / 55% of full scale; no per-frame Three.js allocations or
+downstream timing constants were added.

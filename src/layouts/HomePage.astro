@@ -2,12 +2,13 @@
 import '@fontsource-variable/tektur'
 import '@fontsource/faster-one'
 import '@fontsource/monoton'
-import '@fontsource/rubik-mono-one'
+import '@fontsource/ponomar'
+import '@fontsource/old-standard-tt'
 import '@fontsource-variable/onest'
 import '@fontsource-variable/jetbrains-mono'
 import BrandMark from '../components/BrandMark.astro'
 import HeroScene from '../components/HeroScene.tsx'
-import { SITE, translations, type Lang } from '../i18n.ts'
+import { SITE, SOURCE_REPOSITORY, translations, type Lang } from '../i18n.ts'
 
 interface Props {
   lang: Lang
@@ -18,10 +19,10 @@ const t = translations[lang]
 const canonical = lang === 'ru' ? `${SITE}/` : `${SITE}/en/`
 
 // ── Air-support cylinders, generated once at build time ──────────────
-// Nine approved nested ellipses, each extruded upward into a tube: two
-// rims plus a fence of vertical wall lines around the ring that
-// completes the cylinder. Rim pulses on both rings share timing; every
-// second wall line is a live riser, the rest are static hairlines.
+// Nine approved nested ellipses, each extruded upward into a continuous
+// translucent cylinder wall. The two half-surfaces are painted on
+// opposite sides of the copy, so the content really sits inside the
+// tubes instead of behind a fence of disconnected vertical lines.
 interface OvalLane {
   rx: number
   ry: number
@@ -30,58 +31,65 @@ interface OvalLane {
   delay: number
   peak: number
   rev: boolean
-  echoDur: number
-  echoDelay: number
 }
 const OVAL_LANES: OvalLane[] = [
-  { rx: 560, ry: 209, color: '#0a5236', dur: 6.8, delay: -1.2, peak: 0.55, rev: false, echoDur: 7.4, echoDelay: -5.1 },
-  { rx: 537, ry: 194, color: '#0f6e4a', dur: 8.2, delay: -4.6, peak: 0.66, rev: true, echoDur: 6.1, echoDelay: -0.9 },
-  { rx: 515, ry: 180, color: '#0e8f5a', dur: 5.9, delay: -2.3, peak: 0.76, rev: false, echoDur: 8.6, echoDelay: -6.2 },
-  { rx: 492, ry: 166, color: '#12a568', dur: 7.5, delay: -5.8, peak: 0.86, rev: true, echoDur: 5.7, echoDelay: -2.6 },
-  { rx: 470, ry: 153, color: '#14b874', dur: 6.2, delay: -0.7, peak: 0.95, rev: false, echoDur: 7.9, echoDelay: -4.4 },
-  { rx: 447, ry: 140, color: '#18d383', dur: 8.8, delay: -3.9, peak: 1, rev: true, echoDur: 6.6, echoDelay: -7.1 },
-  { rx: 425, ry: 128, color: '#1fe097', dur: 7.1, delay: -6.4, peak: 0.9, rev: false, echoDur: 9.1, echoDelay: -1.8 },
-  { rx: 403, ry: 116, color: '#25f09e', dur: 6.5, delay: -2.9, peak: 0.82, rev: true, echoDur: 7.7, echoDelay: -5.5 },
-  { rx: 382, ry: 104, color: '#4be8b3', dur: 9.3, delay: -5.2, peak: 0.72, rev: false, echoDur: 6.0, echoDelay: -3.3 },
+  { rx: 560, ry: 132, color: '#0a5236', dur: 6.8, delay: -1.2, peak: 0.55, rev: false },
+  { rx: 537, ry: 124, color: '#0f6e4a', dur: 8.2, delay: -4.6, peak: 0.66, rev: true },
+  { rx: 515, ry: 116, color: '#0e8f5a', dur: 5.9, delay: -2.3, peak: 0.76, rev: false },
+  { rx: 492, ry: 108, color: '#12a568', dur: 7.5, delay: -5.8, peak: 0.86, rev: true },
+  { rx: 470, ry: 100, color: '#14b874', dur: 6.2, delay: -0.7, peak: 0.95, rev: false },
+  { rx: 447, ry: 92, color: '#18d383', dur: 8.8, delay: -3.9, peak: 1, rev: true },
+  { rx: 425, ry: 84, color: '#1fe097', dur: 7.1, delay: -6.4, peak: 0.9, rev: false },
+  { rx: 403, ry: 76, color: '#25f09e', dur: 6.5, delay: -2.9, peak: 0.82, rev: true },
+  { rx: 382, ry: 68, color: '#4be8b3', dur: 9.3, delay: -5.2, peak: 0.72, rev: false },
 ]
 const OVAL_CX = 600
-const OVAL_BASE_CY = 300
-const OVAL_RISE = 80
+const OVAL_BASE_CY = 232
+const OVAL_RISE = 52
 const OVAL_TOP_CY = OVAL_BASE_CY - OVAL_RISE
-const OVAL_WALL_LINES = 12
-
-const ovalHash = (a: number, b: number) => {
-  const v = Math.sin((a + 1) * 12.9898 + (b + 1) * 78.233) * 43758.5453
-  return v - Math.floor(v)
-}
-const round1 = (n: number) => Math.round(n * 10) / 10
+const OVAL_MID_CY = OVAL_BASE_CY - OVAL_RISE / 2
 
 const ovalFarArc = (lane: OvalLane, cy: number) =>
   `M ${OVAL_CX - lane.rx} ${cy} A ${lane.rx} ${lane.ry} 0 1 1 ${OVAL_CX + lane.rx} ${cy}`
 const ovalNearArc = (lane: OvalLane, cy: number) =>
   `M ${OVAL_CX + lane.rx} ${cy} A ${lane.rx} ${lane.ry} 0 1 1 ${OVAL_CX - lane.rx} ${cy}`
 
-// The fence around each ring: lines sit ON the circumference and rise
-// from the base rim to the top rim; front-half lines pass over the text,
-// back-half lines stay occluded by it.
-const ovalWalls = OVAL_LANES.flatMap((lane, laneIndex) =>
-  Array.from({ length: OVAL_WALL_LINES }, (_, k) => {
-    const theta =
-      (k / OVAL_WALL_LINES) * Math.PI * 2 + (laneIndex * 6 * Math.PI) / 180
-    const x = round1(OVAL_CX + lane.rx * Math.cos(theta))
-    const y = round1(OVAL_BASE_CY + lane.ry * Math.sin(theta))
-    const animated = k % 2 === 1
-    const dur = Math.round((10 + ovalHash(laneIndex, k) * 5) * 10) / 10
-    const delay = -Math.round(ovalHash(laneIndex, k + 17) * dur * 10) / 10
-    const peak = Math.round((0.3 + ovalHash(laneIndex, k + 31) * 0.2) * 100) / 100
-    return {
-      d: `M ${x} ${y} L ${x} ${round1(y - OVAL_RISE)}`,
-      front: Math.sin(theta) > -0.15,
-      animated,
-      style: `--dur:${dur}s;--delay:${delay}s;--peak:${peak};--lane-color:${lane.color}`,
-    }
-  }),
-)
+// Extruding a line creates a surface, not a row of posts. Each path is
+// the closed strip between the same ellipse half at the base and top.
+const ovalFarWall = (lane: OvalLane) =>
+  `M ${OVAL_CX - lane.rx} ${OVAL_BASE_CY} ` +
+  `A ${lane.rx} ${lane.ry} 0 1 1 ${OVAL_CX + lane.rx} ${OVAL_BASE_CY} ` +
+  `L ${OVAL_CX + lane.rx} ${OVAL_TOP_CY} ` +
+  `A ${lane.rx} ${lane.ry} 0 1 0 ${OVAL_CX - lane.rx} ${OVAL_TOP_CY} Z`
+const ovalNearWall = (lane: OvalLane) =>
+  `M ${OVAL_CX + lane.rx} ${OVAL_BASE_CY} ` +
+  `A ${lane.rx} ${lane.ry} 0 1 1 ${OVAL_CX - lane.rx} ${OVAL_BASE_CY} ` +
+  `L ${OVAL_CX - lane.rx} ${OVAL_TOP_CY} ` +
+  `A ${lane.rx} ${lane.ry} 0 1 0 ${OVAL_CX + lane.rx} ${OVAL_TOP_CY} Z`
+
+// The oval is on screen for one short act, so its entrance and exit are
+// authored as a compact depth sequence rather than one global fade. Walls
+// travel outside-in; their extruded panels follow; the near half arrives last.
+// Exit reverses both directions so the copy is released before the card lands.
+const ovalLaneStyle = (lane: OvalLane, index: number, front: boolean) => {
+  const inwardStep = index * 0.055
+  const outwardStep = (OVAL_LANES.length - 1 - index) * 0.03
+  const laneEnter = (front ? 0.32 : 0.04) + inwardStep
+  const panelEnter = (front ? 0.48 : 0.2) + inwardStep
+  const laneExit = (front ? 0.14 : 0.42) + outwardStep
+  const panelExit = (front ? 0 : 0.28) + outwardStep
+
+  return [
+    `--dur:${lane.dur}s`,
+    `--delay:${lane.delay}s`,
+    `--peak:${lane.peak}`,
+    `--lane-color:${lane.color}`,
+    `--lane-enter:${laneEnter.toFixed(3)}s`,
+    `--panel-enter:${panelEnter.toFixed(3)}s`,
+    `--lane-exit:${laneExit.toFixed(3)}s`,
+    `--panel-exit:${panelExit.toFixed(3)}s`,
+  ].join(';')
+}
 
 const personSchema = {
   '@context': 'https://schema.org',
@@ -144,6 +152,19 @@ const websiteSchema = {
   alternateName: 'SonicXBoy WebGL Developer',
   url: `${SITE}/`,
 }
+
+const sourceSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareSourceCode',
+  name: 'SonicXBoy Portfolio',
+  description:
+    'Open-source Astro, React Three Fiber and Three.js portfolio with authored WebGL choreography, responsive camera direction and an agent-readable source kit.',
+  codeRepository: SOURCE_REPOSITORY,
+  url: `${SITE}/`,
+  license: `${SOURCE_REPOSITORY}/blob/main/LICENSE`,
+  programmingLanguage: ['TypeScript', 'JavaScript', 'GLSL', 'CSS', 'Astro'],
+  runtimePlatform: 'Web browser',
+}
 ---
 
 <!doctype html>
@@ -157,7 +178,14 @@ const websiteSchema = {
     <title>{t.title}</title>
     <meta name="description" content={t.description} />
     <meta name="theme-color" content="#050907" />
+    <meta name="repository" content={SOURCE_REPOSITORY} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link
+      rel="alternate"
+      type="application/json"
+      href="/source-kit.json"
+      title="SonicXBoy source kit"
+    />
     <link rel="canonical" href={canonical} />
     <link rel="alternate" hreflang="ru" href={`${SITE}/`} />
     <link rel="alternate" hreflang="en" href={`${SITE}/en/`} />
@@ -179,6 +207,16 @@ const websiteSchema = {
     <meta name="twitter:site" content="@vixkosla" />
     <script type="application/ld+json" set:html={JSON.stringify(personSchema)} />
     <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(sourceSchema)} />
+    <script is:inline>
+      const viewportLabParams = new URLSearchParams(window.location.search)
+      if (
+        viewportLabParams.get('viewport-lab') === 'grid' &&
+        viewportLabParams.has('plasma-preview')
+      ) {
+        document.documentElement.dataset.viewportLabGrid = ''
+      }
+    </script>
     <style>
       /* :global — the reactor card is React-rendered (no astro-cid),
          a scoped reset never reaches it. */
@@ -200,7 +238,8 @@ const websiteSchema = {
         --bg: #050907;
         --card-h: clamp(300px, 27.5vh, 360px);
         --font-display: 'Tektur Variable', system-ui, sans-serif;
-        --font-slab: 'Rubik Mono One', 'Tektur Variable', system-ui, sans-serif;
+        --font-vyaz: 'Ponomar', 'Old Standard TT', Georgia, serif;
+        --font-book: 'Old Standard TT', Georgia, 'Times New Roman', serif;
         --font-body: 'Onest Variable', system-ui, sans-serif;
         --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
         --safe-top: env(safe-area-inset-top, 0px);
@@ -212,6 +251,7 @@ const websiteSchema = {
       html,
       body {
         width: 100%;
+        height: 100%;
         max-width: 100%;
         min-width: 0;
       }
@@ -222,6 +262,10 @@ const websiteSchema = {
         background: var(--bg);
         overflow-x: hidden;
         overflow-x: clip;
+      }
+
+      :global(body.reactor-card-visible) {
+        overflow: hidden;
       }
 
       a:focus-visible {
@@ -286,6 +330,15 @@ const websiteSchema = {
       /* ── Reactor card (arrives from the 3D scene) ─────────── */
 
       :global(.reactor-card) {
+        --card-paper: #053923;
+        --card-ink: #f2d889;
+        --card-ink-soft: rgba(234, 202, 111, 0.92);
+        --card-green: #0f7048;
+        --card-green-deep: #032a1c;
+        --card-green-bright: #39a970;
+        --card-gold: #c9a34a;
+        --card-gold-deep: #765517;
+        --card-gold-light: #f5e0a0;
         position: fixed;
         left: 0;
         right: 0;
@@ -298,23 +351,32 @@ const websiteSchema = {
         padding:
           1.4rem clamp(1.5rem, 8vw, 9rem)
           1.25rem;
-        overflow: hidden;
+        overflow-x: hidden;
+        overflow-y: auto;
         isolation: isolate;
-        color: #eafff5;
+        color: var(--card-ink);
         background:
-          radial-gradient(circle at 8% 118%, rgba(43, 111, 67, 0.22), transparent 34%),
-          radial-gradient(circle at 92% -20%, rgba(24, 211, 131, 0.08), transparent 28%),
-          linear-gradient(135deg, rgba(8, 34, 24, 0.92), rgba(3, 13, 9, 0.97)),
-          rgba(5, 9, 7, 0.94);
-        border: 1px solid rgba(24, 211, 131, 0.54);
+          radial-gradient(ellipse at 7% 122%, rgba(51, 166, 108, 0.34), transparent 38%),
+          radial-gradient(circle at 91% -24%, rgba(223, 183, 72, 0.14), transparent 31%),
+          radial-gradient(ellipse at 62% 138%, rgba(1, 31, 20, 0.68), transparent 48%),
+          linear-gradient(
+            118deg,
+            rgba(8, 91, 58, 0.985) 0%,
+            rgba(3, 47, 31, 0.99) 46%,
+            rgba(5, 70, 45, 0.985) 100%
+          ),
+          var(--card-paper);
+        border: 1px solid rgba(215, 173, 66, 0.78);
         border-right: 0;
         border-bottom: 0;
         border-left: 0;
         border-radius: 0;
         box-shadow:
-          0 24px 70px rgba(0, 0, 0, 0.44),
-          inset 0 0 34px rgba(24, 211, 131, 0.055);
-        backdrop-filter: blur(16px) saturate(125%);
+          0 -12px 52px rgba(1, 24, 15, 0.48),
+          0 24px 70px rgba(0, 0, 0, 0.38),
+          inset 0 1px 0 rgba(244, 210, 111, 0.48),
+          inset 0 0 56px rgba(42, 155, 98, 0.15);
+        backdrop-filter: blur(18px) saturate(124%);
         opacity: 0;
         filter: blur(7px);
         transform: translate3d(-100%, -2.8rem, 0) scale(0.18, 0.38);
@@ -325,6 +387,16 @@ const websiteSchema = {
           filter 0.72s ease-out;
         pointer-events: none;
         will-change: transform, opacity, filter;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(155, 119, 30, 0.62) transparent;
+      }
+
+      :global(.reactor-card::-webkit-scrollbar) {
+        width: 3px;
+      }
+
+      :global(.reactor-card::-webkit-scrollbar-thumb) {
+        background: rgba(155, 119, 30, 0.62);
       }
 
       :global(.reactor-card::after) {
@@ -334,41 +406,48 @@ const websiteSchema = {
         z-index: 0;
         pointer-events: none;
         background:
-          linear-gradient(90deg, rgba(255, 96, 72, 0.08), transparent 32%),
-          radial-gradient(circle at 92% -20%, rgba(24, 211, 131, 0.07), transparent 28%),
+          linear-gradient(112deg, rgba(101, 225, 159, 0.1), transparent 35%),
+          linear-gradient(90deg, rgba(229, 190, 83, 0.09), transparent 34%),
+          radial-gradient(circle at 92% -20%, rgba(57, 169, 112, 0.2), transparent 30%),
           radial-gradient(
               circle at 9px 9px,
-              rgba(232, 197, 111, 0.052) 0 0.7px,
-              transparent 0.95px
+              rgba(247, 220, 139, 0.21) 0 0.7px,
+              transparent 1.05px
             )
             0 0 / 18px 18px,
+          radial-gradient(
+              circle at 31px 23px,
+              rgba(199, 153, 48, 0.13) 0 1.15px,
+              transparent 1.55px
+            )
+            0 0 / 53px 47px,
           repeating-linear-gradient(
             90deg,
             transparent 0,
             transparent 71px,
-            rgba(24, 211, 131, 0.045) 71px,
-            rgba(24, 211, 131, 0.045) 72px
+            rgba(81, 190, 132, 0.08) 71px,
+            rgba(81, 190, 132, 0.08) 72px
           ),
           repeating-linear-gradient(
             0deg,
             transparent 0,
             transparent 71px,
-            rgba(24, 211, 131, 0.04) 71px,
-            rgba(24, 211, 131, 0.04) 72px
+            rgba(2, 32, 20, 0.22) 71px,
+            rgba(2, 32, 20, 0.22) 72px
           ),
           repeating-linear-gradient(
             90deg,
             transparent 0,
             transparent 17px,
-            rgba(24, 211, 131, 0.022) 17px,
-            rgba(24, 211, 131, 0.022) 18px
+            rgba(218, 174, 65, 0.045) 17px,
+            rgba(218, 174, 65, 0.045) 18px
           ),
           repeating-linear-gradient(
             0deg,
             transparent 0,
             transparent 17px,
-            rgba(24, 211, 131, 0.019) 17px,
-            rgba(24, 211, 131, 0.019) 18px
+            rgba(2, 28, 18, 0.18) 17px,
+            rgba(2, 28, 18, 0.18) 18px
           );
         opacity: 0;
         clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
@@ -390,7 +469,7 @@ const websiteSchema = {
 
       :global(.reactor-card__circuit-frame) {
         fill: none;
-        stroke: rgba(232, 197, 111, 0.075);
+        stroke: rgba(224, 183, 76, 0.34);
         stroke-width: 0.7;
         stroke-dasharray: 2 11;
         vector-effect: non-scaling-stroke;
@@ -398,7 +477,7 @@ const websiteSchema = {
 
       :global(.reactor-card__circuit-grooves path) {
         fill: none;
-        stroke: rgba(0, 5, 3, 0.64);
+        stroke: rgba(1, 26, 16, 0.52);
         stroke-width: 3.1;
         stroke-linecap: square;
         stroke-linejoin: miter;
@@ -410,19 +489,19 @@ const websiteSchema = {
 
       :global(.reactor-card__circuit-metal path) {
         fill: none;
-        stroke: rgba(232, 197, 111, 0.3);
+        stroke: rgba(237, 198, 96, 0.68);
         stroke-width: 0.86;
         stroke-linecap: square;
         stroke-linejoin: miter;
         stroke-dasharray: 1;
         stroke-dashoffset: 1;
         vector-effect: non-scaling-stroke;
-        filter: drop-shadow(0 0 2px rgba(232, 197, 111, 0.16));
+        filter: drop-shadow(0 0 2px rgba(245, 214, 126, 0.34));
         opacity: 0;
       }
 
       :global(.reactor-card__circuit-metal path:nth-child(4n + 2)) {
-        stroke: rgba(243, 218, 154, 0.22);
+        stroke: rgba(105, 221, 158, 0.46);
         stroke-width: 0.66;
       }
 
@@ -431,8 +510,8 @@ const websiteSchema = {
       }
 
       :global(.reactor-card__circuit-pads rect) {
-        fill: rgba(4, 20, 12, 0.92);
-        stroke: rgba(232, 197, 111, 0.34);
+        fill: rgba(3, 43, 28, 0.94);
+        stroke: rgba(237, 198, 96, 0.76);
         stroke-width: 0.72;
         vector-effect: non-scaling-stroke;
         opacity: 0;
@@ -461,6 +540,17 @@ const websiteSchema = {
         pointer-events: auto;
       }
 
+      /* Vivaldi can suspend CSS transitions in offscreen extension iframes.
+         The grid preview is an explicit frozen inspection mode, so resolve
+         the card directly to its authored final frame there. */
+      :global(html[data-viewport-lab-grid] .reactor-card) {
+        transition: none;
+      }
+
+      :global(html[data-viewport-lab-grid] .reactor-card.is-visible) {
+        animation: none;
+      }
+
       :global(.reactor-card__content) {
         position: relative;
         z-index: 2;
@@ -476,7 +566,7 @@ const websiteSchema = {
         inset: 0 auto 0 0;
         z-index: 3;
         width: 3px;
-        color: #ff6048;
+        color: var(--card-gold);
         background: currentColor;
         box-shadow:
           0 0 12px currentColor,
@@ -507,50 +597,195 @@ const websiteSchema = {
         justify-content: space-between;
         gap: 1rem;
         margin-bottom: 0.72rem;
-        color: rgba(108, 243, 179, 0.72);
+        color: rgba(239, 205, 111, 0.82);
         font: 600 0.66rem/1.2 var(--font-mono);
         letter-spacing: 0.14em;
-        text-shadow: 0 1px 8px rgba(2, 10, 7, 0.9);
+        text-shadow: 0 1px 0 rgba(2, 30, 19, 0.94);
       }
 
       :global(.reactor-card h2) {
         position: relative;
         z-index: 1;
+        display: flex;
+        align-items: center;
+        gap: 0.11em;
+        isolation: isolate;
         margin: 0 0 0.85rem;
-        font-family: var(--font-slab);
-        font-size: clamp(0.95rem, 1.32vw, 1.28rem);
+        color: var(--card-gold-light);
+        font-family: var(--font-vyaz);
+        font-size: clamp(1.28rem, 1.7vw, 1.72rem);
         font-weight: 400;
-        letter-spacing: 0.02em;
-        text-transform: uppercase;
-        text-shadow: 0 1px 10px rgba(2, 10, 7, 0.92);
+        line-height: 1.02;
+        letter-spacing: 0.008em;
+        font-variant-ligatures: common-ligatures discretionary-ligatures historical-ligatures;
+        font-feature-settings: 'liga' 1, 'dlig' 1, 'hlig' 1, 'calt' 1;
+        text-wrap: balance;
+        text-shadow:
+          0 1px 0 rgba(54, 38, 10, 0.9),
+          0 0 13px rgba(226, 182, 70, 0.18);
       }
 
-      /* Three glyph slabs: uppercase Rubik Mono One, both edges
-         justified, one shared top rule so the blocks read as three
-         stone tablets hanging from the same line. Column fractions
-         follow the copy length so the slab bottoms level out too. */
+      :global(.reactor-card h2::after) {
+        content: '';
+        position: absolute;
+        right: 0;
+        bottom: -0.42rem;
+        left: 0;
+        height: 2px;
+        opacity: 0.82;
+        background: linear-gradient(
+          90deg,
+          #2c9563 0 18%,
+          #f0d584 18% 29%,
+          #9f7521 29% 52%,
+          #62c28a 52% 72%,
+          #f7e3a6 72% 88%,
+          transparent 97%
+        );
+        box-shadow:
+          0 1px 0 rgba(1, 28, 17, 0.72),
+          0 0 8px rgba(225, 181, 69, 0.32),
+          0 0 14px rgba(77, 192, 127, 0.16);
+        clip-path: polygon(0 0, 100% 0, 97% 100%, 1.2% 100%);
+      }
+
+      :global(.reactor-card__heading-initial) {
+        position: relative;
+        z-index: 0;
+        flex: 0 0 auto;
+        display: inline-grid;
+        place-items: center;
+        min-width: 0.8em;
+        margin: -0.1em 0 -0.05em;
+        padding: 0.075em 0.115em 0.035em;
+        color: #f8e5a6;
+        font-size: 1.62em;
+        line-height: 0.78;
+        -webkit-text-stroke: 0.02em rgba(2, 48, 30, 0.98);
+        text-shadow:
+          -0.045em 0.035em 0 #8e6518,
+          0.045em 0.04em 0 #35a56c,
+          0 0 0.22em rgba(231, 190, 82, 0.42),
+          0 0.08em 0.2em rgba(1, 31, 19, 0.56);
+      }
+
+      :global(.reactor-card__heading-initial::before) {
+        content: '';
+        position: absolute;
+        inset: -0.08em -0.035em;
+        z-index: -1;
+        opacity: 0.94;
+        background:
+          radial-gradient(circle at 22% 24%, #f8e2a0 0 5%, transparent 6%),
+          radial-gradient(circle at 78% 75%, #d9b857 0 5%, transparent 6%),
+          conic-gradient(
+            from 24deg,
+            rgba(3, 48, 31, 0.98),
+            rgba(20, 119, 75, 0.98),
+            rgba(207, 163, 58, 0.98),
+            rgba(6, 78, 49, 0.98),
+            rgba(3, 48, 31, 0.98)
+          );
+        box-shadow:
+          inset 0 0 0 1px rgba(234, 197, 96, 0.9),
+          inset 0 0 0.24em rgba(80, 191, 127, 0.34),
+          0 0 0.3em rgba(1, 35, 21, 0.54),
+          0 0 0.44em rgba(199, 162, 71, 0.2);
+        clip-path: polygon(10% 0, 89% 6%, 100% 84%, 83% 100%, 4% 92%, 0 15%);
+      }
+
+      :global(.reactor-card__heading-initial::after) {
+        content: '';
+        position: absolute;
+        top: -0.13em;
+        right: -0.12em;
+        width: 0.16em;
+        height: 0.16em;
+        background: #e6c56f;
+        box-shadow:
+          -0.21em 0.04em 0 #1a8a59,
+          -0.05em 0.23em 0 #ba8d2e,
+          -0.23em 0.24em 0 #54bd82;
+        transform: rotate(45deg);
+      }
+
+      :global(.reactor-card__heading-text) {
+        min-width: 0;
+        color: var(--card-gold-light);
+        font: inherit;
+        line-height: inherit;
+        text-shadow:
+          -0.018em 0 0 rgba(112, 78, 15, 0.76),
+          0.018em 0.02em 0 rgba(44, 139, 88, 0.46),
+          0 0 0.22em rgba(228, 182, 67, 0.22),
+          0 0.07em 0.22em rgba(1, 30, 18, 0.52);
+      }
+
+      @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+        :global(.reactor-card__heading-text) {
+          color: transparent;
+          background: linear-gradient(
+            96deg,
+            #a87921 0%,
+            #e2bd5a 17%,
+            #f9e6aa 31%,
+            #bd8d2b 45%,
+            #f3d77f 58%,
+            #d1a342 72%,
+            #f6dfa0 86%,
+            #ae7f25 100%
+          );
+          background-size: 145% 100%;
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          -webkit-text-stroke: 0.008em rgba(2, 47, 29, 0.72);
+        }
+      }
+
+      /* A Church-Slavonic display hand leads into a readable old-style
+         book face. The three text leaves still share one top rule and
+         retain the original tablet proportions without shouting in caps. */
       :global(.reactor-card__body) {
+        flex: 1 1 auto;
+        min-height: 0;
         display: grid;
         grid-template-columns: 0.86fr 1.16fr 0.98fr;
         gap: clamp(1.5rem, 2.6vw, 3.25rem);
-        align-items: start;
+        align-items: stretch;
         width: 100%;
       }
 
       :global(.reactor-card p) {
         position: relative;
         z-index: 1;
-        color: rgba(224, 243, 234, 0.8);
-        border-top: 1px solid rgba(24, 211, 131, 0.34);
+        color: var(--card-ink-soft);
+        border-top: 1px solid rgba(224, 181, 72, 0.5);
         padding-top: 0.72rem;
-        font-family: var(--font-slab);
-        font-size: clamp(0.55rem, 0.62vw, 0.72rem);
-        line-height: 1.62;
-        letter-spacing: 0.01em;
-        text-transform: uppercase;
+        background: linear-gradient(
+          180deg,
+          rgba(2, 39, 25, 0.44),
+          rgba(13, 100, 63, 0.24)
+        );
+        box-shadow:
+          inset 0 1px 0 rgba(74, 184, 122, 0.14),
+          inset 0 -1px 0 rgba(210, 166, 59, 0.1);
+        font-family: var(--font-book);
+        font-size: var(--card-copy-fit, clamp(0.82rem, 0.8vw, 0.94rem));
+        font-weight: 400;
+        line-height: 1.38;
+        letter-spacing: 0.012em;
+        font-variant-ligatures: common-ligatures discretionary-ligatures;
         text-align: justify;
         hyphens: auto;
-        text-shadow: 0 1px 8px rgba(2, 10, 7, 0.94);
+        overflow-wrap: break-word;
+        text-shadow:
+          0 1px 0 rgba(1, 27, 16, 0.94),
+          0 0 11px rgba(229, 185, 70, 0.055);
+      }
+
+      :global(.reactor-card__body[data-copy-fit] p) {
+        overflow: hidden;
       }
 
       :global(.reactor-card p + p) {
@@ -563,23 +798,26 @@ const websiteSchema = {
         display: flex;
         gap: 0.85rem;
         margin-top: 1rem;
-        color: var(--reactor);
+        color: var(--card-gold);
         font: 600 0.65rem/1 var(--font-mono);
         letter-spacing: 0.12em;
       }
 
       @keyframes reactor-card-arrival {
         0%, 18% {
-          border-color: rgba(255, 96, 72, 0.68);
+          border-color: rgba(237, 199, 98, 0.94);
           box-shadow:
-            0 0 28px rgba(255, 96, 72, 0.32),
-            0 24px 70px rgba(0, 0, 0, 0.44);
+            0 0 30px rgba(222, 177, 65, 0.34),
+            0 24px 70px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(248, 220, 139, 0.58);
         }
         100% {
-          border-color: rgba(24, 211, 131, 0.48);
+          border-color: rgba(207, 163, 58, 0.64);
           box-shadow:
-            0 24px 70px rgba(0, 0, 0, 0.44),
-            inset 0 0 34px rgba(24, 211, 131, 0.055);
+            0 -12px 52px rgba(1, 24, 15, 0.48),
+            0 24px 70px rgba(0, 0, 0, 0.38),
+            inset 0 1px 0 rgba(244, 210, 111, 0.48),
+            inset 0 0 56px rgba(42, 155, 98, 0.15);
         }
       }
 
@@ -589,8 +827,8 @@ const websiteSchema = {
       }
 
       @keyframes reactor-signal-settle {
-        0%, 64% { color: #ff6048; }
-        100% { color: var(--reactor); }
+        0%, 64% { color: var(--card-gold); }
+        100% { color: var(--card-gold-light); }
       }
 
       @keyframes reactor-board-etch {
@@ -843,7 +1081,8 @@ const websiteSchema = {
          one lap with ease-in-out, then fades out — the figure reads
          as loosely filled, appearing and disappearing in places.
          Width matches the measured headline width (75vh on desktop);
-         the wall is raised so the subtitle and badges sit inside it —
+         the compressed wall is raised so its near rim wraps the title
+         foot, subtitle, and badges instead of floating below them —
          their copy occludes the far arcs while the near arcs (the
          mirrored svg painted after the text) cross in front. Hidden
          until the first orbit title wave ignites it; fades with the
@@ -851,20 +1090,84 @@ const websiteSchema = {
       .hero-oval {
         position: absolute;
         left: clamp(1.5rem, 8vw, 9rem);
-        bottom: clamp(0.75rem, 14vh, 9rem);
+        bottom: clamp(4rem, 22vh, 14rem);
         width: min(66rem, 75vh);
-        aspect-ratio: 1200 / 530;
+        aspect-ratio: 1200 / 400;
         pointer-events: none;
         opacity: 0;
-        transition: opacity 1.6s ease;
+        transition: opacity 0.32s ease-out;
       }
 
-      :global(body[data-oval-on]) .hero-oval {
+      /* Only the half beyond the copy plane is optically defocused. The
+         viewer-side wall stays crisp, while the subtitle and stack sit in
+         a clean focal plane against this softer, lower-contrast depth. */
+      .hero-oval--back {
+        filter: blur(3.2px) saturate(0.72) brightness(0.76);
+      }
+
+      /* Each wall grows from its base before the extruded panels light up.
+         Outer lanes lead inner lanes; the inline delays then continue
+         the wave from the far svg into the near svg. */
+      .oval-lane {
+        opacity: 0;
+        transform-box: fill-box;
+        transform-origin: 50% 100%;
+        transform: translateY(7px) scaleY(0.18);
+        transition:
+          opacity 0.72s cubic-bezier(0.16, 1, 0.3, 1) var(--lane-exit),
+          transform 0.94s cubic-bezier(0.16, 1, 0.3, 1) var(--lane-exit);
+      }
+
+      .oval-panels {
+        opacity: 0;
+        transform-box: fill-box;
+        transform-origin: 50% 50%;
+        transform: translateY(2px) scaleX(0.9);
+        transition:
+          opacity 0.5s ease-out var(--panel-exit),
+          transform 0.72s cubic-bezier(0.16, 1, 0.3, 1) var(--panel-exit);
+      }
+
+      :global(body[data-oval-on]:not([data-oval-leaving]):not(.reactor-card-visible)) .hero-oval {
         opacity: var(--oval-visibility, 1);
       }
 
+      :global(body[data-oval-on]:not([data-oval-leaving]):not(.reactor-card-visible)) .oval-lane {
+        opacity: 1;
+        transform: translateY(0) scaleY(1);
+        transition-delay: var(--lane-enter);
+      }
+
+      :global(body[data-oval-on]:not([data-oval-leaving]):not(.reactor-card-visible)) .oval-panels {
+        opacity: 1;
+        transform: translateY(0) scaleX(1);
+        transition-delay: var(--panel-enter);
+      }
+
+      /* The card gets a 1.25 s lead signal from HeroScene. The near/inner
+         panels release first, then the walls fold back toward the base;
+         the parent fade only joins after that reverse sequence is legible. */
+      :global(body[data-oval-leaving]) .hero-oval,
       :global(body.reactor-card-visible) .hero-oval {
         opacity: 0;
+        transition-duration: 0.55s;
+        transition-delay: 0.7s;
+      }
+
+      :global(body[data-oval-leaving]) .oval-lane,
+      :global(body.reactor-card-visible) .oval-lane {
+        opacity: 0;
+        transform: translateY(4px) scaleY(0.28);
+        transition-duration: 0.42s, 0.62s;
+        transition-delay: var(--lane-exit);
+      }
+
+      :global(body[data-oval-leaving]) .oval-panels,
+      :global(body.reactor-card-visible) .oval-panels {
+        opacity: 0;
+        transform: translateY(1px) scaleX(0.94);
+        transition-duration: 0.3s, 0.45s;
+        transition-delay: var(--panel-exit);
       }
 
       .oval-pulse {
@@ -879,44 +1182,27 @@ const websiteSchema = {
         animation-name: hero-oval-lap-rev;
       }
 
-      .oval-halo {
-        stroke: rgba(24, 211, 131, 0.14);
-        stroke-width: 9;
-        stroke-dasharray: 20 80;
+      /* The extruded circumference itself. Its SVG gradient supplies a
+         soft horizontal falloff, so it reads as a curved surface rather
+         than another wireframe fence. */
+      .oval-wall-surface {
+        stroke: none;
+        pointer-events: none;
       }
 
-      .oval-body {
-        stroke: var(--lane-color, #25f09e);
-        stroke-width: 2.6;
-        stroke-dasharray: 13 87;
-      }
-
-      .oval-body--echo {
-        stroke-dasharray: 9 91;
-        opacity: 0.8;
-      }
-
-      /* White-hot filament rides the leading edge of the body dash,
-         the same core+halo recipe the grid cage uses. */
-      .oval-hot {
-        stroke: #e2fff3;
-        stroke-width: 1.6;
-        stroke-dasharray: 6 94;
-      }
-
-      /* Slow risers climbing the cylinder wall lines. */
-      .oval-rise {
-        stroke: var(--lane-color, #25f09e);
-        stroke-width: 2;
-        stroke-dasharray: 14 86;
-      }
-
-      /* Static hairlines of the wall fence: they carry the cylinder
-         structure itself while the risers bring the pulses. */
-      .oval-wall {
-        stroke: rgba(24, 211, 131, 0.09);
-        stroke-width: 1;
+      /* The old 13% moving stripe is no longer drawn on both rims. One
+         clipped 60-unit stroke extrudes that exact stripe through the wall:
+         same count, green grade, phase, speed, and direction, with no second
+         line or inner core layered over it. */
+      .oval-wall-panel {
         fill: none;
+        stroke: var(--lane-color, #18d383);
+        stroke-width: 60;
+        stroke-opacity: 0.44;
+        stroke-linecap: square !important;
+        stroke-linejoin: miter !important;
+        stroke-dasharray: 13 87;
+        shape-rendering: geometricPrecision;
       }
 
       @keyframes hero-oval-lap {
@@ -958,10 +1244,13 @@ const websiteSchema = {
         place-items: center;
         width: 2.75rem;
         height: 2.75rem;
-        color: var(--ink);
-        background: rgba(24, 211, 131, 0.06);
-        border: 1px solid var(--emerald-dim);
+        color: var(--card-green-deep);
+        background: linear-gradient(145deg, #f1d581, #b98528);
+        border: 1px solid rgba(247, 224, 157, 0.74);
         border-radius: 2px;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 238, 183, 0.68),
+          0 5px 16px rgba(1, 31, 19, 0.24);
         transition:
           border-color 0.2s ease,
           color 0.2s ease,
@@ -970,9 +1259,9 @@ const websiteSchema = {
       }
 
       :global(.reactor-card__icon:hover) {
-        color: var(--emerald);
-        border-color: var(--emerald);
-        background: rgba(24, 211, 131, 0.08);
+        color: var(--card-gold-light);
+        border-color: var(--card-gold-light);
+        background: var(--card-green-deep);
         transform: translateY(-2px);
       }
 
@@ -996,21 +1285,28 @@ const websiteSchema = {
         letter-spacing: 0.1em;
         text-transform: uppercase;
         text-decoration: none;
-        color: #04140c;
-        background: var(--emerald);
-        border: 1px solid var(--emerald);
+        color: var(--card-green-deep);
+        background: linear-gradient(135deg, #f4dc91, #c49332 72%, #a97821);
+        border: 1px solid var(--card-gold-light);
         border-radius: 2px;
-        transition: filter 0.2s ease, transform 0.2s ease;
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 190, 0.68),
+          0 5px 16px rgba(1, 31, 19, 0.28);
+        transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       :global(.reactor-card__cta:hover) {
-        filter: brightness(1.14);
+        filter: brightness(1.08);
+        box-shadow:
+          inset 0 1px 0 rgba(255, 240, 190, 0.82),
+          0 7px 20px rgba(1, 28, 17, 0.34),
+          0 0 0 1px rgba(246, 220, 143, 0.44);
         transform: translateY(-2px);
       }
 
-      @media (max-width: 1180px) {
+      @media (max-width: 960px) {
         :global(.reactor-card) {
-          min-height: clamp(390px, 48vh, 520px);
+          min-height: clamp(370px, 46vh, 500px);
         }
 
         :global(.reactor-card__circuit) {
@@ -1023,10 +1319,12 @@ const websiteSchema = {
 
         :global(.reactor-card__body p:last-child) {
           grid-column: 1 / -1;
+          justify-self: center;
+          width: 66.666%;
         }
 
         :global(.reactor-card p) {
-          font-size: clamp(0.55rem, 0.86vw, 0.68rem);
+          font-size: var(--card-copy-fit, clamp(0.74rem, 1vw, 0.82rem));
         }
       }
 
@@ -1034,6 +1332,22 @@ const websiteSchema = {
         .headline__outline::after {
           animation: none !important;
           opacity: 0 !important;
+        }
+
+        .hero-oval,
+        .oval-lane,
+        .oval-panels {
+          transition: none !important;
+        }
+
+        .oval-lane,
+        .oval-panels {
+          transform: none !important;
+        }
+
+        .oval-pulse {
+          animation: none !important;
+          opacity: 0.5;
         }
 
         :global(.reactor-card__icon),
@@ -1140,19 +1454,18 @@ const websiteSchema = {
           flex-shrink: 0;
         }
 
-        /* The oval anchors directly under the headline block (same offset
-           math as the reactor card top), its upper storeys tucked behind
-           the headline's lower edge. Width matches the mobile headline
-           (~83vw). */
+        /* Mobile has its own stage composition: the sphere occupies the
+           centre and the oval becomes its low pedestal. Across the tested
+           compact cameras the settled sphere ends near 62svh, so starting
+           the oval at 57.2svh lets its upper glow meet the shell instead of
+           leaving a dark seam between the two forms. */
         .hero-oval {
           --oval-visibility: 0.5;
-          left: calc(var(--safe-left) + 1.25rem);
+          left: 50%;
           bottom: auto;
-          top: calc(
-            var(--safe-top) + 7.6rem + 0.82rem + 0.7rem +
-            min(32.24vw, 14.56svh) + 0.2rem
-          );
+          top: 57.2svh;
           width: 84vw;
+          transform: translateX(-50%);
         }
 
         .subtitle,
@@ -1168,7 +1481,7 @@ const websiteSchema = {
         :global(.reactor-card) {
           top: calc(
             var(--safe-top) + 7.6rem + 0.82rem + 0.7rem +
-              min(32.24vw, 14.56svh) + 1rem
+              min(32.24vw, 14.56svh) + 0.55rem
           );
           left: 0;
           right: 0;
@@ -1178,33 +1491,87 @@ const websiteSchema = {
           min-height: 0;
           max-height: none;
           padding:
-            1rem
+            0.85rem
             calc(var(--safe-right) + 1rem)
-            calc(var(--safe-bottom) + 1rem)
+            calc(var(--safe-bottom) + 0.75rem)
             calc(var(--safe-left) + 1rem);
-          overflow-y: auto;
-          overscroll-behavior: contain;
+          overflow: hidden;
+          overscroll-behavior: none;
         }
 
         :global(.reactor-card__circuit) {
           opacity: 0.58;
         }
 
-        :global(.reactor-card__body) {
-          grid-template-columns: 1fr;
-          gap: 0.68rem;
+        :global(.reactor-card__content) {
+          min-height: 0;
+          overflow: hidden;
         }
 
+        :global(.reactor-card__body) {
+          flex: 1 1 0;
+          min-height: 0;
+          display: grid;
+          grid-template-columns: none;
+          grid-auto-flow: column;
+          grid-auto-columns: calc(100% - 1.15rem);
+          align-items: stretch;
+          gap: 0.65rem;
+          padding: 0 1.15rem 0.35rem 0;
+          overflow-x: auto;
+          overflow-y: hidden;
+          scroll-snap-type: x mandatory;
+          scroll-padding-inline: 0;
+          overscroll-behavior-inline: contain;
+          touch-action: pan-x;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+
+        :global(.reactor-card__body::-webkit-scrollbar) {
+          display: none;
+        }
+
+        :global(.reactor-card__body p),
         :global(.reactor-card__body p:last-child) {
           grid-column: auto;
+          align-self: stretch;
+          justify-self: stretch;
+          width: auto;
+          height: 100%;
+          min-width: 0;
+          margin: 0;
+          padding: 0.8rem 0.78rem;
+          overflow: hidden;
+          scroll-snap-align: start;
+          scroll-snap-stop: always;
+          border: 1px solid rgba(221, 177, 66, 0.5);
+          background:
+            radial-gradient(circle at 100% 0, rgba(224, 181, 72, 0.12), transparent 38%),
+            linear-gradient(145deg, rgba(3, 48, 31, 0.94), rgba(10, 91, 57, 0.84));
+          box-shadow:
+            inset 0 1px 0 rgba(77, 185, 122, 0.22),
+            inset 0 -1px 0 rgba(224, 181, 72, 0.14),
+            0 8px 24px rgba(1, 25, 15, 0.24);
+          text-align: left;
+        }
+
+      :global(.reactor-card__body p::before) {
+          content: attr(data-page);
+          display: block;
+          margin-bottom: 0.58rem;
+          color: rgba(244, 216, 133, 0.82);
+          font: 400 0.72rem/0.9 var(--font-vyaz);
+          letter-spacing: 0.08em;
         }
 
         :global(.reactor-card__actions) {
+          flex: 0 0 auto;
           align-self: stretch;
           justify-content: flex-start;
           flex-wrap: nowrap;
           gap: 0.45rem;
-          padding-top: 0.85rem;
+          padding-top: 0.65rem;
         }
 
         :global(.reactor-card__icon) {
@@ -1225,18 +1592,88 @@ const websiteSchema = {
         }
 
         :global(.reactor-card__meta) {
-          margin-bottom: 0.6rem;
+          margin-bottom: 0.48rem;
           font-size: 0.6rem;
         }
 
         :global(.reactor-card h2) {
-          margin-bottom: 0.62rem;
-          font-size: 0.88rem;
+          margin-bottom: 0.5rem;
+          font-size: 1.06rem;
+          line-height: 1.02;
         }
 
         :global(.reactor-card p) {
-          font-size: 0.58rem;
-          line-height: 1.58;
+          font-size: var(--card-copy-fit, 0.75rem);
+          line-height: 1.34;
+          letter-spacing: 0.006em;
+        }
+      }
+
+      /* Common narrow Android/iPhone widths lose the final action row by
+         only a few lines of slab copy. Give the bottom sheet the title's
+         remaining gap and tighten its internal rhythm without changing the
+         single-column composition or the larger 384px+ mobile treatment. */
+      @media (max-width: 380px) {
+        :global(.reactor-card) {
+          top: calc(
+            var(--safe-top) + 7.6rem + 0.82rem + 0.7rem +
+              min(32.24vw, 14.56svh) + 0.05rem
+          );
+          padding-top: 0.7rem;
+          padding-bottom: calc(var(--safe-bottom) + 0.55rem);
+        }
+
+        :global(.reactor-card__meta) {
+          margin-bottom: 0.32rem;
+        }
+
+        :global(.reactor-card h2) {
+          margin-bottom: 0.36rem;
+          font-size: 1rem;
+        }
+
+        :global(.reactor-card__body) {
+          gap: 0.34rem;
+        }
+
+        :global(.reactor-card p) {
+          padding-top: 0.44rem;
+          font-size: var(--card-copy-fit, 0.72rem);
+          line-height: 1.3;
+        }
+
+        :global(.reactor-card__actions) {
+          gap: 0.38rem;
+          padding-top: 0.48rem;
+        }
+
+        :global(.reactor-card__icon) {
+          flex-basis: 2.35rem;
+          width: 2.35rem;
+          height: 2.35rem;
+        }
+
+        :global(.reactor-card__cta) {
+          height: 2.35rem;
+          font-size: 0.61rem;
+        }
+      }
+
+      /* On short portrait phones the title-derived card offset leaves too
+         little room for a complete page. Start just below the persistent
+         brand rail; the horizontal pager then owns the remaining height. */
+      @media (max-width: 720px) and (max-height: 680px) and (orientation: portrait) {
+        :global(.reactor-card) {
+          top: calc(var(--safe-top) + 7rem);
+        }
+
+        :global(.reactor-card__body p),
+        :global(.reactor-card__body p:last-child) {
+          padding: 0.62rem 0.68rem;
+        }
+
+        :global(.reactor-card__body p::before) {
+          margin-bottom: 0.42rem;
         }
       }
 
@@ -1311,7 +1748,7 @@ const websiteSchema = {
           overflow-y: auto;
           overscroll-behavior: contain;
           border-top: 0;
-          border-left: 1px solid rgba(24, 211, 131, 0.54);
+          border-left: 1px solid rgba(175, 136, 39, 0.78);
         }
 
         :global(.reactor-card__meta) {
@@ -1321,21 +1758,55 @@ const websiteSchema = {
 
         :global(.reactor-card h2) {
           margin-bottom: 0.55rem;
-          font-size: 0.82rem;
+          font-size: 1rem;
+        }
+
+        :global(.reactor-card__content) {
+          overflow: visible;
         }
 
         :global(.reactor-card__body) {
+          flex: none;
+          min-height: auto;
           grid-template-columns: 1fr;
+          grid-auto-flow: row;
+          grid-auto-columns: auto;
           gap: 0.58rem;
+          padding: 0;
+          overflow: visible;
+          scroll-snap-type: none;
+          touch-action: auto;
         }
 
         :global(.reactor-card__body p:last-child) {
           grid-column: auto;
         }
 
-        :global(.reactor-card p) {
-          font-size: 0.56rem;
-          line-height: 1.54;
+        :global(.reactor-card__body p),
+        :global(.reactor-card__body p:last-child) {
+          width: auto;
+          height: auto;
+          padding: 0.72rem 0 0;
+          overflow: visible;
+          scroll-snap-align: none;
+          scroll-snap-stop: normal;
+          border: 0;
+          border-top: 1px solid rgba(224, 181, 72, 0.5);
+          background: linear-gradient(
+            180deg,
+            rgba(2, 39, 25, 0.44),
+            rgba(13, 100, 63, 0.24)
+          );
+          box-shadow:
+            inset 0 1px 0 rgba(74, 184, 122, 0.14),
+            inset 0 -1px 0 rgba(210, 166, 59, 0.1);
+          font-size: var(--card-copy-fit, 0.72rem);
+          line-height: 1.38;
+          text-align: justify;
+        }
+
+        :global(.reactor-card__body p::before) {
+          display: none;
         }
 
         :global(.reactor-card__actions) {
@@ -1387,35 +1858,36 @@ const websiteSchema = {
     </nav>
 
     <main>
-      {/* Air-support cylinders: each approved nested ellipse is extruded
-          upward — two rims plus a fence of vertical wall lines around
-          the ring completing the tube. Rim pulses on both rings share
-          timing; every second wall line is a live riser. Every ring is
-          split into a far arc (this svg, painted under the text) and a
-          near arc (a mirrored svg after the text, painted over it), so
-          the flat copy occludes the far halves while the near halves
-          and front wall lines pass in front. Greens grade deep outside
-          to pale inside. Ignites with the first orbit title wave. */}
-      <svg class="hero-oval" viewBox="0 0 1200 530" aria-hidden="true">
-        {OVAL_LANES.map((lane) => (
-          <g style={`--dur:${lane.dur}s;--delay:${lane.delay}s;--peak:${lane.peak};--lane-color:${lane.color}`}>
-            <path class:list={['oval-pulse', 'oval-halo', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_TOP_CY)} />
-            <path class:list={['oval-pulse', 'oval-body', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_TOP_CY)} />
-            <path class:list={['oval-pulse', 'oval-hot', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_TOP_CY)} />
-            <path class:list={['oval-pulse', 'oval-halo', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_BASE_CY)} />
-            <path class:list={['oval-pulse', 'oval-body', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_BASE_CY)} />
-            <path class:list={['oval-pulse', 'oval-hot', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_BASE_CY)} />
+      {/* Air-support cylinders: the original nested circumference lines
+          are extruded into continuous walls. The far half-surface lives
+          below the text; the near half-surface is painted after it, so
+          the flat copy sits inside the translucent tubes. Each former
+          top/base stripe pair is now one panel spanning the wall. */}
+      <svg class="hero-oval hero-oval--back" viewBox="0 0 1200 400" aria-hidden="true">
+        <defs>
+          {OVAL_LANES.map((lane, index) => (
+            <linearGradient id={`oval-wall-far-${index}`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color={lane.color} stop-opacity="0.1" />
+              <stop offset="0.16" stop-color={lane.color} stop-opacity="0.035" />
+              <stop offset="0.5" stop-color={lane.color} stop-opacity="0.018" />
+              <stop offset="0.84" stop-color={lane.color} stop-opacity="0.035" />
+              <stop offset="1" stop-color={lane.color} stop-opacity="0.1" />
+            </linearGradient>
+          ))}
+          {OVAL_LANES.map((lane, index) => (
+            <clipPath id={`oval-wall-far-clip-${index}`} clipPathUnits="userSpaceOnUse">
+              <path d={ovalFarWall(lane)} />
+            </clipPath>
+          ))}
+        </defs>
+        {OVAL_LANES.map((lane, index) => (
+          <g class="oval-lane" style={ovalLaneStyle(lane, index, false)}>
+            <path class="oval-wall-surface" fill={`url(#oval-wall-far-${index})`} d={ovalFarWall(lane)} />
+            <g class="oval-panels" clip-path={`url(#oval-wall-far-clip-${index})`}>
+              <path class:list={['oval-pulse', 'oval-wall-panel', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalFarArc(lane, OVAL_MID_CY)} />
+            </g>
           </g>
         ))}
-        {ovalWalls
-          .filter((wall) => !wall.front)
-          .map((wall) =>
-            wall.animated ? (
-              <path class="oval-pulse oval-rise" style={wall.style} pathLength="100" d={wall.d} />
-            ) : (
-              <path class="oval-wall" d={wall.d} />
-            ),
-          )}
       </svg>
 
       <p class="eyebrow">{t.eyebrow}</p>
@@ -1442,31 +1914,33 @@ const websiteSchema = {
         <span class="tech-badge">Rapier</span>
       </div>
 
-      {/* Near halves and front wall lines — the same geometry/params as
-          the far svg above, mirrored; painted after the text so these
-          arcs pass in front of the copy while the far arcs stay
-          occluded. */}
-      <svg class="hero-oval hero-oval--front" viewBox="0 0 1200 530" aria-hidden="true">
-        {OVAL_LANES.map((lane) => (
-          <g style={`--dur:${lane.dur}s;--delay:${lane.delay}s;--peak:${lane.peak};--lane-color:${lane.color}`}>
-            <path class:list={['oval-pulse', 'oval-halo', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_TOP_CY)} />
-            <path class:list={['oval-pulse', 'oval-body', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_TOP_CY)} />
-            <path class:list={['oval-pulse', 'oval-hot', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_TOP_CY)} />
-            <path class:list={['oval-pulse', 'oval-halo', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_BASE_CY)} />
-            <path class:list={['oval-pulse', 'oval-body', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_BASE_CY)} />
-            <path class:list={['oval-pulse', 'oval-hot', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_BASE_CY)} />
-            <path class:list={['oval-pulse', 'oval-body', 'oval-body--echo', { 'oval-pulse--rev': !lane.rev }]} style={`--dur:${lane.echoDur}s;--delay:${lane.echoDelay}s`} pathLength="100" d={ovalNearArc(lane, OVAL_BASE_CY)} />
+      {/* Near half-surfaces and panels — same geometry as above, painted
+          after the copy so the cylinder wall passes in front. */}
+      <svg class="hero-oval hero-oval--front" viewBox="0 0 1200 400" aria-hidden="true">
+        <defs>
+          {OVAL_LANES.map((lane, index) => (
+            <linearGradient id={`oval-wall-near-${index}`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0" stop-color={lane.color} stop-opacity="0.075" />
+              <stop offset="0.18" stop-color={lane.color} stop-opacity="0.026" />
+              <stop offset="0.5" stop-color={lane.color} stop-opacity="0.012" />
+              <stop offset="0.82" stop-color={lane.color} stop-opacity="0.026" />
+              <stop offset="1" stop-color={lane.color} stop-opacity="0.075" />
+            </linearGradient>
+          ))}
+          {OVAL_LANES.map((lane, index) => (
+            <clipPath id={`oval-wall-near-clip-${index}`} clipPathUnits="userSpaceOnUse">
+              <path d={ovalNearWall(lane)} />
+            </clipPath>
+          ))}
+        </defs>
+        {OVAL_LANES.map((lane, index) => (
+          <g class="oval-lane" style={ovalLaneStyle(lane, index, true)}>
+            <path class="oval-wall-surface" fill={`url(#oval-wall-near-${index})`} d={ovalNearWall(lane)} />
+            <g class="oval-panels" clip-path={`url(#oval-wall-near-clip-${index})`}>
+              <path class:list={['oval-pulse', 'oval-wall-panel', { 'oval-pulse--rev': lane.rev }]} pathLength="100" d={ovalNearArc(lane, OVAL_MID_CY)} />
+            </g>
           </g>
         ))}
-        {ovalWalls
-          .filter((wall) => wall.front)
-          .map((wall) =>
-            wall.animated ? (
-              <path class="oval-pulse oval-rise" style={wall.style} pathLength="100" d={wall.d} />
-            ) : (
-              <path class="oval-wall" d={wall.d} />
-            ),
-          )}
       </svg>
     </main>
   </body>

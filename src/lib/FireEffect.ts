@@ -919,7 +919,7 @@ void main() {
     0.0,
     1.0
   );
-  float faceLight = mix(0.62, 1.18, keyLight * keyLight);
+  float faceLight = mix(0.58, 1.02, keyLight * keyLight);
   // A face seen at a grazing angle compresses the 4x4 pattern into a noisy
   // carpet. Quieting the inner grid there keeps the silhouette readable,
   // but the lattice never fully switches off: it is one energized object.
@@ -1061,13 +1061,17 @@ void main() {
 
   if (max(structure * fragmentLife, breakupStructure) < 0.025) discard;
 
-  vec3 reactorGreen = vec3(0.094, 0.827, 0.514);
-  vec3 reactorMint = vec3(0.37, 0.95, 0.67);
+  // A colder, deeper emerald keeps the cage in the reactor family without
+  // bleaching into cyan-white in front of the plasma. The same three-color
+  // recipe is used by the plates while they dematerialize.
+  vec3 reactorGreen = vec3(0.025, 0.310, 0.235);
+  vec3 reactorMint = vec3(0.075, 0.690, 0.500);
+  vec3 reactorFilament = vec3(0.310, 0.920, 0.700);
   vec3 waveBlue = vec3(0.141, 0.298, 1.0);
   float highlight = clamp(
     0.10 + fresnel * 0.30 + shimmer * 0.08 + uWarmth * 0.13,
     0.0,
-    0.52
+    0.36
   );
   vec3 color = mix(reactorGreen, reactorMint, highlight);
   color *= 0.78 + surfaceNoise * 0.31;
@@ -1076,9 +1080,9 @@ void main() {
   // frame all combine the same mint shoulder with the same white-hot
   // filament, so no element reads as a different material or hue.
   color += reactorMint *
-    (gridCore * 0.19 + frameGlow * 0.19 + nodePin * 0.35 * grazingFade);
-  color += vec3(0.82, 1.0, 0.9) *
-    (gridFilament * grazingFade + frameCore) * 0.42;
+    (gridCore * 0.10 + frameGlow * 0.10 + nodePin * 0.20 * grazingFade);
+  color += reactorFilament *
+    (gridFilament * grazingFade + frameCore) * 0.14;
   color += waveBlue * breakupStructure * 0.82;
 
   float structureAlpha =
