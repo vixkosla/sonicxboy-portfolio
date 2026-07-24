@@ -787,7 +787,7 @@ const websiteSchema = {
         left: clamp(1.5rem, 8vw, 9rem);
         bottom: clamp(0.75rem, 14vh, 9rem);
         width: min(66rem, 75vh);
-        aspect-ratio: 1200 / 460;
+        aspect-ratio: 1200 / 530;
         pointer-events: none;
         opacity: 0;
         transition: opacity 1.6s ease;
@@ -836,6 +836,13 @@ const websiteSchema = {
         stroke: #e2fff3;
         stroke-width: 1.6;
         stroke-dasharray: 6 94;
+      }
+
+      /* Slow risers climbing the cylinder wall lines. */
+      .oval-rise {
+        stroke: var(--lane-color, #25f09e);
+        stroke-width: 2;
+        stroke-dasharray: 14 86;
       }
 
       @keyframes hero-oval-lap {
@@ -1306,70 +1313,89 @@ const websiteSchema = {
     </nav>
 
     <main>
-      {/* Air-support cylindrical oval: the approved nested lanes of the
-          first draft, extruded ~1.8x vertically — nine concentric
-          ellipses, bigger outside, smaller inside, never crossing. Every
+      {/* Air-support cylinders: each approved nested ellipse is extruded
+          upward — a top rim (the same ring raised 80 units) plus two
+          silhouette wall lines — nine nested cylindrical tubes. Rim
+          pulses on both rings share timing, so a comet sweeps the wall
+          vertically aligned; slow risers climb the wall lines. Every
           ring is split into a far arc (this svg, painted under the text)
-          and a near arc (a mirrored svg after the text, painted over it),
-          so the flat copy occludes the far halves while the near halves
-          pass in front — the text stands inside the oval. Paired arcs
-          share --dur/--delay, keeping the two comet pulses diametrically
-          opposite. Greens grade from deep outside to pale inside.
-          Ignites with the first orbit title wave; pure CSS. */}
-      <svg class="hero-oval" viewBox="0 0 1200 460" aria-hidden="true">
+          and a near arc (a mirrored svg after the text, painted over
+          it), so the flat copy occludes the far halves while the near
+          halves and walls pass in front. Greens grade deep outside to
+          pale inside. Ignites with the first orbit title wave; pure
+          CSS. */}
+      <svg class="hero-oval" viewBox="0 0 1200 530" aria-hidden="true">
         <g style="--dur:6.8s;--delay:-1.2s;--peak:0.55;--lane-color:#0a5236">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 230 A 560 209 0 1 1 1160 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 40 230 A 560 209 0 1 1 1160 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 230 A 560 209 0 1 1 1160 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.4s;--delay:-5.1s" pathLength="100" d="M 40 230 A 560 209 0 1 1 1160 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 220 A 560 209 0 1 1 1160 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 220 A 560 209 0 1 1 1160 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 220 A 560 209 0 1 1 1160 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 40 300 A 560 209 0 1 1 1160 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 40 300 A 560 209 0 1 1 1160 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 40 300 A 560 209 0 1 1 1160 300" />
         </g>
         <g style="--dur:8.2s;--delay:-4.6s;--peak:0.66;--lane-color:#0f6e4a">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 63 230 A 537 194 0 1 1 1137 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 63 230 A 537 194 0 1 1 1137 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 63 230 A 537 194 0 1 1 1137 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.1s;--delay:-0.9s" pathLength="100" d="M 63 230 A 537 194 0 1 1 1137 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 63 220 A 537 194 0 1 1 1137 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 63 220 A 537 194 0 1 1 1137 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 63 220 A 537 194 0 1 1 1137 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 63 300 A 537 194 0 1 1 1137 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 63 300 A 537 194 0 1 1 1137 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 63 300 A 537 194 0 1 1 1137 300" />
         </g>
         <g style="--dur:5.9s;--delay:-2.3s;--peak:0.76;--lane-color:#0e8f5a">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 85 230 A 515 180 0 1 1 1115 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 85 230 A 515 180 0 1 1 1115 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 85 230 A 515 180 0 1 1 1115 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:8.6s;--delay:-6.2s" pathLength="100" d="M 85 230 A 515 180 0 1 1 1115 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 85 220 A 515 180 0 1 1 1115 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 85 220 A 515 180 0 1 1 1115 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 85 220 A 515 180 0 1 1 1115 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 85 300 A 515 180 0 1 1 1115 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 85 300 A 515 180 0 1 1 1115 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 85 300 A 515 180 0 1 1 1115 300" />
         </g>
         <g style="--dur:7.5s;--delay:-5.8s;--peak:0.86;--lane-color:#12a568">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 108 230 A 492 166 0 1 1 1092 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 108 230 A 492 166 0 1 1 1092 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 108 230 A 492 166 0 1 1 1092 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:5.7s;--delay:-2.6s" pathLength="100" d="M 108 230 A 492 166 0 1 1 1092 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 108 220 A 492 166 0 1 1 1092 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 108 220 A 492 166 0 1 1 1092 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 108 220 A 492 166 0 1 1 1092 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 108 300 A 492 166 0 1 1 1092 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 108 300 A 492 166 0 1 1 1092 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 108 300 A 492 166 0 1 1 1092 300" />
         </g>
         <g style="--dur:6.2s;--delay:-0.7s;--peak:0.95;--lane-color:#14b874">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 130 230 A 470 153 0 1 1 1070 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 130 230 A 470 153 0 1 1 1070 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 130 230 A 470 153 0 1 1 1070 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.9s;--delay:-4.4s" pathLength="100" d="M 130 230 A 470 153 0 1 1 1070 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 130 220 A 470 153 0 1 1 1070 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 130 220 A 470 153 0 1 1 1070 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 130 220 A 470 153 0 1 1 1070 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 130 300 A 470 153 0 1 1 1070 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 130 300 A 470 153 0 1 1 1070 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 130 300 A 470 153 0 1 1 1070 300" />
         </g>
         <g style="--dur:8.8s;--delay:-3.9s;--peak:1;--lane-color:#18d383">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 153 230 A 447 140 0 1 1 1047 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 153 230 A 447 140 0 1 1 1047 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 153 230 A 447 140 0 1 1 1047 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.6s;--delay:-7.1s" pathLength="100" d="M 153 230 A 447 140 0 1 1 1047 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 153 220 A 447 140 0 1 1 1047 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 153 220 A 447 140 0 1 1 1047 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 153 220 A 447 140 0 1 1 1047 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 153 300 A 447 140 0 1 1 1047 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 153 300 A 447 140 0 1 1 1047 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 153 300 A 447 140 0 1 1 1047 300" />
         </g>
         <g style="--dur:7.1s;--delay:-6.4s;--peak:0.9;--lane-color:#1fe097">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 175 230 A 425 128 0 1 1 1025 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 175 230 A 425 128 0 1 1 1025 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 175 230 A 425 128 0 1 1 1025 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:9.1s;--delay:-1.8s" pathLength="100" d="M 175 230 A 425 128 0 1 1 1025 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 175 220 A 425 128 0 1 1 1025 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 175 220 A 425 128 0 1 1 1025 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 175 220 A 425 128 0 1 1 1025 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 175 300 A 425 128 0 1 1 1025 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 175 300 A 425 128 0 1 1 1025 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 175 300 A 425 128 0 1 1 1025 300" />
         </g>
         <g style="--dur:6.5s;--delay:-2.9s;--peak:0.82;--lane-color:#25f09e">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 197 230 A 403 116 0 1 1 1003 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 197 230 A 403 116 0 1 1 1003 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 197 230 A 403 116 0 1 1 1003 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:7.7s;--delay:-5.5s" pathLength="100" d="M 197 230 A 403 116 0 1 1 1003 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 197 220 A 403 116 0 1 1 1003 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 197 220 A 403 116 0 1 1 1003 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 197 220 A 403 116 0 1 1 1003 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 197 300 A 403 116 0 1 1 1003 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 197 300 A 403 116 0 1 1 1003 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 197 300 A 403 116 0 1 1 1003 300" />
         </g>
         <g style="--dur:9.3s;--delay:-5.2s;--peak:0.72;--lane-color:#4be8b3">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 218 230 A 382 104 0 1 1 982 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 218 230 A 382 104 0 1 1 982 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 218 230 A 382 104 0 1 1 982 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:6.0s;--delay:-3.3s" pathLength="100" d="M 218 230 A 382 104 0 1 1 982 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 218 220 A 382 104 0 1 1 982 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 218 220 A 382 104 0 1 1 982 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 218 220 A 382 104 0 1 1 982 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 218 300 A 382 104 0 1 1 982 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 218 300 A 382 104 0 1 1 982 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 218 300 A 382 104 0 1 1 982 300" />
         </g>
       </svg>
 
@@ -1400,60 +1426,105 @@ const websiteSchema = {
       {/* Near halves of the ring wall — the same geometry/params as the
           far svg above, mirrored; painted after the text so these arcs
           pass in front of the copy while the far arcs stay occluded. */}
-      <svg class="hero-oval hero-oval--front" viewBox="0 0 1200 460" aria-hidden="true">
+      <svg class="hero-oval hero-oval--front" viewBox="0 0 1200 530" aria-hidden="true">
         <g style="--dur:6.8s;--delay:-1.2s;--peak:0.55;--lane-color:#0a5236">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 1160 230 A 560 209 0 1 1 40 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 1160 230 A 560 209 0 1 1 40 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 1160 230 A 560 209 0 1 1 40 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.4s;--delay:-5.1s" pathLength="100" d="M 1160 230 A 560 209 0 1 1 40 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1160 220 A 560 209 0 1 1 40 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1160 220 A 560 209 0 1 1 40 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1160 220 A 560 209 0 1 1 40 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1160 300 A 560 209 0 1 1 40 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1160 300 A 560 209 0 1 1 40 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1160 300 A 560 209 0 1 1 40 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.4s;--delay:-5.1s" pathLength="100" d="M 1160 300 A 560 209 0 1 1 40 300" />
+          <path class="oval-pulse oval-rise" style="--dur:12.5s;--delay:-2.2s;--peak:0.4" pathLength="100" d="M 40 300 L 40 220" />
+          <path class="oval-pulse oval-rise" style="--dur:12.5s;--delay:-2.2s;--peak:0.4" pathLength="100" d="M 1160 300 L 1160 220" />
         </g>
         <g style="--dur:8.2s;--delay:-4.6s;--peak:0.66;--lane-color:#0f6e4a">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1137 230 A 537 194 0 1 1 63 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1137 230 A 537 194 0 1 1 63 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1137 230 A 537 194 0 1 1 63 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.1s;--delay:-0.9s" pathLength="100" d="M 1137 230 A 537 194 0 1 1 63 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1137 220 A 537 194 0 1 1 63 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1137 220 A 537 194 0 1 1 63 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1137 220 A 537 194 0 1 1 63 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1137 300 A 537 194 0 1 1 63 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1137 300 A 537 194 0 1 1 63 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1137 300 A 537 194 0 1 1 63 300" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.1s;--delay:-0.9s" pathLength="100" d="M 1137 300 A 537 194 0 1 1 63 300" />
+          <path class="oval-pulse oval-rise" style="--dur:14s;--delay:-6.1s;--peak:0.35" pathLength="100" d="M 63 300 L 63 220" />
+          <path class="oval-pulse oval-rise" style="--dur:14s;--delay:-6.1s;--peak:0.35" pathLength="100" d="M 1137 300 L 1137 220" />
         </g>
         <g style="--dur:5.9s;--delay:-2.3s;--peak:0.76;--lane-color:#0e8f5a">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 1115 230 A 515 180 0 1 1 85 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 1115 230 A 515 180 0 1 1 85 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 1115 230 A 515 180 0 1 1 85 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:8.6s;--delay:-6.2s" pathLength="100" d="M 1115 230 A 515 180 0 1 1 85 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1115 220 A 515 180 0 1 1 85 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1115 220 A 515 180 0 1 1 85 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1115 220 A 515 180 0 1 1 85 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1115 300 A 515 180 0 1 1 85 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1115 300 A 515 180 0 1 1 85 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1115 300 A 515 180 0 1 1 85 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:8.6s;--delay:-6.2s" pathLength="100" d="M 1115 300 A 515 180 0 1 1 85 300" />
+          <path class="oval-pulse oval-rise" style="--dur:11.2s;--delay:-4.4s;--peak:0.45" pathLength="100" d="M 85 300 L 85 220" />
+          <path class="oval-pulse oval-rise" style="--dur:11.2s;--delay:-4.4s;--peak:0.45" pathLength="100" d="M 1115 300 L 1115 220" />
         </g>
         <g style="--dur:7.5s;--delay:-5.8s;--peak:0.86;--lane-color:#12a568">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1092 230 A 492 166 0 1 1 108 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1092 230 A 492 166 0 1 1 108 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1092 230 A 492 166 0 1 1 108 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:5.7s;--delay:-2.6s" pathLength="100" d="M 1092 230 A 492 166 0 1 1 108 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1092 220 A 492 166 0 1 1 108 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1092 220 A 492 166 0 1 1 108 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1092 220 A 492 166 0 1 1 108 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1092 300 A 492 166 0 1 1 108 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1092 300 A 492 166 0 1 1 108 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1092 300 A 492 166 0 1 1 108 300" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:5.7s;--delay:-2.6s" pathLength="100" d="M 1092 300 A 492 166 0 1 1 108 300" />
+          <path class="oval-pulse oval-rise" style="--dur:13.3s;--delay:-8s;--peak:0.35" pathLength="100" d="M 108 300 L 108 220" />
+          <path class="oval-pulse oval-rise" style="--dur:13.3s;--delay:-8s;--peak:0.35" pathLength="100" d="M 1092 300 L 1092 220" />
         </g>
         <g style="--dur:6.2s;--delay:-0.7s;--peak:0.95;--lane-color:#14b874">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 1070 230 A 470 153 0 1 1 130 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 1070 230 A 470 153 0 1 1 130 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 1070 230 A 470 153 0 1 1 130 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.9s;--delay:-4.4s" pathLength="100" d="M 1070 230 A 470 153 0 1 1 130 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1070 220 A 470 153 0 1 1 130 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1070 220 A 470 153 0 1 1 130 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1070 220 A 470 153 0 1 1 130 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1070 300 A 470 153 0 1 1 130 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1070 300 A 470 153 0 1 1 130 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1070 300 A 470 153 0 1 1 130 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:7.9s;--delay:-4.4s" pathLength="100" d="M 1070 300 A 470 153 0 1 1 130 300" />
+          <path class="oval-pulse oval-rise" style="--dur:12.1s;--delay:-1.5s;--peak:0.45" pathLength="100" d="M 130 300 L 130 220" />
+          <path class="oval-pulse oval-rise" style="--dur:12.1s;--delay:-1.5s;--peak:0.45" pathLength="100" d="M 1070 300 L 1070 220" />
         </g>
         <g style="--dur:8.8s;--delay:-3.9s;--peak:1;--lane-color:#18d383">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1047 230 A 447 140 0 1 1 153 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1047 230 A 447 140 0 1 1 153 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1047 230 A 447 140 0 1 1 153 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.6s;--delay:-7.1s" pathLength="100" d="M 1047 230 A 447 140 0 1 1 153 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1047 220 A 447 140 0 1 1 153 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1047 220 A 447 140 0 1 1 153 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1047 220 A 447 140 0 1 1 153 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1047 300 A 447 140 0 1 1 153 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1047 300 A 447 140 0 1 1 153 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1047 300 A 447 140 0 1 1 153 300" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:6.6s;--delay:-7.1s" pathLength="100" d="M 1047 300 A 447 140 0 1 1 153 300" />
+          <path class="oval-pulse oval-rise" style="--dur:14.6s;--delay:-5.3s;--peak:0.3" pathLength="100" d="M 153 300 L 153 220" />
+          <path class="oval-pulse oval-rise" style="--dur:14.6s;--delay:-5.3s;--peak:0.3" pathLength="100" d="M 1047 300 L 1047 220" />
         </g>
         <g style="--dur:7.1s;--delay:-6.4s;--peak:0.9;--lane-color:#1fe097">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 1025 230 A 425 128 0 1 1 175 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 1025 230 A 425 128 0 1 1 175 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 1025 230 A 425 128 0 1 1 175 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:9.1s;--delay:-1.8s" pathLength="100" d="M 1025 230 A 425 128 0 1 1 175 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1025 220 A 425 128 0 1 1 175 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1025 220 A 425 128 0 1 1 175 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1025 220 A 425 128 0 1 1 175 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 1025 300 A 425 128 0 1 1 175 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 1025 300 A 425 128 0 1 1 175 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 1025 300 A 425 128 0 1 1 175 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:9.1s;--delay:-1.8s" pathLength="100" d="M 1025 300 A 425 128 0 1 1 175 300" />
+          <path class="oval-pulse oval-rise" style="--dur:11.8s;--delay:-7.6s;--peak:0.4" pathLength="100" d="M 175 300 L 175 220" />
+          <path class="oval-pulse oval-rise" style="--dur:11.8s;--delay:-7.6s;--peak:0.4" pathLength="100" d="M 1025 300 L 1025 220" />
         </g>
         <g style="--dur:6.5s;--delay:-2.9s;--peak:0.82;--lane-color:#25f09e">
-          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1003 230 A 403 116 0 1 1 197 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1003 230 A 403 116 0 1 1 197 230" />
-          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1003 230 A 403 116 0 1 1 197 230" />
-          <path class="oval-pulse oval-body oval-body--echo" style="--dur:7.7s;--delay:-5.5s" pathLength="100" d="M 1003 230 A 403 116 0 1 1 197 230" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1003 220 A 403 116 0 1 1 197 220" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1003 220 A 403 116 0 1 1 197 220" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1003 220 A 403 116 0 1 1 197 220" />
+          <path class="oval-pulse oval-pulse--rev oval-halo" pathLength="100" d="M 1003 300 A 403 116 0 1 1 197 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body" pathLength="100" d="M 1003 300 A 403 116 0 1 1 197 300" />
+          <path class="oval-pulse oval-pulse--rev oval-hot" pathLength="100" d="M 1003 300 A 403 116 0 1 1 197 300" />
+          <path class="oval-pulse oval-body oval-body--echo" style="--dur:7.7s;--delay:-5.5s" pathLength="100" d="M 1003 300 A 403 116 0 1 1 197 300" />
+          <path class="oval-pulse oval-rise" style="--dur:13.7s;--delay:-3.1s;--peak:0.32" pathLength="100" d="M 197 300 L 197 220" />
+          <path class="oval-pulse oval-rise" style="--dur:13.7s;--delay:-3.1s;--peak:0.32" pathLength="100" d="M 1003 300 L 1003 220" />
         </g>
         <g style="--dur:9.3s;--delay:-5.2s;--peak:0.72;--lane-color:#4be8b3">
-          <path class="oval-pulse oval-halo" pathLength="100" d="M 982 230 A 382 104 0 1 1 218 230" />
-          <path class="oval-pulse oval-body" pathLength="100" d="M 982 230 A 382 104 0 1 1 218 230" />
-          <path class="oval-pulse oval-hot" pathLength="100" d="M 982 230 A 382 104 0 1 1 218 230" />
-          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:6.0s;--delay:-3.3s" pathLength="100" d="M 982 230 A 382 104 0 1 1 218 230" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 982 220 A 382 104 0 1 1 218 220" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 982 220 A 382 104 0 1 1 218 220" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 982 220 A 382 104 0 1 1 218 220" />
+          <path class="oval-pulse oval-halo" pathLength="100" d="M 982 300 A 382 104 0 1 1 218 300" />
+          <path class="oval-pulse oval-body" pathLength="100" d="M 982 300 A 382 104 0 1 1 218 300" />
+          <path class="oval-pulse oval-hot" pathLength="100" d="M 982 300 A 382 104 0 1 1 218 300" />
+          <path class="oval-pulse oval-pulse--rev oval-body oval-body--echo" style="--dur:6.0s;--delay:-3.3s" pathLength="100" d="M 982 300 A 382 104 0 1 1 218 300" />
+          <path class="oval-pulse oval-rise" style="--dur:12.9s;--delay:-9.2s;--peak:0.38" pathLength="100" d="M 218 300 L 218 220" />
+          <path class="oval-pulse oval-rise" style="--dur:12.9s;--delay:-9.2s;--peak:0.38" pathLength="100" d="M 982 300 L 982 220" />
         </g>
       </svg>
     </main>
