@@ -12,7 +12,7 @@ Project root:
 
 Read this file together with `docs/animation-choreography.md` before changing the
 animation. The development server was last confirmed running in Astro background
-mode at `http://localhost:4322/`. Manage it with:
+mode at `http://localhost:4321/`. Manage it with:
 
 ```bash
 pnpm astro dev status
@@ -24,6 +24,40 @@ pnpm astro dev --background
 `pnpm build` currently passes. The only build warning is the existing bundle chunk
 larger than 500 kB. Runtime logs also contain upstream Three.js deprecation warnings
 for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
+
+## Green resin and gold-stone card restoration
+
+Completed on 2026-07-24 and supersedes the light ivory card experiment documented
+later in this file:
+
+- The latest OpenCode material discussion and the scene itself agree on one physical
+  language: green FR4/solder mask with pale-gold conductors. The lower card is again a
+  layered deep-green resin surface; Old Standard TT copy, Ponomar ornament, rules,
+  circuit routes, pads, and controls now read as varied warm-gold pieces sitting on
+  that green field. The successful manuscript typography, independent paragraph
+  fitting, mobile pager, and contact geometry were retained.
+- The heading facets were lifted into a brighter gold range so the title does not
+  merge with the background circuit paths. Gold contact tiles use forest-green icons
+  and type; dark grooves, mint secondary traces, resin depth, sparse gold flecks, and
+  non-uniform highlights keep the result material rather than flat yellow-on-green UI.
+- `?viewport-lab=grid&plasma-preview=card` no longer depends on an r3f frame to reveal
+  the final DOM card. An early document flag, SSR-safe final-state CSS, and a measured
+  RU/EN font-size fallback let all six extension iframes render the same finished card
+  even when Vivaldi suspends WebGL or React. Hydrated pages still use the exact
+  `ResizeObserver` binary-search fit and normal visits keep the authored reveal.
+- Two competing development processes were consolidated. One fresh Astro background
+  server now owns `http://localhost:4321/`; the old stale `4321` process and temporary
+  `4322` background process are gone. Viewport Lab is pointed at the new `4321` URL.
+
+Visual validation covered RU `390 x 844`, EN `390 x 844`, desktop `1440 x 900`, short
+portrait, and short landscape. At `390 x 844`, every pager leaf still reports equal
+scroll/client height, the first RU leaf fits at `23.899px`, the next-page edge remains
+visible, and the action row ends at `832px`. The six-frame Viewport Lab phone grid
+(`390`, `375`, `414`, `393`, `360`, and `384` CSS pixels wide) now shows the final card
+in every frame. `pnpm build` passes; the only warning remains the existing large
+Three.js chunk. Current captures are `/tmp/chrome-card-final-green-gold-390x844.png`,
+`/tmp/chrome-card-final-green-gold-1440x900.png`, and
+`/tmp/vivaldi-typography-grid-late.png`.
 
 ## Public source release
 
@@ -57,10 +91,13 @@ Completed on 2026-07-24 without changing scene-object choreography:
   cube, orbit, ignition, capture, reactor, division, and UI handoff. Every destination
   has an authored target, offset, arrival time, move window, Russian chapter title,
   and story line.
-- Portrait mobile no longer mounts `OrbitControls`; the camera and its target move
-  together with C2 `smootherstep`, hold between beats, and allocate nothing per frame.
-  Dynamic fog compensation keeps wide shots from darkening. Desktop and landscape
-  retain their existing static framing and decorative drag.
+- Portrait mobile no longer mounts `OrbitControls`; C2 `smootherstep` drives the
+  target and radius while the view direction follows a spherical arc around the
+  subject. The authored flanks alternate through `41–57deg` turns, with shorter move
+  windows and one same-side reactor push as a breathing beat. Shots still hold between
+  moves and allocate nothing per frame. Dynamic fog compensation keeps wide shots
+  from darkening. Desktop and landscape retain their existing static framing and
+  decorative drag.
 - Screens up to `680px` high use a wider, raised intermediate-shot tier so action
   remains between the persistent title and subtitle. The final `handoff` point
   deliberately ignores that tier and returns to the exact previous compact camera.
@@ -70,24 +107,25 @@ Completed on 2026-07-24 without changing scene-object choreography:
   The active destination is also exposed as `body[data-camera-shot]`, and the track
   is available as `window.__mobileCameraStory` in development.
 
-Visual validation covered every named point plus the intervening moves at real
-`390 x 844` and short `320 x 568` viewports. Active geometry stays in the available
-band without touching the headline, subtitle, or pedestal. A separate final-second
-CDP audit sampled motion times `15.365`, `15.89`, `16.414`, `16.415`, `16.915`, and
-`17.415`: the camera reaches its exact endpoint at `16.415`, remains identical in
-the later samples, Canvas and document stay `390 x 844`, and no runtime exceptions
-were reported. Signal-plate selection begins `0.08s` after that endpoint.
+The sharper orbit pass was visually validated at every one of the 15 named points
+and all 13 move midpoints in headed GPU Brave at real `390 x 844` and short
+`320 x 568` viewports. Active geometry stays in the available band without touching
+the headline, subtitle, or pedestal; Canvas/document dimensions remain identical to
+the viewport and neither runtime nor console errors appeared. A separate final-second
+audit sampled motion times `15.635`, `16.025`, `16.414`, `16.415`, `16.495`, `16.915`,
+and `17.415`: the camera reaches its exact endpoint at `16.415` and remains identical
+in every later sample. Signal-plate selection begins `0.08s` after that endpoint.
 
 The full plot and all direct preview links are in
 `docs/mobile-camera-story.md`.
 
-## Illuminated heading, inverted palette and maximum copy fit
+## Historical: illuminated heading, light inversion and maximum copy fit
 
-Completed on 2026-07-24 and followed by the ivory/green/gold inversion requested in
-the next visual pass. This extends the Slavic typography work without changing the
-dome, sphere, or scene choreography:
+Completed on 2026-07-24, then superseded by the green-resin restoration above. This
+historical pass extended the Slavic typography work without changing the dome,
+sphere, or scene choreography:
 
-- The whole information surface is now a light inversion: layered pearl white and
+- That pass made the whole information surface a light inversion: layered pearl white and
   warm ivory paper carry dark forest-green copy, malachite circuitry, and antique-gold
   rules and contacts. The pager leaves, social controls, Telegram CTA, signal rail,
   circuit traces, pads, shadows, and arrival colour settle all use the same local card

@@ -28,10 +28,21 @@ Portrait screens use a deterministic waypoint director from
 `src/lib/MobileCameraStory.ts`. It turns the same uninterrupted simulation into a
 sequence of authored views: nucleus, incoming swarm, cube lock, roll and balance,
 the three orbital symmetry classes, ignition, spherical capture, reactor surface,
-division, and the final panel handoff. Each transition interpolates both camera
-position and target with C2 `smootherstep`; shots hold between moves and allocate
-nothing in `useFrame`. The director changes only the view. Object timing, geometry,
-physics, and capture math remain shared with desktop.
+division, and the final panel handoff. C2 `smootherstep` interpolates the target and
+camera radius while the view direction follows the shortest spherical arc; shots
+hold between moves and allocate nothing in `useFrame`.
+
+Each shot is chosen for what the object is physically doing at that beat rather than
+for keeping the whole object in frame: low, near-ground framing for the edge roll,
+a tight shot at the spin axis for the torque impulse, a push into the aperture for
+ignition, a close-to-macro push-in on the reactor surface. `outer-orbit` and `shell`
+are the only deliberately wide/high shots, so they read as accents against the
+closer beats around them rather than blending into a row of similar overview
+compositions. Distance swings from roughly `3.2` (the reactor push-in) to `14.5`
+(the `outer-orbit` reveal) instead of holding a flat `9–11` range, and consecutive
+flanks now turn `56–99deg` as a consequence of genuinely different framing, not as
+a goal pursued on its own. The director changes only the view. Object timing,
+geometry, physics, and capture math remain shared with desktop.
 
 The last move reaches the original compact camera `0.08s` before signal-plate
 selection and then remains exactly still through the waves and UI launch. This is
@@ -378,8 +389,9 @@ The signal plate owns a different route. After the same recoil, it follows one
 cubic Bezier path around the left side, rotates until its face is camera-aligned,
 and stretches toward the proportions of an interface panel. Near the left viewport
 edge, the WebGL mesh fades while a fixed DOM card enters from the same side and
-settles downward into the lower-left composition. Its coral-red arrival edge decays back
-to the established emerald interface palette. Existing technology badges fade out
+settles downward into the lower-left composition. Its arrival edge flashes warm gold,
+then settles into the card's green-resin and pale-gold material family. Existing
+technology badges fade out
 at this handoff so the new information surface has a clean landing area. The hero
 subtitle fades with them. On desktop the card is a true viewport-wide lower layout
 strip: it is anchored to all three lower edges, has no side radius, and uses the
@@ -396,15 +408,16 @@ left rail and turn the card into a safe-area-aware right panel. Neither compact
 layout may enlarge the document viewport; the technology ribbon is
 width-constrained and scrolls inside its own box.
 
-The stable palette is deliberately singular: plates, card border, labels, and its
-`18px` microgrid with restrained `72px` major lines use `#18d383`; cage lines and
-dematerialized plates use deeper teal/mint spectral derivatives of that same hue.
-The card circuit layer uses many
-short fine routes, small varied pads, and the same pale-gold conductor family as the
-plates. Gold paths draw with staggered starts, then their darker grooves and the
-diagonal resin-grid reveal settle behind them. The red signal remains a temporary
-launch state and transitions to emerald after three pulses rather than becoming a
-permanent third accent.
+The stable palette is deliberately material: plates and the card share green
+textolite/resin, while card copy, borders, contact tiles, and primary circuit routes
+use varied pale-gold and antique-gold values. The `18px` microgrid, restrained `72px`
+major lines, darker grooves, mint secondary routes, and sparse gold flecks produce
+depth without introducing a separate UI palette. The card circuit layer uses many
+short fine routes and small varied pads from the same conductor family as the plates.
+Gold paths draw with staggered starts, then their grooves and diagonal resin-grid
+reveal settle behind them. Red remains only the WebGL signal plate's temporary launch
+state; the DOM card signal rail enters in gold and settles to a lighter gold after
+three pulses rather than becoming a permanent third accent.
 
 While the covering releases, the grid nucleus follows the old `1.7x -> 4.35x`
 expansion envelope only as a temporary demolition volume. Every face is already

@@ -215,6 +215,9 @@ const sourceSchema = {
         viewportLabParams.has('plasma-preview')
       ) {
         document.documentElement.dataset.viewportLabGrid = ''
+        if (viewportLabParams.get('plasma-preview') === 'card') {
+          document.documentElement.dataset.viewportLabCard = ''
+        }
       }
     </script>
     <style>
@@ -330,15 +333,15 @@ const sourceSchema = {
       /* ── Reactor card (arrives from the 3D scene) ─────────── */
 
       :global(.reactor-card) {
-        --card-paper: #053923;
-        --card-ink: #f2d889;
-        --card-ink-soft: rgba(234, 202, 111, 0.92);
-        --card-green: #0f7048;
-        --card-green-deep: #032a1c;
-        --card-green-bright: #39a970;
-        --card-gold: #c9a34a;
-        --card-gold-deep: #765517;
-        --card-gold-light: #f5e0a0;
+        --card-ivory: #fffdf4;
+        --card-paper: #f4f3e7;
+        --card-ink: #123f2b;
+        --card-ink-soft: rgba(18, 63, 43, 0.82);
+        --card-green: #1a7a52;
+        --card-green-deep: #0a4530;
+        --card-green-bright: #2f9e6e;
+        --card-gold: #c7a247;
+        --card-gold-light: #ead99b;
         position: fixed;
         left: 0;
         right: 0;
@@ -356,27 +359,26 @@ const sourceSchema = {
         isolation: isolate;
         color: var(--card-ink);
         background:
-          radial-gradient(ellipse at 7% 122%, rgba(51, 166, 108, 0.34), transparent 38%),
-          radial-gradient(circle at 91% -24%, rgba(223, 183, 72, 0.14), transparent 31%),
-          radial-gradient(ellipse at 62% 138%, rgba(1, 31, 20, 0.68), transparent 48%),
+          radial-gradient(circle at 7% 118%, rgba(33, 112, 72, 0.24), transparent 36%),
+          radial-gradient(circle at 93% -24%, rgba(199, 162, 71, 0.25), transparent 31%),
           linear-gradient(
-            118deg,
-            rgba(8, 91, 58, 0.985) 0%,
-            rgba(3, 47, 31, 0.99) 46%,
-            rgba(5, 70, 45, 0.985) 100%
+            116deg,
+            rgba(255, 255, 252, 0.985) 0%,
+            rgba(247, 246, 235, 0.97) 47%,
+            rgba(231, 241, 228, 0.965) 100%
           ),
           var(--card-paper);
-        border: 1px solid rgba(215, 173, 66, 0.78);
+        border: 1px solid rgba(175, 136, 39, 0.78);
         border-right: 0;
         border-bottom: 0;
         border-left: 0;
         border-radius: 0;
         box-shadow:
-          0 -12px 52px rgba(1, 24, 15, 0.48),
-          0 24px 70px rgba(0, 0, 0, 0.38),
-          inset 0 1px 0 rgba(244, 210, 111, 0.48),
-          inset 0 0 56px rgba(42, 155, 98, 0.15);
-        backdrop-filter: blur(18px) saturate(124%);
+          0 -10px 48px rgba(2, 31, 19, 0.24),
+          0 24px 70px rgba(0, 0, 0, 0.28),
+          inset 0 1px 0 rgba(255, 255, 255, 0.96),
+          inset 0 0 42px rgba(55, 133, 84, 0.09);
+        backdrop-filter: blur(18px) saturate(112%);
         opacity: 0;
         filter: blur(7px);
         transform: translate3d(-100%, -2.8rem, 0) scale(0.18, 0.38);
@@ -406,12 +408,12 @@ const sourceSchema = {
         z-index: 0;
         pointer-events: none;
         background:
-          linear-gradient(112deg, rgba(101, 225, 159, 0.1), transparent 35%),
-          linear-gradient(90deg, rgba(229, 190, 83, 0.09), transparent 34%),
-          radial-gradient(circle at 92% -20%, rgba(57, 169, 112, 0.2), transparent 30%),
+          linear-gradient(112deg, rgba(255, 255, 255, 0.48), transparent 35%),
+          linear-gradient(90deg, rgba(199, 162, 71, 0.16), transparent 34%),
+          radial-gradient(circle at 92% -20%, rgba(26, 122, 82, 0.13), transparent 30%),
           radial-gradient(
               circle at 9px 9px,
-              rgba(247, 220, 139, 0.21) 0 0.7px,
+              rgba(161, 123, 30, 0.14) 0 0.7px,
               transparent 1.05px
             )
             0 0 / 18px 18px,
@@ -425,29 +427,29 @@ const sourceSchema = {
             90deg,
             transparent 0,
             transparent 71px,
-            rgba(81, 190, 132, 0.08) 71px,
-            rgba(81, 190, 132, 0.08) 72px
+            rgba(20, 91, 59, 0.075) 71px,
+            rgba(20, 91, 59, 0.075) 72px
           ),
           repeating-linear-gradient(
             0deg,
             transparent 0,
             transparent 71px,
-            rgba(2, 32, 20, 0.22) 71px,
-            rgba(2, 32, 20, 0.22) 72px
+            rgba(20, 91, 59, 0.065) 71px,
+            rgba(20, 91, 59, 0.065) 72px
           ),
           repeating-linear-gradient(
             90deg,
             transparent 0,
             transparent 17px,
-            rgba(218, 174, 65, 0.045) 17px,
-            rgba(218, 174, 65, 0.045) 18px
+            rgba(164, 128, 39, 0.038) 17px,
+            rgba(164, 128, 39, 0.038) 18px
           ),
           repeating-linear-gradient(
             0deg,
             transparent 0,
             transparent 17px,
-            rgba(2, 28, 18, 0.18) 17px,
-            rgba(2, 28, 18, 0.18) 18px
+            rgba(164, 128, 39, 0.034) 17px,
+            rgba(164, 128, 39, 0.034) 18px
           );
         opacity: 0;
         clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
@@ -469,7 +471,7 @@ const sourceSchema = {
 
       :global(.reactor-card__circuit-frame) {
         fill: none;
-        stroke: rgba(224, 183, 76, 0.34);
+        stroke: rgba(146, 106, 20, 0.28);
         stroke-width: 0.7;
         stroke-dasharray: 2 11;
         vector-effect: non-scaling-stroke;
@@ -477,7 +479,7 @@ const sourceSchema = {
 
       :global(.reactor-card__circuit-grooves path) {
         fill: none;
-        stroke: rgba(1, 26, 16, 0.52);
+        stroke: rgba(5, 61, 38, 0.22);
         stroke-width: 3.1;
         stroke-linecap: square;
         stroke-linejoin: miter;
@@ -489,19 +491,19 @@ const sourceSchema = {
 
       :global(.reactor-card__circuit-metal path) {
         fill: none;
-        stroke: rgba(237, 198, 96, 0.68);
+        stroke: rgba(157, 118, 27, 0.58);
         stroke-width: 0.86;
         stroke-linecap: square;
         stroke-linejoin: miter;
         stroke-dasharray: 1;
         stroke-dashoffset: 1;
         vector-effect: non-scaling-stroke;
-        filter: drop-shadow(0 0 2px rgba(245, 214, 126, 0.34));
+        filter: drop-shadow(0 0 2px rgba(255, 255, 248, 0.72));
         opacity: 0;
       }
 
       :global(.reactor-card__circuit-metal path:nth-child(4n + 2)) {
-        stroke: rgba(105, 221, 158, 0.46);
+        stroke: rgba(28, 112, 72, 0.42);
         stroke-width: 0.66;
       }
 
@@ -510,8 +512,8 @@ const sourceSchema = {
       }
 
       :global(.reactor-card__circuit-pads rect) {
-        fill: rgba(3, 43, 28, 0.94);
-        stroke: rgba(237, 198, 96, 0.76);
+        fill: rgba(255, 253, 244, 0.94);
+        stroke: rgba(19, 100, 63, 0.58);
         stroke-width: 0.72;
         vector-effect: non-scaling-stroke;
         opacity: 0;
@@ -549,6 +551,39 @@ const sourceSchema = {
 
       :global(html[data-viewport-lab-grid] .reactor-card.is-visible) {
         animation: none;
+      }
+
+      /* The extension may suspend an offscreen WebGL context before r3f's
+         first frame. The final card is SSR markup, so card inspection stays
+         deterministic even when a canvas never receives that reveal frame. */
+      :global(html[data-viewport-lab-card] .reactor-card) {
+        opacity: 1;
+        filter: blur(0);
+        transform: translate3d(0, 0, 0) scale(1);
+        pointer-events: auto;
+      }
+
+      :global(html[data-viewport-lab-card] .reactor-card::after) {
+        animation: none;
+        opacity: 0.82;
+        clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+      }
+
+      :global(html[data-viewport-lab-card] .reactor-card__circuit-grooves path) {
+        animation: none;
+        opacity: 0.82;
+        stroke-dashoffset: 0;
+      }
+
+      :global(html[data-viewport-lab-card] .reactor-card__circuit-metal path),
+      :global(html[data-viewport-lab-card] .reactor-card__circuit-pads rect) {
+        animation: none;
+        opacity: 1;
+        stroke-dashoffset: 0;
+      }
+
+      :global(html[data-viewport-lab-card] .reactor-card__actions) {
+        visibility: visible;
       }
 
       :global(.reactor-card__content) {
@@ -597,10 +632,27 @@ const sourceSchema = {
         justify-content: space-between;
         gap: 1rem;
         margin-bottom: 0.72rem;
-        color: rgba(239, 205, 111, 0.82);
+        color: rgba(17, 110, 74, 0.78);
         font: 600 0.66rem/1.2 var(--font-mono);
         letter-spacing: 0.14em;
-        text-shadow: 0 1px 0 rgba(2, 30, 19, 0.94);
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.94);
+      }
+
+      @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+        :global(.reactor-card__meta) {
+          color: transparent;
+          background: linear-gradient(
+            92deg,
+            #0c5c3d 0%,
+            #2f9e6e 26%,
+            #b28a25 52%,
+            #1a7a52 78%,
+            #0a4530 100%
+          );
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
       }
 
       :global(.reactor-card h2) {
@@ -611,7 +663,7 @@ const sourceSchema = {
         gap: 0.11em;
         isolation: isolate;
         margin: 0 0 0.85rem;
-        color: var(--card-gold-light);
+        color: var(--card-green-deep);
         font-family: var(--font-vyaz);
         font-size: clamp(1.28rem, 1.7vw, 1.72rem);
         font-weight: 400;
@@ -621,8 +673,8 @@ const sourceSchema = {
         font-feature-settings: 'liga' 1, 'dlig' 1, 'hlig' 1, 'calt' 1;
         text-wrap: balance;
         text-shadow:
-          0 1px 0 rgba(54, 38, 10, 0.9),
-          0 0 13px rgba(226, 182, 70, 0.18);
+          0 1px 0 rgba(255, 255, 255, 0.96),
+          0 0 12px rgba(199, 162, 71, 0.22);
       }
 
       :global(.reactor-card h2::after) {
@@ -635,17 +687,17 @@ const sourceSchema = {
         opacity: 0.82;
         background: linear-gradient(
           90deg,
-          #2c9563 0 18%,
-          #f0d584 18% 29%,
-          #9f7521 29% 52%,
-          #62c28a 52% 72%,
-          #f7e3a6 72% 88%,
+          #0c5c3d 0 18%,
+          #fffdf4 18% 29%,
+          #c7a247 29% 52%,
+          #2f9e6e 52% 72%,
+          #ead99b 72% 88%,
           transparent 97%
         );
         box-shadow:
-          0 1px 0 rgba(1, 28, 17, 0.72),
-          0 0 8px rgba(225, 181, 69, 0.32),
-          0 0 14px rgba(77, 192, 127, 0.16);
+          0 1px 0 rgba(8, 69, 48, 0.3),
+          0 0 8px rgba(199, 162, 71, 0.38),
+          0 0 14px rgba(26, 122, 82, 0.18);
         clip-path: polygon(0 0, 100% 0, 97% 100%, 1.2% 100%);
       }
 
@@ -658,15 +710,15 @@ const sourceSchema = {
         min-width: 0.8em;
         margin: -0.1em 0 -0.05em;
         padding: 0.075em 0.115em 0.035em;
-        color: #f8e5a6;
+        color: #fffef6;
         font-size: 1.62em;
         line-height: 0.78;
-        -webkit-text-stroke: 0.02em rgba(2, 48, 30, 0.98);
+        -webkit-text-stroke: 0.02em rgba(5, 76, 47, 0.96);
         text-shadow:
-          -0.045em 0.035em 0 #8e6518,
-          0.045em 0.04em 0 #35a56c,
-          0 0 0.22em rgba(231, 190, 82, 0.42),
-          0 0.08em 0.2em rgba(1, 31, 19, 0.56);
+          -0.045em 0.035em 0 #c39b3d,
+          0.045em 0.04em 0 #1a7a52,
+          0 0 0.24em rgba(255, 251, 226, 0.94),
+          0 0.08em 0.2em rgba(4, 58, 37, 0.34);
       }
 
       :global(.reactor-card__heading-initial::before) {
@@ -676,21 +728,21 @@ const sourceSchema = {
         z-index: -1;
         opacity: 0.94;
         background:
-          radial-gradient(circle at 22% 24%, #f8e2a0 0 5%, transparent 6%),
-          radial-gradient(circle at 78% 75%, #d9b857 0 5%, transparent 6%),
+          radial-gradient(circle at 22% 24%, #fffdf2 0 5%, transparent 6%),
+          radial-gradient(circle at 78% 75%, #e6cf82 0 5%, transparent 6%),
           conic-gradient(
             from 24deg,
-            rgba(3, 48, 31, 0.98),
-            rgba(20, 119, 75, 0.98),
-            rgba(207, 163, 58, 0.98),
-            rgba(6, 78, 49, 0.98),
-            rgba(3, 48, 31, 0.98)
+            rgba(10, 92, 61, 0.96),
+            rgba(246, 244, 225, 0.98),
+            rgba(26, 122, 82, 0.94),
+            rgba(204, 164, 65, 0.98),
+            rgba(10, 92, 61, 0.96)
           );
         box-shadow:
-          inset 0 0 0 1px rgba(234, 197, 96, 0.9),
-          inset 0 0 0.24em rgba(80, 191, 127, 0.34),
-          0 0 0.3em rgba(1, 35, 21, 0.54),
-          0 0 0.44em rgba(199, 162, 71, 0.2);
+          inset 0 0 0 1px rgba(230, 207, 130, 0.96),
+          inset 0 0 0.24em rgba(255, 255, 248, 0.62),
+          0 0 0.3em rgba(18, 104, 65, 0.28),
+          0 0 0.44em rgba(199, 162, 71, 0.22);
         clip-path: polygon(10% 0, 89% 6%, 100% 84%, 83% 100%, 4% 92%, 0 15%);
       }
 
@@ -701,24 +753,24 @@ const sourceSchema = {
         right: -0.12em;
         width: 0.16em;
         height: 0.16em;
-        background: #e6c56f;
+        background: #d1ad53;
         box-shadow:
-          -0.21em 0.04em 0 #1a8a59,
-          -0.05em 0.23em 0 #ba8d2e,
-          -0.23em 0.24em 0 #54bd82;
+          -0.21em 0.04em 0 #1a7a52,
+          -0.05em 0.23em 0 #fffdf4,
+          -0.23em 0.24em 0 #6fb98c;
         transform: rotate(45deg);
       }
 
       :global(.reactor-card__heading-text) {
         min-width: 0;
-        color: var(--card-gold-light);
+        color: var(--card-green-deep);
         font: inherit;
         line-height: inherit;
         text-shadow:
-          -0.018em 0 0 rgba(112, 78, 15, 0.76),
-          0.018em 0.02em 0 rgba(44, 139, 88, 0.46),
-          0 0 0.22em rgba(228, 182, 67, 0.22),
-          0 0.07em 0.22em rgba(1, 30, 18, 0.52);
+          -0.018em 0 0 rgba(178, 137, 37, 0.58),
+          0.018em 0.02em 0 rgba(29, 112, 70, 0.42),
+          0 0 0.26em rgba(255, 255, 248, 0.92),
+          0 0.07em 0.22em rgba(8, 69, 48, 0.22);
       }
 
       @supports ((background-clip: text) or (-webkit-background-clip: text)) {
@@ -726,20 +778,20 @@ const sourceSchema = {
           color: transparent;
           background: linear-gradient(
             96deg,
-            #a87921 0%,
-            #e2bd5a 17%,
-            #f9e6aa 31%,
-            #bd8d2b 45%,
-            #f3d77f 58%,
-            #d1a342 72%,
-            #f6dfa0 86%,
-            #ae7f25 100%
+            #0c5c3d 0%,
+            #2f9e6e 17%,
+            #fffdf4 31%,
+            #c39c3f 45%,
+            #f4ebca 58%,
+            #2f9e6e 72%,
+            #d7bb69 86%,
+            #0c5c3d 100%
           );
           background-size: 145% 100%;
           background-clip: text;
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
-          -webkit-text-stroke: 0.008em rgba(2, 47, 29, 0.72);
+          -webkit-text-stroke: 0.006em rgba(7, 67, 43, 0.28);
         }
       }
 
@@ -760,16 +812,14 @@ const sourceSchema = {
         position: relative;
         z-index: 1;
         color: var(--card-ink-soft);
-        border-top: 1px solid rgba(224, 181, 72, 0.5);
+        border-top: 1px solid rgba(163, 124, 30, 0.48);
         padding-top: 0.72rem;
         background: linear-gradient(
           180deg,
-          rgba(2, 39, 25, 0.44),
-          rgba(13, 100, 63, 0.24)
+          rgba(255, 255, 250, 0.56),
+          rgba(224, 238, 223, 0.28)
         );
-        box-shadow:
-          inset 0 1px 0 rgba(74, 184, 122, 0.14),
-          inset 0 -1px 0 rgba(210, 166, 59, 0.1);
+        box-shadow: inset 0 -1px 0 rgba(36, 112, 72, 0.13);
         font-family: var(--font-book);
         font-size: var(--card-copy-fit, clamp(0.82rem, 0.8vw, 0.94rem));
         font-weight: 400;
@@ -779,9 +829,26 @@ const sourceSchema = {
         text-align: justify;
         hyphens: auto;
         overflow-wrap: break-word;
-        text-shadow:
-          0 1px 0 rgba(1, 27, 16, 0.94),
-          0 0 11px rgba(229, 185, 70, 0.055);
+        text-shadow: 0 1px 0 rgba(255, 255, 255, 0.96);
+      }
+
+      /* Per-leaf ink variation: each column keeps the same green-on-paper
+         readability but shifts its weight along the resin → gold spectrum,
+         so the three leaves read as separate documents instead of one
+         flat block. */
+      :global(.reactor-card__body > :nth-child(1) p) {
+        color: rgba(10, 74, 48, 0.88);
+        border-top-color: rgba(26, 122, 82, 0.5);
+      }
+
+      :global(.reactor-card__body > :nth-child(2) p) {
+        color: rgba(93, 71, 14, 0.82);
+        border-top-color: rgba(199, 162, 71, 0.55);
+      }
+
+      :global(.reactor-card__body > :nth-child(3) p) {
+        color: rgba(18, 63, 43, 0.8);
+        border-top-color: rgba(47, 158, 110, 0.5);
       }
 
       :global(.reactor-card__body[data-copy-fit] p) {
@@ -798,26 +865,43 @@ const sourceSchema = {
         display: flex;
         gap: 0.85rem;
         margin-top: 1rem;
-        color: var(--card-gold);
+        color: var(--card-green);
         font: 600 0.65rem/1 var(--font-mono);
         letter-spacing: 0.12em;
       }
 
+      @supports ((background-clip: text) or (-webkit-background-clip: text)) {
+        :global(.reactor-card__stack) {
+          color: transparent;
+          background: linear-gradient(
+            88deg,
+            #0a4530 0%,
+            #1a7a52 22%,
+            #c7a247 48%,
+            #2f9e6e 74%,
+            #0a4530 100%
+          );
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+        }
+      }
+
       @keyframes reactor-card-arrival {
         0%, 18% {
-          border-color: rgba(237, 199, 98, 0.94);
+          border-color: rgba(199, 162, 71, 0.92);
           box-shadow:
-            0 0 30px rgba(222, 177, 65, 0.34),
-            0 24px 70px rgba(0, 0, 0, 0.38),
-            inset 0 1px 0 rgba(248, 220, 139, 0.58);
+            0 0 30px rgba(199, 162, 71, 0.38),
+            0 24px 70px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.96);
         }
         100% {
-          border-color: rgba(207, 163, 58, 0.64);
+          border-color: rgba(25, 103, 66, 0.58);
           box-shadow:
-            0 -12px 52px rgba(1, 24, 15, 0.48),
-            0 24px 70px rgba(0, 0, 0, 0.38),
-            inset 0 1px 0 rgba(244, 210, 111, 0.48),
-            inset 0 0 56px rgba(42, 155, 98, 0.15);
+            0 -10px 48px rgba(2, 31, 19, 0.24),
+            0 24px 70px rgba(0, 0, 0, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.96),
+            inset 0 0 42px rgba(55, 133, 84, 0.09);
         }
       }
 
@@ -828,7 +912,7 @@ const sourceSchema = {
 
       @keyframes reactor-signal-settle {
         0%, 64% { color: var(--card-gold); }
-        100% { color: var(--card-gold-light); }
+        100% { color: var(--card-green); }
       }
 
       @keyframes reactor-board-etch {
@@ -1245,12 +1329,9 @@ const sourceSchema = {
         width: 2.75rem;
         height: 2.75rem;
         color: var(--card-green-deep);
-        background: linear-gradient(145deg, #f1d581, #b98528);
-        border: 1px solid rgba(247, 224, 157, 0.74);
+        background: rgba(255, 255, 250, 0.66);
+        border: 1px solid rgba(174, 134, 34, 0.56);
         border-radius: 2px;
-        box-shadow:
-          inset 0 1px 0 rgba(255, 238, 183, 0.68),
-          0 5px 16px rgba(1, 31, 19, 0.24);
         transition:
           border-color 0.2s ease,
           color 0.2s ease,
@@ -1259,8 +1340,8 @@ const sourceSchema = {
       }
 
       :global(.reactor-card__icon:hover) {
-        color: var(--card-gold-light);
-        border-color: var(--card-gold-light);
+        color: var(--card-ivory);
+        border-color: var(--card-gold);
         background: var(--card-green-deep);
         transform: translateY(-2px);
       }
@@ -1285,22 +1366,22 @@ const sourceSchema = {
         letter-spacing: 0.1em;
         text-transform: uppercase;
         text-decoration: none;
-        color: var(--card-green-deep);
-        background: linear-gradient(135deg, #f4dc91, #c49332 72%, #a97821);
-        border: 1px solid var(--card-gold-light);
+        color: var(--card-ivory);
+        background: linear-gradient(135deg, var(--card-green-deep), var(--card-green));
+        border: 1px solid var(--card-gold);
         border-radius: 2px;
         box-shadow:
-          inset 0 1px 0 rgba(255, 240, 190, 0.68),
-          0 5px 16px rgba(1, 31, 19, 0.28);
+          inset 0 1px 0 rgba(255, 255, 255, 0.18),
+          0 5px 16px rgba(8, 69, 48, 0.16);
         transition: filter 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
       }
 
       :global(.reactor-card__cta:hover) {
         filter: brightness(1.08);
         box-shadow:
-          inset 0 1px 0 rgba(255, 240, 190, 0.82),
-          0 7px 20px rgba(1, 28, 17, 0.34),
-          0 0 0 1px rgba(246, 220, 143, 0.44);
+          inset 0 1px 0 rgba(255, 255, 255, 0.28),
+          0 7px 20px rgba(8, 69, 48, 0.22),
+          0 0 0 1px rgba(255, 253, 244, 0.46);
         transform: translateY(-2px);
       }
 
@@ -1545,14 +1626,14 @@ const sourceSchema = {
           overflow: hidden;
           scroll-snap-align: start;
           scroll-snap-stop: always;
-          border: 1px solid rgba(221, 177, 66, 0.5);
+          border: 1px solid rgba(166, 127, 31, 0.46);
           background:
-            radial-gradient(circle at 100% 0, rgba(224, 181, 72, 0.12), transparent 38%),
-            linear-gradient(145deg, rgba(3, 48, 31, 0.94), rgba(10, 91, 57, 0.84));
+            radial-gradient(circle at 100% 0, rgba(199, 162, 71, 0.13), transparent 38%),
+            linear-gradient(145deg, rgba(255, 255, 251, 0.82), rgba(222, 238, 223, 0.74));
           box-shadow:
-            inset 0 1px 0 rgba(77, 185, 122, 0.22),
-            inset 0 -1px 0 rgba(224, 181, 72, 0.14),
-            0 8px 24px rgba(1, 25, 15, 0.24);
+            inset 0 0 24px rgba(255, 255, 255, 0.52),
+            inset 0 -1px 0 rgba(32, 105, 68, 0.12),
+            0 8px 24px rgba(4, 51, 31, 0.11);
           text-align: left;
         }
 
@@ -1560,7 +1641,7 @@ const sourceSchema = {
           content: attr(data-page);
           display: block;
           margin-bottom: 0.58rem;
-          color: rgba(244, 216, 133, 0.82);
+          color: rgba(137, 101, 20, 0.78);
           font: 400 0.72rem/0.9 var(--font-vyaz);
           letter-spacing: 0.08em;
         }
@@ -1606,6 +1687,29 @@ const sourceSchema = {
           font-size: var(--card-copy-fit, 0.75rem);
           line-height: 1.34;
           letter-spacing: 0.006em;
+        }
+
+        /* Static extension-grid fallback: suspended iframes may never run the
+           ResizeObserver fitter. These curves mirror its measured RU/EN card
+           sizes; a hydrated card's inline custom property still wins. */
+        :global(html[data-viewport-lab-card] .reactor-card__body p:nth-child(1)) {
+          --card-copy-fit: clamp(20px, 6.13vw, 26px);
+        }
+
+        :global(html[data-viewport-lab-card] .reactor-card__body p:nth-child(2)) {
+          --card-copy-fit: clamp(16px, 4.84vw, 20px);
+        }
+
+        :global(html[data-viewport-lab-card] .reactor-card__body p:nth-child(3)) {
+          --card-copy-fit: clamp(17px, 5.12vw, 22px);
+        }
+
+        :global(html[lang='en'][data-viewport-lab-card] .reactor-card__body p:nth-child(2)) {
+          --card-copy-fit: clamp(17px, 5.13vw, 22px);
+        }
+
+        :global(html[lang='en'][data-viewport-lab-card] .reactor-card__body p:nth-child(3)) {
+          --card-copy-fit: clamp(18px, 5.65vw, 24px);
         }
       }
 
@@ -1791,15 +1895,13 @@ const sourceSchema = {
           scroll-snap-align: none;
           scroll-snap-stop: normal;
           border: 0;
-          border-top: 1px solid rgba(224, 181, 72, 0.5);
+          border-top: 1px solid rgba(163, 124, 30, 0.48);
           background: linear-gradient(
             180deg,
-            rgba(2, 39, 25, 0.44),
-            rgba(13, 100, 63, 0.24)
+            rgba(255, 255, 250, 0.56),
+            rgba(224, 238, 223, 0.28)
           );
-          box-shadow:
-            inset 0 1px 0 rgba(74, 184, 122, 0.14),
-            inset 0 -1px 0 rgba(210, 166, 59, 0.1);
+          box-shadow: inset 0 -1px 0 rgba(36, 112, 72, 0.13);
           font-size: var(--card-copy-fit, 0.72rem);
           line-height: 1.38;
           text-align: justify;
@@ -1837,6 +1939,11 @@ const sourceSchema = {
     </style>
   </head>
   <body>
+    <script is:inline>
+      if (document.documentElement.hasAttribute('data-viewport-lab-card')) {
+        document.body.classList.add('reactor-card-visible')
+      }
+    </script>
     <HeroScene client:load copy={t.card} />
 
     <header class="brand">

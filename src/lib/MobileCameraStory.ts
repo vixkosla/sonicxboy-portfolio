@@ -32,6 +32,9 @@ export interface MobileCameraPoint {
   readonly story: string
   readonly position: Vector3
   readonly target: Vector3
+  readonly offset: Vector3
+  readonly direction: Vector3
+  readonly distance: number
 }
 
 export interface MobileCameraPreview {
@@ -62,42 +65,42 @@ const ASSEMBLY_POINTS: readonly CameraPointTemplate[] = [
     move: 0,
     anchor: 'assembly',
     target: [0, 0.58, 0],
-    offset: [5.2, 4.3, 10.5],
+    offset: [2.6, 1.8, 4.4],
     title: 'Точка отсчёта',
-    story: 'Один неподвижный элемент ждёт материал, из которого соберётся система.',
+    story: 'Близкий план держит неподвижное ядро прямо у камеры, пока рой ещё не виден.',
   },
   {
     id: 'swarm',
     clock: 'assembly',
     at: 0.44,
-    move: 0.18,
+    move: 0.16,
     anchor: 'assembly',
     target: [-2.1, 0.85, 0],
-    offset: [8.2, 6.8, 16],
+    offset: [-3.4, 2.1, 6.6],
     title: 'Общий ритм',
-    story: 'Камера встречает основной поток там, где его траектории пересекаются.',
+    story: 'Камера стоит внутри потока — элементы проносятся мимо неё к центру пересечения.',
   },
   {
     id: 'gather',
     clock: 'assembly',
     at: 0.72,
-    move: 0.18,
+    move: 0.16,
     anchor: 'assembly',
     target: [-0.8, 0.78, 0],
-    offset: [7.1, 5.8, 13.8],
+    offset: [3.2, 2.4, 6.1],
     title: 'Кристаллизация',
-    story: 'Взгляд возвращается к центру, когда разрозненное становится структурой.',
+    story: 'Дистанция сокращается вместе со сходящимся роем — структура собирается прямо перед камерой.',
   },
   {
     id: 'lock',
     clock: 'assembly',
     at: 1,
-    move: 0.26,
+    move: 0.2,
     anchor: 'assembly',
     target: [0, 0.44, 0],
-    offset: [4.25, 3.55, 8.65],
+    offset: [-2.7, 1.5, 4.6],
     title: 'Замыкание',
-    story: 'Последний элемент превращает рой в одно тяжёлое тело.',
+    story: 'Самый близкий план — последний элемент впечатывается в тело прямо перед камерой.',
   },
 ]
 
@@ -109,7 +112,7 @@ const MOTION_POINTS: readonly CameraPointTemplate[] = [
     move: 0,
     anchor: 'assembly',
     target: [0, 0.44, 0],
-    offset: [4.25, 3.55, 8.65],
+    offset: [-2.7, 1.5, 4.6],
     title: 'Появление веса',
     story: 'Собранная система впервые отвечает на опору и гравитацию.',
   },
@@ -117,43 +120,43 @@ const MOTION_POINTS: readonly CameraPointTemplate[] = [
     id: 'roll',
     clock: 'motion',
     at: 'roll',
-    move: 0.62,
+    move: 0.46,
     anchor: 'settled',
-    target: [0, 0.48, 0],
-    offset: [4.55, 3.65, 9],
+    target: [0, 0.32, 0],
+    offset: [3.6, 0.9, 5.4],
     title: 'Перекат',
-    story: 'Взгляд проходит путь вместе с телом, не ожидая его в финальной точке.',
+    story: 'Низкий, почти уличный план у самой опоры читает вес и контакт с гранью.',
   },
   {
     id: 'diamond',
     clock: 'motion',
     at: 'diamond',
-    move: 0.64,
+    move: 0.44,
     anchor: 'settled',
-    target: [0, 0.58, 0],
-    offset: [3.95, 4, 8.8],
+    target: [0, 0.85, 0],
+    offset: [-2.9, 0.35, 4.3],
     title: 'Баланс',
-    story: 'Механический куб поднимается на угол и становится танцующим волчком.',
+    story: 'Камера почти на уровне вершины — балансирующий на угле волчок читается снизу, без страховки.',
   },
   {
     id: 'spin',
     clock: 'motion',
     at: 'spin',
-    move: 0.4,
+    move: 0.3,
     anchor: 'settled',
-    target: [0, 0.62, 0],
-    offset: [4.25, 3.85, 8.85],
+    target: [0, 0.68, 0],
+    offset: [3.1, 1.4, 3.6],
     title: 'Импульс',
-    story: 'Короткий близкий план отдаёт вращению главную роль.',
+    story: 'Плотный близкий план у самой оси вращения — импульс читается кинетически, не издалека.',
   },
   {
     id: 'outer-orbit',
     clock: 'motion',
     at: 'orbit',
-    move: 1.8,
+    move: 1.2,
     anchor: 'settled',
     target: [0, 1, 0],
-    offset: [5.95, 5.2, 11.75],
+    offset: [-12.36, 5.35, 5.45],
     title: 'Раскрытие порядка',
     story: 'Камера отходит, чтобы три симметрии могли раскрыться целиком.',
   },
@@ -161,62 +164,62 @@ const MOTION_POINTS: readonly CameraPointTemplate[] = [
     id: 'ignition',
     clock: 'motion',
     at: 'ignition',
-    move: 1.15,
+    move: 0.72,
     anchor: 'settled',
-    target: [0, 1.25, 0],
-    offset: [3.6, 3.9, 10.2],
+    target: [0, 1.1, 0],
+    offset: [2.6, 0.9, 3.9],
     title: 'Источник',
-    story: 'Взгляд входит в открытую апертуру и обнаруживает живое ядро.',
+    story: 'Камера протискивается в саму апертуру — источник заполняет кадр, а не просматривается издали.',
   },
   {
     id: 'capture',
     clock: 'motion',
     at: 'capture',
-    move: 1.25,
+    move: 0.82,
     anchor: 'settled',
-    target: [0, 0.56, 0],
-    offset: [4.5, 4, 9.45],
+    target: [0, 0.5, 0],
+    offset: [-4.6, 1.8, 6.9],
     title: 'Новая форма',
-    story: 'Отступ показывает, что орбиты возвращаются уже не в куб, а в сферу.',
+    story: 'Средний план держит стягивающееся движение орбит в кадре, не отступая до полного обзора.',
   },
   {
     id: 'shell',
     clock: 'motion',
     at: 'shell',
-    move: 1.1,
+    move: 0.68,
     anchor: 'settled',
-    target: [0, 0.62, 0],
-    offset: [4.65, 4.15, 9.65],
+    target: [0, 0.6, 0],
+    offset: [4.6, 5.6, 8.3],
     title: 'Сферическая оболочка',
-    story: 'Камера удерживает завершённую оболочку до следующей метаморфозы.',
+    story: 'Единственный по-настоящему высокий план — завершённая форма получает кадр витрины.',
   },
   {
     id: 'reactor',
     clock: 'motion',
     at: 'reactor',
-    move: 0.7,
+    move: 0.42,
     anchor: 'settled',
-    target: [0, 0.5, 0],
-    offset: [3.35, 3, 7.75],
+    target: [0, 0.48, 0],
+    offset: [1.8, 0.6, 2.6],
     title: 'Поверхность становится технологией',
-    story: 'Макроплан делает читаемыми уплощение кубов и проявление проводников.',
+    story: 'Резкий наезд почти вплотную — уплощение и проводники читаются как макросъёмка материала.',
   },
   {
     id: 'division',
     clock: 'motion',
     at: 'division',
-    move: 1,
+    move: 0.62,
     anchor: 'settled',
-    target: [0, 0.65, 0],
-    offset: [4.75, 4.25, 9.95],
+    target: [0, 0.62, 0],
+    offset: [-3.6, 2.4, 5.2],
     title: 'Размножение функции',
-    story: 'Общий план возвращает масштаб двум поколениям деления клеток.',
+    story: 'Камера держится ближе к паре поколений, не отходя до общего плана.',
   },
   {
     id: 'handoff',
     clock: 'motion',
     at: 'handoff',
-    move: 1.05,
+    move: 0.78,
     anchor: 'settled',
     target: [0, 0.72, 0],
     offset: [5.22, 4.93, 10.44],
@@ -229,6 +232,23 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value))
 const smootherstep = (value: number) => {
   const progress = clamp01(value)
   return progress ** 3 * (progress * (progress * 6 - 15) + 10)
+}
+
+// A held shot is never perfectly static: the camera keeps a slow continuous
+// orbit around the world Y axis at every point, arrival and transition alike,
+// so decisive arrivals at an authored vantage read as punctuation on top of
+// motion that never fully stops, rather than freeze-then-snap. ~0.09 rad/s
+// works out to roughly a third of a turn across the full ~22s sequence.
+const CAMERA_DRIFT_SPEED = 0.09
+
+function driftOffsetAroundY(output: Vector3, offset: Vector3, angle: number) {
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  return output.set(
+    offset.x * cos + offset.z * sin,
+    offset.y,
+    offset.z * cos - offset.x * sin,
+  )
 }
 
 function resolvePoint(
@@ -251,6 +271,15 @@ function resolvePoint(
       ? template.at
       : config.timings[template.at]
 
+  const target = new Vector3(targetX, targetY, targetZ)
+  const offset = new Vector3(
+    template.offset[0] * distanceScale,
+    template.offset[1] * distanceScale,
+    template.offset[2] * distanceScale,
+  )
+  const distance = offset.length()
+  const direction = offset.clone().multiplyScalar(1 / distance)
+
   return {
     id: template.id,
     clock: template.clock,
@@ -258,21 +287,45 @@ function resolvePoint(
     move: template.move,
     title: template.title,
     story: template.story,
-    target: new Vector3(targetX, targetY, targetZ),
-    position: new Vector3(
-      targetX + template.offset[0] * distanceScale,
-      targetY + template.offset[1] * distanceScale,
-      targetZ + template.offset[2] * distanceScale,
-    ),
+    target,
+    position: target.clone().add(offset),
+    offset,
+    direction,
+    distance,
   }
+}
+
+function slerpDirection(
+  output: Vector3,
+  start: Vector3,
+  end: Vector3,
+  progress: number,
+) {
+  const dot = Math.min(1, Math.max(-1, start.dot(end)))
+
+  if (dot > 0.9995) {
+    return output.lerpVectors(start, end, progress).normalize()
+  }
+
+  const angle = Math.acos(dot)
+  const inverseSine = 1 / Math.sin(angle)
+  const startWeight = Math.sin((1 - progress) * angle) * inverseSine
+  const endWeight = Math.sin(progress * angle) * inverseSine
+  return output
+    .copy(start)
+    .multiplyScalar(startWeight)
+    .addScaledVector(end, endWeight)
+    .normalize()
 }
 
 /**
  * A deterministic portrait-mobile camera track. Each point is a destination
  * with an arrival time and a move window; the camera holds the previous shot
- * until that window begins, then uses a C2 smootherstep into the next point.
+ * until that window begins, then uses a C2 smootherstep along a spherical arc
+ * into the next point.
  * All vectors and point records are created once in the constructor. Sampling
- * only mutates the two public output vectors and never allocates per frame.
+ * only mutates the two public outputs plus one private scratch vector and never
+ * allocates per frame.
  */
 export class MobileCameraStory {
   readonly assemblyPoints: readonly MobileCameraPoint[]
@@ -280,6 +333,7 @@ export class MobileCameraStory {
   readonly points: readonly MobileCameraPoint[]
   readonly position = new Vector3()
   readonly target = new Vector3()
+  private readonly orbitOffset = new Vector3()
   activePoint: MobileCameraPoint
 
   constructor(config: MobileCameraStoryConfig) {
@@ -290,6 +344,20 @@ export class MobileCameraStory {
       resolvePoint(point, config),
     )
     this.points = [...this.assemblyPoints, ...this.motionPoints]
+    if (import.meta.env.DEV) {
+      for (const track of [this.assemblyPoints, this.motionPoints]) {
+        for (let index = 1; index < track.length; index += 1) {
+          if (track[index].at <= track[index - 1].at) {
+            console.warn(
+              `MobileCameraStory: "${track[index].id}" arrives at or before ` +
+                `"${track[index - 1].id}" (${track[index].at} <= ` +
+                `${track[index - 1].at}). Points need strictly increasing ` +
+                'arrival times or the earlier one becomes unreachable.',
+            )
+          }
+        }
+      }
+    }
     this.activePoint = this.assemblyPoints[0]
     this.position.copy(this.activePoint.position)
     this.target.copy(this.activePoint.target)
@@ -329,18 +397,22 @@ export class MobileCameraStory {
     }
   }
 
-  sample(assemblyProgress: number, motionElapsed: number) {
+  sample(assemblyProgress: number, motionElapsed: number, driftTime: number) {
+    const driftAngle = driftTime * CAMERA_DRIFT_SPEED
     if (assemblyProgress < 1) {
-      this.sampleTrack(this.assemblyPoints, assemblyProgress)
+      this.sampleTrack(this.assemblyPoints, assemblyProgress, driftAngle)
     } else {
-      this.sampleTrack(this.motionPoints, motionElapsed)
+      this.sampleTrack(this.motionPoints, motionElapsed, driftAngle)
     }
   }
 
+  // Frozen for preview/debug links: an authored frame should stay exactly
+  // reproducible, so these skip the continuous drift entirely (angle 0).
   sampleClock(clock: MobileCameraClock, time: number) {
     this.sampleTrack(
       clock === 'assembly' ? this.assemblyPoints : this.motionPoints,
       time,
+      0,
     )
   }
 
@@ -350,7 +422,11 @@ export class MobileCameraStory {
     this.target.copy(point.target)
   }
 
-  private sampleTrack(points: readonly MobileCameraPoint[], time: number) {
+  private sampleTrack(
+    points: readonly MobileCameraPoint[],
+    time: number,
+    driftAngle: number,
+  ) {
     let previous = points[0]
 
     for (let index = 1; index < points.length; index += 1) {
@@ -359,16 +435,39 @@ export class MobileCameraStory {
 
       if (time < moveStart) {
         this.activePoint = previous
-        this.position.copy(previous.position)
         this.target.copy(previous.target)
+        driftOffsetAroundY(this.orbitOffset, previous.offset, driftAngle)
+        this.position.copy(previous.target).add(this.orbitOffset)
         return
       }
 
       if (time <= next.at) {
         const progress = smootherstep((time - moveStart) / next.move)
         this.activePoint = next
-        this.position.lerpVectors(previous.position, next.position, progress)
+        if (progress <= 0) {
+          this.target.copy(previous.target)
+          driftOffsetAroundY(this.orbitOffset, previous.offset, driftAngle)
+          this.position.copy(previous.target).add(this.orbitOffset)
+          return
+        }
+        if (progress >= 1) {
+          this.target.copy(next.target)
+          driftOffsetAroundY(this.orbitOffset, next.offset, driftAngle)
+          this.position.copy(next.target).add(this.orbitOffset)
+          return
+        }
+
         this.target.lerpVectors(previous.target, next.target, progress)
+        const distance =
+          previous.distance + (next.distance - previous.distance) * progress
+        slerpDirection(
+          this.orbitOffset,
+          previous.direction,
+          next.direction,
+          progress,
+        ).multiplyScalar(distance)
+        driftOffsetAroundY(this.orbitOffset, this.orbitOffset, driftAngle)
+        this.position.copy(this.target).add(this.orbitOffset)
         return
       }
 
@@ -376,7 +475,8 @@ export class MobileCameraStory {
     }
 
     this.activePoint = previous
-    this.position.copy(previous.position)
     this.target.copy(previous.target)
+    driftOffsetAroundY(this.orbitOffset, previous.offset, driftAngle)
+    this.position.copy(previous.target).add(this.orbitOffset)
   }
 }

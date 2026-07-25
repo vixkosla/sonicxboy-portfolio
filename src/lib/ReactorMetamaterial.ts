@@ -737,12 +737,26 @@ float reactorLeadPattern = clamp(
   0.0,
   1.0
 );
+// The cubelets keep a real geometric bevel (see CUBE_EDGE_RADIUS), but the
+// 104-plate reactor mesh deliberately stays a flat unit box to avoid
+// quadrupling vertex count at the scene's already-heaviest stage. Without
+// this, the handoff from a rounded cubelet to a razor-edged plate reads as
+// the corner highlight simply vanishing. A cheap analytic edge curvature,
+// gated off for cubelets (uReactorAllFaces), restores that same catch-light
+// on plates using only the existing height-field normal, no extra geometry.
+vec2 reactorPlateEdgeUv = min( vReactorUv, 1.0 - vReactorUv );
+float reactorPlateEdgeDistance = min( reactorPlateEdgeUv.x, reactorPlateEdgeUv.y );
+float reactorPlateEdgeProfile = 1.0 - clamp( reactorPlateEdgeDistance / 0.045, 0.0, 1.0 );
+float reactorPlateBevel =
+  -reactorPlateEdgeProfile * reactorPlateEdgeProfile *
+  reactorFaceMask * ( 1.0 - uReactorAllFaces );
 float reactorReliefHeight =
   -reactorEngravingPattern * 0.72 -
   reactorEngravingCut * 0.3 -
   reactorMicroPattern * 0.09 -
   reactorFramePattern * 0.22 +
-  reactorConductorPattern * 0.43;
+  reactorConductorPattern * 0.43 +
+  reactorPlateBevel * 0.4;
 reactorReliefHeight *= 1.0 - reactorDematerialize * 0.9;
 
 float reactorUnetched =

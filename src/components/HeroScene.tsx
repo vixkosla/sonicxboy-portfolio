@@ -161,6 +161,15 @@ const ROLL_CONTACT_GLOW_START = EDGE_ROLL_DURATION * 0.34
 const ROLL_CONTACT_GLOW_ATTACK = EDGE_ROLL_DURATION * 0.5
 const ROLL_CONTACT_GLOW_RELEASE_START = EDGE_ROLL_DURATION * 0.92
 const ROLL_CONTACT_GLOW_RELEASE = 0.22
+// A coordinated gold-reveal wave sweeps the still-monochrome cubelet
+// engraving during roll/spin/orbit, reusing the same directional reveal the
+// reactor morph uses later. It stays a partial, traveling shimmer (peak well
+// below full reveal) rather than a permanent gold-plating.
+const CUBELET_ENGRAVING_WAVE_PERIOD = 4.2
+const CUBELET_ENGRAVING_WAVE_ATTACK = 0.9
+const CUBELET_ENGRAVING_WAVE_HOLD = 0.35
+const CUBELET_ENGRAVING_WAVE_RELEASE = 1.1
+const CUBELET_ENGRAVING_WAVE_PEAK = 0.4
 const SHELL_RADIUS = 1.22
 const ORBIT_DEPART_DURATION = 2.05
 const ORBIT_CAPTURE_START = 7.15
@@ -221,7 +230,9 @@ const REACTOR_PARENT_THICKNESS = 0.07
 const REACTOR_LINEAGE_WIDTH = 0.285
 const REACTOR_LINEAGE_THICKNESS = 0.05
 const REACTOR_TILE_WIDTH = 0.27
-const REACTOR_TILE_THICKNESS = 0.03
+const REACTOR_TILE_THICKNESS = 0.022
+const REACTOR_PLATE_EDGE_RADIUS = 0.09
+const REACTOR_PLATE_EDGE_SEGMENTS = 3
 const REACTOR_WAVE_ONE_START = REACTOR_TRANSFORM_END + 0.7
 const REACTOR_WAVE_DURATION = 0.72
 const REACTOR_WAVE_GAP = 0.14
@@ -1205,7 +1216,15 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   )
   const reactorPlateGeometry = useMemo(
     () => {
-      const geometry = new BoxGeometry(1, 1, 1)
+      const geometry = mergeVertices(
+        new RoundedBoxGeometry(
+          1,
+          1,
+          1,
+          REACTOR_PLATE_EDGE_SEGMENTS,
+          REACTOR_PLATE_EDGE_RADIUS,
+        ),
+      )
       geometry.setAttribute(
         'instanceDematerialize',
         reactorDematerializeAttribute,
@@ -2124,6 +2143,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       cameraStory.sample(
         Math.min(1, assembly.time / assembly.endTime),
         spin.elapsed,
+        Math.min(assembly.time, assembly.endTime) + spin.elapsed,
       )
     }
 
@@ -2264,6 +2284,39 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       : assembly.time - Math.max(previousAssemblyTime, assembly.endTime)
     spin.update(spinDelta)
     applyMobileCameraStory(camera, scene)
+
+    if (!previewMaterialBaseline && spin.mainElapsed < REACTOR_TRANSFORM_START) {
+      const wavePhase = spin.elapsed % CUBELET_ENGRAVING_WAVE_PERIOD
+      let waveEnvelope = 0
+      if (wavePhase < CUBELET_ENGRAVING_WAVE_ATTACK) {
+        waveEnvelope = smootherstep(wavePhase / CUBELET_ENGRAVING_WAVE_ATTACK)
+      } else if (
+        wavePhase <
+        CUBELET_ENGRAVING_WAVE_ATTACK + CUBELET_ENGRAVING_WAVE_HOLD
+      ) {
+        waveEnvelope = 1
+      } else if (
+        wavePhase <
+        CUBELET_ENGRAVING_WAVE_ATTACK +
+          CUBELET_ENGRAVING_WAVE_HOLD +
+          CUBELET_ENGRAVING_WAVE_RELEASE
+      ) {
+        waveEnvelope =
+          1 -
+          smootherstep(
+            (wavePhase -
+              CUBELET_ENGRAVING_WAVE_ATTACK -
+              CUBELET_ENGRAVING_WAVE_HOLD) /
+              CUBELET_ENGRAVING_WAVE_RELEASE,
+          )
+      }
+      updateReactorCircuitSurface(
+        cubeletMaterial,
+        waveEnvelope * CUBELET_ENGRAVING_WAVE_PEAK,
+        spin.elapsed,
+        waveEnvelope * 0.6,
+      )
+    }
 
     while (
       titleWaveStep.current < TITLE_WAVE_TIMES.length &&
