@@ -708,9 +708,32 @@ float reactorFlowPulse = reactorBand(
   0.036
 );
 
+// Narrative surface modulation: the same etch clock that drives the
+// directional reveal also imprints traveling bands and a fine noise
+// breakup, so the gilding never feels like a static decal.
+float reactorEtchNoise = reactorGridHash(
+  reactorUv * vec2( 41.0, 37.0 ) + reactorSeedA
+);
+float reactorEtchBands = reactorBand(
+  abs( fract( reactorUv.x * 2.3 + reactorUv.y * 1.7 - uReactorTime * 0.09 ) - 0.5 ),
+  0.028
+);
+float reactorEtchBreakup = mix(
+  1.0,
+  0.72 + 0.28 * reactorEtchNoise,
+  smoothstep( 0.22, 0.78, uReactorEnergy )
+);
+float reactorEtchShimmer = mix(
+  1.0,
+  0.88 + 0.12 * sin( uReactorTime * 5.4 + reactorSeedB * 6.283 ),
+  smoothstep( 0.35, 0.9, uReactorSurface )
+);
+float reactorNarrativeMask =
+  reactorEtchBreakup * reactorEtchShimmer * ( 1.0 - reactorEtchBands * 0.22 );
+
 float reactorSurfaceMask = reactorFaceMask * reactorBoardReveal;
-float reactorTraceMask = reactorFaceMask * reactorGoldReveal;
-float reactorBaseEngraving = reactorFaceMask * uReactorEngraving;
+float reactorTraceMask = reactorFaceMask * reactorGoldReveal * reactorNarrativeMask;
+float reactorBaseEngraving = reactorFaceMask * uReactorEngraving * reactorNarrativeMask;
 float reactorMicroPattern = max(
   reactorSurfaceMask * reactorMicroWeave * 0.62,
   reactorBaseEngraving * reactorMicroWeave * 0.18

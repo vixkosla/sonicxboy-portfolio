@@ -161,15 +161,20 @@ const ROLL_CONTACT_GLOW_START = EDGE_ROLL_DURATION * 0.34
 const ROLL_CONTACT_GLOW_ATTACK = EDGE_ROLL_DURATION * 0.5
 const ROLL_CONTACT_GLOW_RELEASE_START = EDGE_ROLL_DURATION * 0.92
 const ROLL_CONTACT_GLOW_RELEASE = 0.22
-// A coordinated gold-reveal wave sweeps the still-monochrome cubelet
-// engraving during roll/spin/orbit, reusing the same directional reveal the
-// reactor morph uses later. It stays a partial, traveling shimmer (peak well
-// below full reveal) rather than a permanent gold-plating.
+// Cubelet engraving gets its own story beats instead of a flat periodic
+// shimmer: contact flash at roll, spin waves, ignition surge, and a
+// capture shimmer as the shell closes. Each beat reuses the same
+// directional reveal; only the envelope changes.
 const CUBELET_ENGRAVING_WAVE_PERIOD = 4.2
 const CUBELET_ENGRAVING_WAVE_ATTACK = 0.9
 const CUBELET_ENGRAVING_WAVE_HOLD = 0.35
 const CUBELET_ENGRAVING_WAVE_RELEASE = 1.1
 const CUBELET_ENGRAVING_WAVE_PEAK = 0.4
+const CUBELET_ENGRAVING_ROLL_PEAK = 0.68
+const CUBELET_ENGRAVING_IGNITION_PEAK = 0.85
+const CUBELET_ENGRAVING_IGNITION_DURATION = 1.4
+const CUBELET_ENGRAVING_CAPTURE_PEAK = 0.52
+const CUBELET_ENGRAVING_CAPTURE_DURATION = 1.9
 const SHELL_RADIUS = 1.22
 const ORBIT_DEPART_DURATION = 2.05
 const ORBIT_CAPTURE_START = 7.15
@@ -199,6 +204,10 @@ const PLASMA_WARM_START = 7.55
 const PLASMA_WARM_DURATION = 1.2
 const PLASMA_RIM_START = 8.8
 const PLASMA_RIM_DURATION = 1.25
+const CUBELET_ENGRAVING_IGNITION_START =
+  MAIN_SPIN_START + PLASMA_CORE_START - 0.24
+const CUBELET_ENGRAVING_CAPTURE_START =
+  MAIN_SPIN_START + ORBIT_CAPTURE_START + ORBIT_CAPTURE_DURATION * 0.4
 const IGNITION_FLASH_ATTACK = 0.07
 const IGNITION_FLASH_HOLD = 0.09
 const IGNITION_FLASH_DECAY = 0.86
@@ -2286,7 +2295,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     applyMobileCameraStory(camera, scene)
 
     if (!previewMaterialBaseline && spin.mainElapsed < REACTOR_TRANSFORM_START) {
-      const wavePhase = spin.elapsed % CUBELET_ENGRAVING_WAVE_PERIOD
+      const elapsed = spin.elapsed
+      const wavePhase = elapsed % CUBELET_ENGRAVING_WAVE_PERIOD
       let waveEnvelope = 0
       if (wavePhase < CUBELET_ENGRAVING_WAVE_ATTACK) {
         waveEnvelope = smootherstep(wavePhase / CUBELET_ENGRAVING_WAVE_ATTACK)
@@ -2310,11 +2320,62 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
               CUBELET_ENGRAVING_WAVE_RELEASE,
           )
       }
+
+      // Beat 1 — roll contact flash: the cube lands and the engraving
+      // answers with a single hot pulse on the same frame the contact
+      // glow fires.
+      const rollContact =
+        smootherstep(
+          (elapsed - ROLL_CONTACT_GLOW_START) / ROLL_CONTACT_GLOW_ATTACK,
+        ) *
+        (1 -
+          smootherstep(
+            (elapsed - ROLL_CONTACT_GLOW_RELEASE_START) /
+              ROLL_CONTACT_GLOW_RELEASE,
+          ))
+      const rollBeat = rollContact * CUBELET_ENGRAVING_ROLL_PEAK
+
+      // Beat 2 — spin waves: the periodic shimmer that was here before,
+      // now nested between the stronger narrative beats.
+      const spinBeat = waveEnvelope * CUBELET_ENGRAVING_WAVE_PEAK
+
+      // Beat 3 — ignition surge: the plasma core lights and the gold
+      // engraving surges outward as if the heat reached the shell.
+      const ignitionRaw =
+        (elapsed - CUBELET_ENGRAVING_IGNITION_START) /
+        CUBELET_ENGRAVING_IGNITION_DURATION
+      const ignitionBeat =
+        smootherstep(ignitionRaw) *
+        (1 - smootherstep(ignitionRaw - 0.62)) *
+        CUBELET_ENGRAVING_IGNITION_PEAK
+
+      // Beat 4 — capture shimmer: the shell closes and the engraving
+      // settles into a quieter, final gilding before the reactor morph.
+      const captureRaw =
+        (elapsed - CUBELET_ENGRAVING_CAPTURE_START) /
+        CUBELET_ENGRAVING_CAPTURE_DURATION
+      const captureBeat =
+        smootherstep(captureRaw) *
+        (1 - smootherstep(captureRaw - 0.7)) *
+        CUBELET_ENGRAVING_CAPTURE_PEAK
+
+      const surface = Math.min(
+        1,
+        rollBeat + spinBeat + ignitionBeat + captureBeat,
+      )
+      const energy = Math.min(
+        1,
+        rollContact * 0.9 +
+          waveEnvelope * 0.6 +
+          ignitionBeat * 0.85 +
+          captureBeat * 0.5,
+      )
+
       updateReactorCircuitSurface(
         cubeletMaterial,
-        waveEnvelope * CUBELET_ENGRAVING_WAVE_PEAK,
-        spin.elapsed,
-        waveEnvelope * 0.6,
+        surface,
+        elapsed,
+        energy,
       )
     }
 
@@ -2901,6 +2962,49 @@ const CARD_CIRCUIT_PATHS = [
   'M1184 118H1230V140H1278',
 ] as const
 
+// Dark lenticel marks on birch bark - horizontal slashes in the area between
+// the two circuit-trace rows where the body text sits. Each mark is a short
+// tapered stroke with varied spacing, tilt, and weight to feel organic.
+// Three densities: dense cluster (3-4 tight), normal pair, and isolated single
+// marks scattered across the band.
+const CARD_BARK_MARKS = [
+  // ── top band (Y ≈ 140..176) ──────────────────────
+  // row 1: sparse
+  'M46 148L78 146', 'M120 154L166 150', 'M228 144L268 149',
+  'M344 152L388 146', 'M458 145L504 150',
+  // row 2: dense cluster
+  'M558 164L582 162', 'M596 160L620 158', 'M636 162L658 160',
+  'M690 148L732 143', 'M790 152L824 148', 'M864 156L906 150',
+  // row 3: mixed
+  'M936 166L968 163', 'M990 160L1032 156', 'M1052 162L1084 158',
+  'M1126 148L1168 144', 'M1246 153L1292 147', 'M1348 146L1396 152',
+  'M1430 156L1470 151', 'M1508 144L1550 148',
+  // row 4: near lower band
+  'M58 172L98 170', 'M140 178L180 174', 'M264 172L316 169',
+  'M400 176L440 170', 'M510 172L564 168',
+  // ── middle band (Y ≈ 180..210) ───────────────────
+  'M82 192L114 190', 'M168 196L206 193', 'M262 188L310 185',
+  'M378 194L420 190', 'M478 188L540 184',
+  'M568 192L600 189', 'M644 196L680 192', 'M714 188L758 185',
+  'M792 194L832 190', 'M876 188L930 184',
+  'M964 192L998 189', 'M1036 196L1080 192', 'M1112 188L1156 184',
+  'M1200 195L1244 191', 'M1290 190L1342 186', 'M1396 193L1446 189',
+  'M1480 188L1534 184',
+  // ── lower band (Y ≈ 210..240) ────────────────────
+  'M40 226L84 222', 'M110 232L148 228', 'M200 228L248 224',
+  'M306 232L352 226', 'M398 228L456 223',
+  'M500 224L544 220', 'M580 228L628 224', 'M670 226L726 220',
+  'M762 222L810 218', 'M852 228L906 222',
+  'M944 224L988 220', 'M1028 230L1082 224', 'M1122 226L1172 222',
+  'M1218 228L1276 224', 'M1330 222L1378 218',
+  'M1420 226L1474 222',
+  // ── bottom scatter (Y ≈ 242..260) ────────────────
+  'M64 244L104 240', 'M182 250L228 245', 'M320 246L376 242',
+  'M470 248L516 244', 'M630 252L672 246',
+  'M776 248L830 244', 'M926 252L968 246', 'M1100 248L1152 243',
+  'M1288 246L1344 242', 'M1424 250L1478 244',
+] as const
+
 const CARD_CIRCUIT_PADS = [
   [24, 30, 3], [154, 28, 2.5], [226, 28, 3],
   [72, 74, 2.5], [212, 64, 3], [286, 64, 2.5],
@@ -2944,6 +3048,23 @@ export default function HeroScene({
   const headingGlyphs = Array.from(copy.h2)
   const headingInitial = headingGlyphs.shift() ?? ''
   const headingRemainder = headingGlyphs.join('')
+
+  // Square-bracket tokens in the i18n copy mark accent words. Split them
+  // into real <em> nodes so the card can render marginalia-style accents
+  // without breaking the copy-fit measurements.
+  const renderAccentText = (text: string) => {
+    const parts = text.split(/(\[[^\]]+\])/g)
+    return parts.map((part, index) => {
+      if (part.startsWith('[') && part.endsWith(']')) {
+        return (
+          <em key={index} className="reactor-card__accent">
+            {part.slice(1, -1)}
+          </em>
+        )
+      }
+      return <span key={index}>{part}</span>
+    })
+  }
 
   // Mobile pages and the wide desktop leaves have a real bounded area. Fit
   // each paragraph independently so short copy does not drown in empty board
@@ -3119,6 +3240,18 @@ export default function HeroScene({
               />
             ))}
           </g>
+          <g className="reactor-card__bark-marks">
+            {CARD_BARK_MARKS.map((path, index) => (
+              <path
+                key={`bark-${path}`}
+                d={path}
+                pathLength="1"
+                style={{
+                  '--bark-delay': `${index * 0.03}s`,
+                } as CSSProperties}
+              />
+            ))}
+          </g>
           <g className="reactor-card__circuit-metal">
             {CARD_CIRCUIT_PATHS.map((path, index) => (
               <path
@@ -3174,9 +3307,9 @@ export default function HeroScene({
             aria-label={copy.h2}
             tabIndex={0}
           >
-            <p data-page="01 / 03">{copy.p1}</p>
-            <p data-page="02 / 03">{copy.p2}</p>
-            <p data-page="03 / 03">{copy.p3}</p>
+            <p data-page="01 / 03">{renderAccentText(copy.p1)}</p>
+            <p data-page="02 / 03">{renderAccentText(copy.p2)}</p>
+            <p data-page="03 / 03">{renderAccentText(copy.p3)}</p>
           </div>
           <nav className="reactor-card__actions" aria-label={copy.ariaNav}>
             <a

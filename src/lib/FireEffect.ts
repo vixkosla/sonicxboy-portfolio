@@ -2,6 +2,7 @@ import {
   AddEquation,
   CustomBlending,
   Data3DTexture,
+  DoubleSide,
   FrontSide,
   GLSL3,
   LatheGeometry,
@@ -1174,7 +1175,7 @@ export function createGridMaterial() {
     blending: NormalBlending,
     depthWrite: false,
     depthTest: true,
-    side: FrontSide,
+    side: DoubleSide,
     toneMapped: false,
   })
 }

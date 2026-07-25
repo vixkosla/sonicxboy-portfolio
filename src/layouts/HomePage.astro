@@ -284,6 +284,40 @@ const sourceSchema = {
         max-width: 100%;
       }
 
+      /* Wide desktop viewports leave real empty space around the object.
+         A screen-blended nebula fills it without competing with the scene:
+         additive blending means it barely registers over anything already
+         bright (the plasma core, lit cube faces, the card) and only really
+         shows in the near-black gaps, so the object and text stay the read.
+         Kept out of the DOM's z-index=1 content layer entirely; it sits
+         between the canvas and the text, at the same stacking level as the
+         canvas so plain DOM order decides paint order. */
+      @media (min-width: 961px) {
+        .hero-nebula {
+          position: fixed;
+          inset: 0;
+          z-index: 0;
+          pointer-events: none;
+          mix-blend-mode: screen;
+          background:
+            radial-gradient(
+              ellipse 62vw 58vh at 90% 6%,
+              rgba(226, 46, 58, 0.22),
+              transparent 62%
+            ),
+            radial-gradient(
+              ellipse 48vw 62vh at 99% 64%,
+              rgba(178, 33, 45, 0.16),
+              transparent 60%
+            ),
+            radial-gradient(
+              ellipse 42vw 42vh at 2% 92%,
+              rgba(120, 24, 34, 0.1),
+              transparent 65%
+            );
+        }
+      }
+
       /* ── Wordmark ─────────────────────────────────────────── */
 
       .brand {
@@ -511,6 +545,47 @@ const sourceSchema = {
         stroke-width: 2.5;
       }
 
+      /* Birch-bark lenticel marks: short dark horizontal slashes between
+         the circuit rows. The card surface is a pale warm paper, so these
+         should be a dark green-brown (like real birch lenticels), slightly
+         translucent with a soft drop shadow so they read as part of the
+         material texture rather than drawn-on ink. */
+      :global(.reactor-card__bark-marks) {
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+      }
+
+      :global(.reactor-card__bark-marks path) {
+        fill: none;
+        stroke: rgba(7, 30, 18, 0.72);
+        stroke-width: 3.2;
+        stroke-linecap: round;
+        stroke-dasharray: 1;
+        stroke-dashoffset: 1;
+        vector-effect: non-scaling-stroke;
+        opacity: 0;
+      }
+
+      :global(.reactor-card__bark-marks path:nth-child(3n)) {
+        stroke-width: 2.2;
+        stroke: rgba(7, 30, 18, 0.52);
+      }
+
+      :global(.reactor-card__bark-marks path:nth-child(5n + 1)) {
+        stroke-width: 4;
+        stroke: rgba(5, 20, 12, 0.82);
+      }
+
+      :global(.reactor-card__bark-marks path:nth-child(7n + 3)) {
+        stroke-width: 1.8;
+        stroke: rgba(7, 30, 18, 0.38);
+        stroke-dasharray: 0.7 0.3;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__bark-marks path) {
+        animation: reactor-bark-appear 0.7s ease-out
+          calc(0.6s + var(--bark-delay, 0s)) both;
+      }
+
       :global(.reactor-card__circuit-pads rect) {
         fill: rgba(255, 253, 244, 0.94);
         stroke: rgba(19, 100, 63, 0.58);
@@ -569,7 +644,8 @@ const sourceSchema = {
         clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
       }
 
-      :global(html[data-viewport-lab-card] .reactor-card__circuit-grooves path) {
+      :global(html[data-viewport-lab-card] .reactor-card__circuit-grooves path),
+      :global(html[data-viewport-lab-card] .reactor-card__bark-marks path) {
         animation: none;
         opacity: 0.82;
         stroke-dashoffset: 0;
@@ -851,8 +927,164 @@ const sourceSchema = {
         border-top-color: rgba(47, 158, 110, 0.5);
       }
 
+      /* Desktop (>960px): the card body is typeset like a Slavonic
+         manuscript — Ponomar capitals over an Old Standard book hand.
+         On mobile the dense pager cards keep the plainer treatment,
+         which already reads well at small sizes. */
+      @media (min-width: 961px) {
+        :global(.reactor-card__body p) {
+          font-family: var(--font-vyaz);
+          font-size: calc(var(--card-copy-fit, clamp(0.82rem, 0.8vw, 0.94rem)) * 1.06);
+          line-height: 1.44;
+          letter-spacing: 0.014em;
+          text-align: left;
+          hyphens: none;
+        }
+
+        :global(.reactor-card__body p::before) {
+          content: attr(data-page);
+          display: block;
+          margin-bottom: 0.5rem;
+          color: rgba(178, 48, 58, 0.88);
+          font: 400 0.78rem/1 var(--font-vyaz);
+          letter-spacing: 0.1em;
+        }
+
+        :global(.reactor-card__body p::first-letter) {
+          color: #b2303a;
+          font-family: var(--font-vyaz);
+          font-size: 1.62em;
+          line-height: 0.86;
+          padding-right: 0.045em;
+        }
+      }
+
+      /* Accent words from bracketed [tokens] get visible decoration on all
+         sizes - not only desktop. Simple CSS tools: background highlight,
+         text outline through text-shadow, a colored underline via ::before,
+         and a small diacritic glyph via ::after. */
+      :global(.reactor-card__accent) {
+        position: relative;
+        font-style: normal;
+        font-weight: 600;
+        color: #1a3530;
+        padding: 0.04em 0.12em 0.06em;
+        border-radius: 0.12em;
+        background: linear-gradient(
+          135deg,
+          rgba(199, 162, 71, 0.18),
+          rgba(199, 162, 71, 0.06) 70%
+        );
+        box-shadow:
+          inset 0 0 0 0.5px rgba(199, 162, 71, 0.35),
+          0 1px 0 rgba(199, 162, 71, 0.15);
+        text-shadow:
+          0 0.5px 0 rgba(255, 253, 244, 0.9),
+          0 1.5px 3px rgba(5, 30, 20, 0.18);
+      }
+
+      :global(.reactor-card__accent::before) {
+        content: '';
+        position: absolute;
+        left: 0.08em;
+        right: 0.08em;
+        bottom: -0.1em;
+        height: 2px;
+        border-radius: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent 5%,
+          rgba(199, 162, 71, 0.6),
+          transparent 95%
+        );
+      }
+
+      :global(.reactor-card__accent::after) {
+        content: '✦';
+        position: absolute;
+        top: -0.6em;
+        right: -0.15em;
+        color: rgba(199, 162, 71, 0.55);
+        font-size: 0.55em;
+        line-height: 1;
+        text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
+      }
+
+      /* Second-column accents get a different glyph and cooler tone */
+      :global(.reactor-card__body > :nth-child(2) .reactor-card__accent) {
+        background: linear-gradient(
+          135deg,
+          rgba(47, 158, 110, 0.15),
+          rgba(47, 158, 110, 0.04) 70%
+        );
+        box-shadow:
+          inset 0 0 0 0.5px rgba(47, 158, 110, 0.3),
+          0 1px 0 rgba(47, 158, 110, 0.12);
+      }
+
+      :global(.reactor-card__body > :nth-child(2) .reactor-card__accent::after) {
+        content: '◆';
+        color: rgba(47, 158, 110, 0.5);
+      }
+
+      /* Third-column: warmer, like colophon marks */
+      :global(.reactor-card__body > :nth-child(3) .reactor-card__accent) {
+        background: linear-gradient(
+          135deg,
+          rgba(178, 48, 58, 0.12),
+          rgba(178, 48, 58, 0.03) 70%
+        );
+        box-shadow:
+          inset 0 0 0 0.5px rgba(178, 48, 58, 0.25),
+          0 1px 0 rgba(178, 48, 58, 0.1);
+      }
+
+      :global(.reactor-card__body > :nth-child(3) .reactor-card__accent::after) {
+        content: '❖';
+        color: rgba(178, 48, 58, 0.42);
+      }
+
+      /* On mobile where paragraphs don't overflow:hidden, keep accents but
+         smaller - they should never break line-height flow. On desktop the
+         manuscript treatment keeps larger accents. */
+      @media (max-width: 960px) {
+        :global(.reactor-card__accent) {
+          font-weight: 500;
+          padding: 0.02em 0.08em 0.04em;
+          background: transparent;
+          box-shadow: none;
+          border-radius: 0;
+          color: #0f4a38;
+          text-shadow: none;
+        }
+        :global(.reactor-card__accent::before) {
+          height: 1.5px;
+          bottom: -0.06em;
+          background: linear-gradient(
+            90deg,
+            transparent 5%,
+            rgba(199, 162, 71, 0.4),
+            transparent 95%
+          );
+        }
+        :global(.reactor-card__accent::after) {
+          display: none;
+        }
+      }
+
       :global(.reactor-card__body[data-copy-fit] p) {
         overflow: hidden;
+      }
+
+      /* Desktop manuscript mode needs the accent glyphs (⸙/◈) visible - they
+         sit above the text line via ::after's negative top offset and would
+         be clipped by overflow:hidden. The copy-fit measurement already found
+         a font size that fits the container, so the overflow guard is
+         redundant on desktop. */
+      @media (min-width: 961px) {
+        :global(.reactor-card__body[data-copy-fit] p) {
+          overflow: visible;
+        }
       }
 
       :global(.reactor-card p + p) {
@@ -949,6 +1181,21 @@ const sourceSchema = {
         }
         100% {
           opacity: 0.82;
+          stroke-dashoffset: 0;
+        }
+      }
+
+      @keyframes reactor-bark-appear {
+        0% {
+          opacity: 0;
+          stroke-dashoffset: 1;
+        }
+        60% {
+          opacity: 0.9;
+          stroke-dashoffset: 0.15;
+        }
+        100% {
+          opacity: 1;
           stroke-dashoffset: 0;
         }
       }
@@ -1945,6 +2192,7 @@ const sourceSchema = {
       }
     </script>
     <HeroScene client:load copy={t.card} />
+    <div class="hero-nebula" aria-hidden="true"></div>
 
     <header class="brand">
       <BrandMark />
