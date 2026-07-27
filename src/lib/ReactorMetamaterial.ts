@@ -975,6 +975,7 @@ export function updateReactorCircuitSurface(
   time: number,
   energy: number,
   seed = 0,
+  conductorColor?: Color,
 ) {
   const uniforms = reactorSurfaceUniforms.get(material)
   if (!uniforms) return
@@ -983,6 +984,7 @@ export function updateReactorCircuitSurface(
   uniforms.time.value = time
   uniforms.energy.value = clamp01(energy)
   uniforms.seed.value = Math.max(0, seed)
+  if (conductorColor) uniforms.conductorColor.value.copy(conductorColor)
 }
 
 export function updateStructuralMetamaterial(

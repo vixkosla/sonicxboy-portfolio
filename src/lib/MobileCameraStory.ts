@@ -21,6 +21,21 @@ export interface MobileCameraStoryConfig {
   timings: MobileCameraStoryTimings
   distanceScale?: number
   targetYBias?: number
+  // Desktop reuses this same class with its own point set (see
+  // desktopCameraPoints.ts) - the sampling/drift/slerp machinery below
+  // doesn't care which shot list it's walking, only the vectors differ.
+  // Defaults to the portrait-mobile track when omitted.
+  assemblyPoints?: readonly CameraPointTemplate[]
+  motionPoints?: readonly CameraPointTemplate[]
+  // The continuous background orbit (CAMERA_DRIFT_SPEED below) accumulates
+  // without bound - a numeric replay showed the azimuth drifting ~29deg by
+  // the end of assembly alone and past 100deg by the "capture" shot. That is
+  // incompatible with desktop's fixed-azimuth requirement (every point in
+  // desktopCameraPoints.ts keeps X = 0.5*Z specifically so it never varies -
+  // see that file's header comment), so desktop disables it entirely.
+  // Defaults to true, preserving the portrait-mobile track exactly as
+  // already validated.
+  driftEnabled?: boolean
 }
 
 export interface MobileCameraPoint {
@@ -45,7 +60,7 @@ export interface MobileCameraPreview {
 
 type CameraAnchor = 'assembly' | 'settled'
 
-interface CameraPointTemplate {
+export interface CameraPointTemplate {
   id: string
   clock: MobileCameraClock
   at: number | keyof MobileCameraStoryTimings
@@ -240,6 +255,14 @@ const smootherstep = (value: number) => {
 // motion that never fully stops, rather than freeze-then-snap. ~0.09 rad/s
 // works out to roughly a third of a turn across the full ~22s sequence.
 const CAMERA_DRIFT_SPEED = 0.09
+// The cube's own spin (SpinSimulation.angularVelocity) peaks around 11 rad/s
+// right after the drive burst and decays smoothly from there through
+// roll/orbit/ignition - this couples the camera's drift rate to that same
+// curve so the "levitation" visibly quickens while the cube is spinning hard
+// and settles back to the calm base rate as it does, instead of drifting at
+// one flat speed regardless of what the object itself is doing. Kept small:
+// even at peak velocity this only roughly triples the base rate.
+const CAMERA_DRIFT_SPIN_COUPLING = 0.012
 
 function driftOffsetAroundY(output: Vector3, offset: Vector3, angle: number) {
   const cos = Math.cos(angle)
@@ -334,13 +357,17 @@ export class MobileCameraStory {
   readonly position = new Vector3()
   readonly target = new Vector3()
   private readonly orbitOffset = new Vector3()
+  private readonly driftEnabled: boolean
+  private driftAngle = 0
+  private lastDriftTime: number | null = null
   activePoint: MobileCameraPoint
 
   constructor(config: MobileCameraStoryConfig) {
-    this.assemblyPoints = ASSEMBLY_POINTS.map((point) =>
-      resolvePoint(point, config),
+    this.driftEnabled = config.driftEnabled ?? true
+    this.assemblyPoints = (config.assemblyPoints ?? ASSEMBLY_POINTS).map(
+      (point) => resolvePoint(point, config),
     )
-    this.motionPoints = MOTION_POINTS.map((point) =>
+    this.motionPoints = (config.motionPoints ?? MOTION_POINTS).map((point) =>
       resolvePoint(point, config),
     )
     this.points = [...this.assemblyPoints, ...this.motionPoints]
@@ -397,12 +424,24 @@ export class MobileCameraStory {
     }
   }
 
-  sample(assemblyProgress: number, motionElapsed: number, driftTime: number) {
-    const driftAngle = driftTime * CAMERA_DRIFT_SPEED
+  sample(
+    assemblyProgress: number,
+    motionElapsed: number,
+    driftTime: number,
+    spinAngularVelocity = 0,
+  ) {
+    const dt =
+      this.lastDriftTime === null ? 0 : Math.max(0, driftTime - this.lastDriftTime)
+    this.lastDriftTime = driftTime
+    if (this.driftEnabled) {
+      this.driftAngle +=
+        (CAMERA_DRIFT_SPEED + spinAngularVelocity * CAMERA_DRIFT_SPIN_COUPLING) *
+        dt
+    }
     if (assemblyProgress < 1) {
-      this.sampleTrack(this.assemblyPoints, assemblyProgress, driftAngle)
+      this.sampleTrack(this.assemblyPoints, assemblyProgress, this.driftAngle)
     } else {
-      this.sampleTrack(this.motionPoints, motionElapsed, driftAngle)
+      this.sampleTrack(this.motionPoints, motionElapsed, this.driftAngle)
     }
   }
 

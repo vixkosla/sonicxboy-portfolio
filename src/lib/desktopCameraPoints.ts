@@ -1,0 +1,148 @@
+import type { CameraPointTemplate } from './MobileCameraStory.ts'
+
+// Desktop reuses the portrait CameraStory engine with a restrained authored
+// track. Arrival begins on a far-left aim so the incoming swarm projects into
+// the open right half instead of crossing the fixed text column, then converges
+// to the proven home azimuth in one long move. Motion points anchor to the
+// cube's true post-roll centre and progressively converge on the final
+// left-biased aim, keeping large orbital forms in the right third.
+// `driftEnabled: false` is set in HeroScene.tsx, so there is no unbounded idle
+// orbit. The final handoff deliberately resolves to the stable rig exactly:
+// camera [4.8, 3.4, 7.2], target [1.2, 0, 0].
+export const DESKTOP_ASSEMBLY_POINTS: readonly CameraPointTemplate[] = [
+  {
+    id: 'arrival',
+    clock: 'assembly',
+    at: 0,
+    move: 0,
+    anchor: 'assembly',
+    target: [-16, 0, 0],
+    offset: [8, 8, 24],
+    title: 'Точка отсчёта',
+    story: 'Дальний общий план оставляет типографику свободной и ведёт сходящийся рой из правой половины к домашнему кадру.',
+  },
+  {
+    id: 'lock',
+    clock: 'assembly',
+    at: 1,
+    move: 0.85,
+    anchor: 'assembly',
+    target: [0, 0, 0],
+    offset: [3.6, 3.4, 7.2],
+    title: 'Замыкание',
+    story: 'Один долгий спуск на домашний ракурс — камера приходит в кадр ровно к последнему элементу.',
+  },
+]
+
+export const DESKTOP_MOTION_POINTS: readonly CameraPointTemplate[] = [
+  {
+    id: 'weight',
+    clock: 'motion',
+    at: 0,
+    move: 0,
+    anchor: 'assembly',
+    target: [0, 0, 0],
+    offset: [3.6, 3.4, 7.2],
+    title: 'Появление веса',
+    story: 'Собранная система впервые отвечает на опору и гравитацию — камера ещё на домашнем кадре.',
+  },
+  {
+    id: 'roll',
+    clock: 'motion',
+    at: 'roll',
+    move: 0.5,
+    anchor: 'settled',
+    target: [-1.7, 0.32, 0],
+    offset: [4, 2.6, 8],
+    title: 'Перекат',
+    story: 'Камера садится ниже вдоль того же луча — вес и контакт с гранью читаются с уровня опоры.',
+  },
+  {
+    id: 'diamond',
+    clock: 'motion',
+    at: 'diamond',
+    move: 0.6,
+    anchor: 'settled',
+    target: [-1.65, 0.72, 0],
+    offset: [4.4, 4.1, 8.8],
+    title: 'Баланс',
+    story: 'Камера плавно поднимается и чуть отходит, сохраняя балансирующий волчок справа в кадре.',
+  },
+  {
+    id: 'spin',
+    clock: 'motion',
+    at: 'spin',
+    move: 0.5,
+    anchor: 'settled',
+    target: [-1.75, 0.7, 0],
+    offset: [3.7, 3.1, 7.4],
+    title: 'Импульс',
+    story: 'Плотный ближний план по тому же лучу — импульс читается кинетически.',
+  },
+  {
+    id: 'orbit',
+    clock: 'motion',
+    at: 'orbit',
+    move: 1.1,
+    anchor: 'settled',
+    target: [-1.8, 0.95, 0],
+    offset: [5.25, 4.8, 10.5],
+    title: 'Раскрытие порядка',
+    story: 'Самый широкий план — тот же ракурс, но камера держится ближе, чтобы куб не терялся.',
+  },
+  {
+    id: 'ignition',
+    clock: 'motion',
+    at: 'ignition',
+    move: 0.9,
+    anchor: 'settled',
+    target: [-1.75, 1, 0],
+    offset: [5.3, 3.9, 10.6],
+    title: 'Источник',
+    story: 'Камера держит весь орбитальный рой в кадре в момент возгорания ядра.',
+  },
+  {
+    id: 'capture',
+    clock: 'motion',
+    at: 'capture',
+    move: 0.85,
+    anchor: 'settled',
+    target: [-1.8, 0.55, 0],
+    offset: [4.1, 3.15, 8.2],
+    title: 'Новая форма',
+    story: 'Средний план держит стягивающееся движение орбит в кадре.',
+  },
+  {
+    id: 'shell',
+    clock: 'motion',
+    at: 'shell',
+    move: 0.7,
+    anchor: 'settled',
+    target: [-1.9, 0.65, 0],
+    offset: [4.65, 4.1, 9.3],
+    title: 'Сферическая оболочка',
+    story: 'Широкий план-витрина для завершённой формы — камера держится ближе, чем раньше.',
+  },
+  {
+    id: 'reactor',
+    clock: 'motion',
+    at: 'reactor',
+    move: 0.65,
+    anchor: 'settled',
+    target: [-1.9, 0.5, 0],
+    offset: [4.1, 2.65, 8.2],
+    title: 'Поверхность становится технологией',
+    story: 'Камера держится ближе к плате по тому же лучу — проводники и размножение плат читаются одним кадром.',
+  },
+  {
+    id: 'handoff',
+    clock: 'motion',
+    at: 'handoff',
+    move: 0.8,
+    anchor: 'settled',
+    target: [-1.9864, 0, 0],
+    offset: [3.6, 3.4, 7.2],
+    title: 'Выход в интерфейс',
+    story: 'Камера возвращается к исходному ракурсу — панель уходит на страницу.',
+  },
+]

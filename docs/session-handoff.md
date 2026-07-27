@@ -1,6 +1,6 @@
 # Session handoff
 
-Updated: 2026-07-24
+Updated: 2026-07-27
 
 ## Start here
 
@@ -24,6 +24,54 @@ pnpm astro dev --background
 `pnpm build` currently passes. The only build warning is the existing bundle chunk
 larger than 500 kB. Runtime logs also contain upstream Three.js deprecation warnings
 for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
+
+## 2026-07-27 desktop camera story shipped + prologue cold-open shipped
+
+Supersedes the "Desktop camera story — experimental dev preview, rejected" section
+below: the desktop story is back on by default and the prologue plays before it.
+
+- **Desktop camera race — closed.** The user-reported "camera sits wrong every
+  other reload" was reproduced as the pre-tuning scatter captures
+  (`/tmp/scatter-*.png`, cubes crossing the text column). After the
+  `desktopCameraPoints.ts` tuning, four CDP-driven reloads at `1440x900` produced
+  the identical authored track and the exact designed final frame
+  (`pos [4.8, 3.4, 7.2]`, `target [1.2, 0,0]`, shot `handoff`) - no mode race
+  remains at desktop sizes. Residual nondeterminism is only wall-clock boot
+  pacing (±0.5-1s of mid-move phase), invisible once the track settles.
+  Viewports that fall out of the scripted modes (`resolveSceneViewport`:
+  landscape ≤1180x800, portrait >720 non-compact) keep the static fallback rig
+  with the old wide framing by design.
+- **Prologue (phase 0) — shipped default-on.** `PrologueSequence` plays before
+  `LayeredAssembly` in every viewport that has a scripted camera story
+  (`portraitCompact || desktopCameraViewport`), with `?no-prologue` as the escape
+  hatch, reduced-motion excluded, and all lookdev `*-preview`/`viewport-lab`
+  params opting out automatically. Static-fallback viewports get no prologue:
+  nothing would own the camera after it there (frozen chase pose regression,
+  caught and gated before shipping).
+- **Text-column overlap fixed.** The chase cam now aims left of its subject via
+  an analytic `cross(followDirection, up)` screen-right shift
+  (`screenRight` constructor arg, `2.0` desktop / `1.0` portrait compact), so the
+  cast cube lands and explodes in the right third of the frame. Verified live at
+  `1440x900` and `390x844`: headline and subtitle stay clear for the whole
+  sequence. Desktop value pushed the hero cube out of the narrow mobile FOV,
+  hence the split value.
+- **Hard cut replaced with a blend.** The first `PROLOGUE_CAMERA_BLEND` (0.6s) of
+  assembly time smootherstep-lerps the camera from the captured chase-cam end
+  pose to the live story sample (position and target), inside
+  `applyCameraStory`. The explode flash covers the swing start; mid-blend the
+  swarm streaks across the headline for ~0.5s, which reads as explosion debris
+  and was accepted. Capture refs reset when the sequence instance is rebuilt
+  (viewport-class change mid-prologue).
+- **Verification rig** (works where the agent's one-shot headless screenshots
+  hang): warm headless Brave at `127.0.0.1:9223` driven over CDP by plain
+  node-22 scripts with the built-in WebSocket - `/tmp/camera-race-check.mjs`
+  (N reloads + camera state + settle frame) and `/tmp/prologue-verify.mjs`
+  (timed frames + page exceptions; size/prefix args). The dev server needed a
+  restart after HMR served a stale `PrologueSequence` module (known watcher
+  gotcha); it now runs detached from the dead hermes supervisor
+  (`pnpm exec astro dev --port 4321`, log at `/tmp/astro-dev.log`).
+- Build: `pnpm build` and `git diff --check` pass after this set. Everything
+  above is **uncommitted**, together with the card-decoration work below.
 
 ## Green resin and gold-stone card restoration
 
@@ -118,6 +166,203 @@ in every later sample. Signal-plate selection begins `0.08s` after that endpoint
 
 The full plot and all direct preview links are in
 `docs/mobile-camera-story.md`.
+
+## Desktop camera story — experimental dev preview, rejected as the default
+
+Built across 2026-07-25/26 on top of the portrait-mobile work above, still
+entirely uncommitted (see `git status`). `MobileCameraStory` was generalized
+to accept custom `assemblyPoints`/`motionPoints` (constructor option, default
+falls back to the original portrait-mobile track, which is byte-for-byte
+unchanged). `src/lib/desktopCameraPoints.ts` is a new file holding desktop's
+own 12-point shot list (`DESKTOP_ASSEMBLY_POINTS` x2, `DESKTOP_MOTION_POINTS`
+x10) on that same engine.
+
+**2026-07-26 live audit:** the default-on integration was rejected after a
+clean Vivaldi replay. It replaced the established desktop rig, produced bad
+framing in normal playback, and a later default-on chase-camera prologue made
+a hard, unblended cut into the `arrival` shot. The normal desktop/landscape
+path now uses the last stable static rig plus `OrbitControls` again. The
+12-point desktop story remains available only through explicit dev
+`?camera-story=...` links; portrait mobile keeps its established scripted
+story unchanged. The chase prologue is likewise quarantined behind
+`?prologue-preview` until its framing and handoff are redesigned and reviewed.
+
+Three real bugs were found and fixed this session, each the same way: derive
+a numeric replay of the *actual* classes (bundle the real `.ts` files with
+esbuild's JS API — `require('esbuild').buildSync` pointed at
+`node_modules/.pnpm/esbuild@<version>/node_modules/esbuild/lib/main.js` with
+`nodePaths: [.../node_modules]` so bare imports like `three` resolve; the
+`node_modules/.bin/esbuild` CLI binary was broken/unusable in this repo,
+use the JS API instead) rather than reasoning about camera math verbally.
+Full detail and the exact numbers are in the auto-memory lesson file this
+produced (`camera-choreography-lessons`, referenced from Claude's own
+memory system, not this repo) — summarized here for anyone without access
+to that:
+
+1. **Unbounded background drift defeated the fixed-azimuth design.** Every
+   point in `desktopCameraPoints.ts` keeps `offset.x = 0.5 * offset.z`
+   specifically so azimuth never varies (matches the mobile portrait fix
+   documented above under "sharper orbit pass"). The engine's own
+   continuous "levitating" drift (`CAMERA_DRIFT_SPEED`,
+   `CAMERA_DRIFT_SPIN_COUPLING`) accumulates every frame with no reset,
+   though — a replay showed azimuth drifting ~29deg by the end of assembly
+   alone and past 100deg by the "capture" shot, since every previous check
+   had only ever used the `?camera-story=<id>` frozen preview links, and
+   the preview path (`sampleClock`) intentionally zeroes drift for
+   reproducibility. Fixed with a new `driftEnabled` option on
+   `MobileCameraStoryConfig` (default `true`; portrait-mobile passes
+   nothing, so it is unaffected), set `false` for the desktop story.
+2. **A wide pull-back during assembly exposes more of the scattered incoming
+   swarm than a closer shot does**, independent of azimuth. The 26
+   cubelets start scattered up to ~13 world units from origin (vs. a ~1-unit
+   final cluster) — pulling the camera back widens the frustum's coverage
+   of that scatter. A first cinematic draft (per user direction: "play up
+   movement with the cubes, then show from the side") opened wide and
+   nearly doubled how often cubelets projected into the approximate
+   text-column screen region versus the untouched static baseline in an
+   800-step/26-cubelet replay. The shipped assembly track instead stays
+   within roughly +-20% of home distance (two points: `arrival` holds a
+   calm, slightly elevated view; `lock` is one long continuous ease into
+   the exact home rig) — replay-verified as statistically comparable to
+   baseline exposure.
+3. **`camera.lookAt(target)` rotates the view around `target`, not around
+   the object — a target that's merely offset from the object's true world
+   position is invisible for a static shot but becomes a visible,
+   unmotivated swing the instant that shot's azimuth actually rotates.**
+   Every `'settled'`-anchored desktop point resolves `target.x` from
+   `INITIAL_X` (1.2) rather than the object's true post-roll position
+   (`INITIAL_X + rollDistance` ≈ 3.19, i.e. what `settledCenterX(scale)`
+   computes — portrait-mobile already gets this right via
+   `settledX: settledCenterX(COMPACT_SCENE_SCALE)`, desktop's story does
+   not, and was left that way deliberately: see the "so the settled reactor
+   sits right of the text column" comment in `desktopCameraPoints.ts`).
+   That's a fine, deliberate static composition everywhere except the one
+   point that rotates: the `diamond` shot (a deliberate ~60deg side-angle
+   swing during the roll→diamond→spin single-rigid-body window, the one
+   place azimuth is allowed to vary — see point 2's user-requested "show
+   from the side"). With the old approximate target `[0, 0.85, 0]`, a
+   continuous replay of the object's *true* position (`group.position`,
+   computed the same way the render loop does: rolling per
+   `EDGE_ROLL_DURATION`, then fixed at
+   `(INITIAL_X + rollDistance, diamondLift, 0)`) through that exact camera
+   track showed the object's screen position dipping hard from NDC
+   `(0.39, -0.07)` to `(0.02, -0.37)` and back over ~0.6s, while the object
+   itself was essentially stationary — a pure pivot-location artifact.
+   Fixed by targeting the object's exact resting point instead:
+   `[rollDistance, diamondLift, 0]` = `[1.9864, 0.72707, 0]`. Re-verified:
+   the dip is gone (max deviation now matches the plain non-rotating roll
+   reveal) and the azimuth lock outside the diamond window is still exactly
+   `0deg` for the full ~22s sequence.
+
+Also folded into this pass, from direct user review of the assembly/motion
+pacing (not a bug, a cut of taste): the assembly track was simplified from
+4 bespoke stops to 2 (see point 2), the `orbit` and `shell` wide shots were
+pulled in from ~1.7x/1.5x home distance to ~1.35x/1.15x ("too generic/wide,
+loses the magic of our cube"), and the `division` motion point was removed
+entirely — `shell`(12.335s) → `reactor`(13.185s) → `division`(14.265s) was
+landing as three camera cuts in about two seconds ("too many changes, too
+frequent"); `reactor` now holds through that beat (the plates visibly
+multiplying while the camera stays put) all the way to `handoff`'s own move
+window. Motion points: 11 → 10; total points across both tracks: 15 → 12.
+
+**Validation status (as of the prior session):** all of the above was
+`pnpm build`-clean and verified only numerically, never a live render — the
+browser automation tab's `document.visibilityState` had stayed `"hidden"`,
+pausing `requestAnimationFrame` entirely.
+
+**2026-07-26 follow-up — live browser confirmation worked this time** (the
+`visibilityState`-hidden issue above did not recur; the real remaining
+friction was that each `?camera-story=<id>` preview does a full page
+reload, and WebGL context + shader compile can take anywhere from ~2s to
+~18s before the canvas paints — screenshotting too early just shows the
+static DOM behind an empty canvas, not a real bug. Waiting it out, or
+retrying once, resolved every case). Live screenshots at all 12 desktop
+points (1440x900) found two real framing bugs neither numeric replay nor
+the frozen previews had caught, because both only manifest at the exact
+authored instant with the real orbiting/exploding geometry in frame:
+
+- **`ignition`** (mainElapsed = `PLASMA_CORE_START`, orbital departure in
+  full swing): the original 4.4-unit push-in put the camera inside the
+  orbiting shell — the corner class alone orbits at
+  `contactHalfExtent * 3.35` ≈ 3.3 world units from the nucleus at full
+  expansion, so pieces loomed past the frame edge and one swung directly
+  over the headline. A first retry at ~1.8x distance was still short.
+  Pulled back to ~3x the original (same `X = 0.5*Z` ray) — roughly
+  `orbit`'s own distance order — to comfortably contain that shell radius
+  at a 43deg FOV. This trades away the originally-intended tight "source
+  fills the frame" macro for a wider "watch it ignite" shot; whether
+  `ignition` and `orbit` now read too similar is an open question for the
+  next visual pass.
+- **`reactor`** (just after `REACTOR_TRANSFORM_START`, 26→104 plate
+  explosion mid-flight): same failure shape, smaller scale — the 3.7-unit
+  push-in put the camera inside the still-exploding plate cloud, clipping
+  plates at the frame edges and landing one on the RU/EN language switch.
+  Pulled back to ~2x the original distance; this one fixed cleanly into a
+  contained rosette around the glowing core with no further tension (the
+  reactor-plate explosion radius is much smaller than a full orbit shell).
+
+Both fixes live in `src/lib/desktopCameraPoints.ts` with inline comments
+explaining the exact numbers; `pnpm build` passes.
+
+**The user also asked to bring the `diamond`-style azimuth swing into the
+assembly "beginning" (`arrival`/`lock`)**, explicitly accepting the lesson-1
+risk (independently-authored per-cubelet flight paths, not one rigid body)
+in order to watch the fixed studio lights/nebula glow paint across the
+scene as the view turns. Verified with the same esbuild-replay technique
+before shipping: baseline (no rotation) scored 7468/20826 samples inside
+the approximate text-column NDC box; a 60deg swing on `arrival` alone
+(unwinding smoothly to the unchanged home-ratio `lock` over the same long
+assembly ease, so there's no seam into `weight`) scored 6265/20826 —
+*better* than the unrotated baseline, not just within tolerance. Spot-
+checked live at `?camera-story=assembly:0.05/0.5/0.9` with no broken-looking
+frames. This is now the *third* deliberate azimuth exception in the file
+(`arrival`, `diamond`) — both are exceptions to the lesson-1 default, not a
+retraction of it; any further widening should re-run the same replay
+rather than eyeballing it.
+
+Useful spot-checks that don't need live playback: `?camera-story=<id>` for
+any named point (`arrival`, `lock`, `weight`, `roll`, `diamond`, `spin`,
+`orbit`, `ignition`, `capture`, `shell`, `reactor`, `handoff`) freezes that
+exact frame — give it several seconds after navigation before judging a
+blank canvas to be a real bug, per the note above.
+
+All of the experimental point data remains uncommitted and must not be
+promoted back to the normal desktop path without a complete live playback and
+user review. **Still open if the experiment is revisited:** `arrival` shows
+cubelets occasionally crossing the "WEBGL" headline (present in the
+unrotated baseline too), and `orbit` reads as a fairly chaotic scatter rather
+than a clear "three symmetries opening up" — flagged, not yet addressed.
+
+## Discharge backlight — verified, art-directed idle-only (2026-07-27)
+
+The uncommitted `src/lib/DischargeBacklight.ts` (soft additive halo billboard,
+`#b8f6ff`, halo² + wide shoulder, `toneMapped: false`) is real and works: each
+frame the strongest surface arc (`max illum` in `discharge.surfaces`) places one
+camera-facing plane at its illumination midpoint projected onto the camera
+plane, offset `0.4 x shellRadius` behind the plasma; opacity `illum x 0.68`.
+No `useFrame` allocations; material/mesh created once. The same uncommitted diff
+**removed** the previous `plasmaLight` spark response (`discharge.peak * 2.4` +
+`ARC_LIGHT_TINT #8fb4ff`), and the billboard is gated to
+`mainElapsed >= IDLE_CORE_FLOURISH_START` (~24.3s). **User decision 2026-07-27:
+keep it idle-only** — the scatter/card beats intentionally have no spark
+lighting; do not restore the point-light response or widen the gate without a
+new art direction. `?backlight-preview` freezes a max-illum surface strike and
+(now) bypasses the idle gate so it works at any `?plasma-preview` stage.
+Verified 2026-07-27 with headed-shell screenshot pairs at 1440x900
+(`/tmp/opencode/backlight-on/off.png`, `backlight-arcsurf.png`): the diffused
+patch reads clearly at the struck side; zero console errors.
+
+## Hydration mismatch fix (2026-07-27)
+
+Every page load logged a React hydration mismatch from the reactor-card bark
+styles: `deterministicNoise` is `Math.sin`-based, which is not bit-stable
+between Node SSR and the browser (10th-decimal drift), and `toFixed(2)` emitted
+`0.20` where CSSOM normalizes to `0.2`. SSR-visible styles now use
+`ssrStableNoise` (integer/imul hash, bit-identical across engines) and round to
+plain numbers instead of `toFixed` strings. The scene-only scatter hash is
+untouched (client-side, validated trajectories unchanged). Post-fix load shows
+zero hydration warnings and zero console errors; `pnpm build` + `pnpm test`
+pass.
 
 ## Historical: illuminated heading, light inversion and maximum copy fit
 

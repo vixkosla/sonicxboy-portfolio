@@ -179,6 +179,11 @@ const sourceSchema = {
     <meta name="description" content={t.description} />
     <meta name="theme-color" content="#050907" />
     <meta name="repository" content={SOURCE_REPOSITORY} />
+    <meta
+      name="google-site-verification"
+      content="PqXULXOPJrG8HdD3yogWsLKE7xYEWlbW1nXP1hMhipM"
+    />
+    <meta name="msvalidate.01" content="EC10990AB922CD2F4920D5DED06D5124" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link
       rel="alternate"
@@ -298,6 +303,28 @@ const sourceSchema = {
           inset: 0;
           z-index: 0;
           pointer-events: none;
+          /* Dark through assembly and the roll/spin - there's no object yet
+             worth answering with color. HeroScene sets body[data-nebula-core]
+             the instant the plasma core ignites (same moment as the 'ignite'
+             beat below), and only then does the whole layer fade up; every
+             breathing/idle/flare animation underneath keeps running the
+             whole time; they just aren't visible until this reveals them. */
+          opacity: 0;
+          transition: opacity 1.6s ease;
+        }
+
+        :global(body[data-nebula-core]) .hero-nebula {
+          opacity: 1;
+        }
+
+        /* The base wash lives on a pseudo-element so its own breathing
+           opacity never multiplies into the real spot children below —
+           CSS opacity on a parent compounds with descendants, which would
+           otherwise dim an event flare any time it peaked mid-breath. */
+        .hero-nebula::before {
+          content: '';
+          position: absolute;
+          inset: 0;
           mix-blend-mode: screen;
           background:
             radial-gradient(
@@ -315,7 +342,275 @@ const sourceSchema = {
               rgba(120, 24, 34, 0.1),
               transparent 65%
             );
+          animation: hero-nebula-breathe 7s ease-in-out infinite;
         }
+
+        /* Eight turning points get their own colored flare on top of a
+           faint permanent ember (hero-nebula-idle, applied to the base
+           class below): each rests as a barely-there flicker and only
+           erupts into its big burst when HeroScene sets
+           body[data-nebula-beat] at that exact simulation moment (same
+           stepping mechanism as the title waves), so the light still
+           answers something actually happening on screen, but the whole
+           layer never goes fully static between beats. Colors are pulled
+           from the scene's own established palette (#18d383 emerald,
+           #c7a247 gold, #f2383f signal red, #ffb653 warm spotlight,
+           #6cf3b3 assembly pulse, #4de1ff ion contour) rather than
+           invented tones. Every spot stays a soft spherical wash —
+           deliberately closer to a heavily out-of-focus nebula/galaxy
+           photo than a graphic shape: directional streaks and ray fans
+           were tried and dropped, since they read as UI decoration rather
+           than diffuse cosmic light. Variety comes from color, size, and
+           gentle ellipse proportions, never from sharp or directional
+           forms. */
+        .hero-nebula__spot {
+          position: absolute;
+          width: 32vw;
+          height: 32vw;
+          border-radius: 50%;
+          opacity: 0;
+          mix-blend-mode: screen;
+          will-change: opacity, transform;
+          animation: hero-nebula-idle 6s ease-in-out infinite;
+        }
+
+        .hero-nebula__spot--ambient {
+          opacity: 1;
+          animation: hero-nebula-breathe 6.5s ease-in-out infinite;
+        }
+
+        .hero-nebula__spot--roll {
+          left: 46%;
+          top: 34%;
+          width: 20vw;
+          height: 20vw;
+          background: radial-gradient(
+            circle,
+            rgba(108, 243, 179, 0.4),
+            transparent 66%
+          );
+          animation-delay: -0.6s;
+        }
+
+        .hero-nebula__spot--ignite {
+          left: 62%;
+          top: 4%;
+          width: 30vw;
+          height: 24vw;
+          background: radial-gradient(
+            ellipse,
+            rgba(255, 182, 83, 0.46),
+            transparent 68%
+          );
+          animation-delay: -2.4s;
+        }
+
+        .hero-nebula__spot--shell {
+          left: 14%;
+          top: 8%;
+          background: radial-gradient(
+            circle,
+            rgba(24, 211, 131, 0.32),
+            transparent 68%
+          );
+          animation-delay: -4.1s;
+        }
+
+        .hero-nebula__spot--reactor {
+          left: 82%;
+          top: 40%;
+          background: radial-gradient(
+            circle,
+            rgba(199, 162, 71, 0.4),
+            transparent 68%
+          );
+          animation-delay: -1.3s;
+        }
+
+        .hero-nebula__spot--divide {
+          left: 2%;
+          top: 40%;
+          width: 34vw;
+          height: 34vw;
+          background: radial-gradient(
+            circle,
+            rgba(79, 235, 179, 0.4),
+            transparent 68%
+          );
+          animation-delay: -3.6s;
+        }
+
+        .hero-nebula__spot--signal {
+          left: 12%;
+          top: 72%;
+          width: 34vw;
+          height: 34vw;
+          background: radial-gradient(
+            circle,
+            rgba(242, 56, 63, 0.4),
+            transparent 68%
+          );
+          animation-delay: -5.2s;
+        }
+
+        .hero-nebula__spot--card {
+          left: 58%;
+          top: 76%;
+          background: radial-gradient(
+            circle,
+            rgba(234, 217, 155, 0.36),
+            transparent 68%
+          );
+          animation-delay: -0.9s;
+        }
+
+        .hero-nebula__spot--discharge {
+          left: 45%;
+          top: 9%;
+          width: 28vw;
+          height: 28vw;
+          background: radial-gradient(
+            circle,
+            rgba(220, 250, 255, 0.55),
+            rgba(77, 225, 255, 0.4) 40%,
+            transparent 70%
+          );
+          animation-delay: -2.9s;
+        }
+
+        .hero-nebula__spot--amb-emerald {
+          left: 9%;
+          top: 21%;
+          width: 30vw;
+          height: 22vw;
+          background: radial-gradient(
+            ellipse,
+            rgba(24, 211, 131, 0.14),
+            transparent 70%
+          );
+          animation-duration: 6s;
+          animation-delay: -3s;
+        }
+
+        .hero-nebula__spot--amb-gold {
+          left: 70%;
+          top: 51%;
+          width: 30vw;
+          height: 24vw;
+          background: radial-gradient(
+            ellipse,
+            rgba(210, 169, 69, 0.22),
+            transparent 70%
+          );
+          animation-duration: 7.4s;
+          animation-delay: -6s;
+        }
+
+        .hero-nebula__spot--amb-rays {
+          left: 84%;
+          top: 76%;
+          width: 30vw;
+          height: 30vw;
+          background: radial-gradient(
+              circle at 38% 42%,
+              rgba(242, 56, 63, 0.18),
+              transparent 60%
+            ),
+            radial-gradient(
+              circle at 62% 58%,
+              rgba(199, 162, 71, 0.2),
+              transparent 60%
+            );
+          animation-duration: 5.6s;
+          animation-delay: -1.5s;
+        }
+
+        /* The headline column (eyebrow through tech badges) is the widest
+           empty column on desktop once the object settles right of it.
+           Three stacked washes — above the first line, in the gap between
+           WEBGL/DEVELOPER, and below toward the subtitle — cover that whole
+           band instead of leaving it to one blob. Falloff (62%) sits a
+           little tighter than the other ambient spots (68-70%) so the glow
+           still reads behind the letterforms, but it's the same soft
+           spherical wash as everywhere else — no rotated or stretched
+           shapes here either. */
+        .hero-nebula__spot--amb-headline-top {
+          left: 9%;
+          top: 13%;
+          width: 28vw;
+          height: 22vw;
+          background: radial-gradient(
+            ellipse,
+            rgba(210, 169, 69, 0.2),
+            transparent 62%
+          );
+          animation-duration: 7.8s;
+          animation-delay: -4.5s;
+        }
+
+        .hero-nebula__spot--amb-headline-mid {
+          left: 10%;
+          top: 39%;
+          width: 28vw;
+          height: 22vw;
+          background: radial-gradient(
+            ellipse,
+            rgba(24, 211, 131, 0.22),
+            transparent 62%
+          );
+          animation-duration: 6.6s;
+          animation-delay: -7s;
+        }
+
+        .hero-nebula__spot--amb-headline-bottom {
+          left: 9%;
+          top: 60%;
+          width: 26vw;
+          height: 20vw;
+          background: radial-gradient(
+            ellipse,
+            rgba(210, 169, 69, 0.18),
+            transparent 62%
+          );
+          animation-duration: 7.1s;
+          animation-delay: -2.5s;
+        }
+
+        :global(body[data-nebula-beat='roll']) .hero-nebula__spot--roll,
+        :global(body[data-nebula-beat='ignite']) .hero-nebula__spot--ignite,
+        :global(body[data-nebula-beat='shell']) .hero-nebula__spot--shell,
+        :global(body[data-nebula-beat='reactor']) .hero-nebula__spot--reactor,
+        :global(body[data-nebula-beat='divide']) .hero-nebula__spot--divide,
+        :global(body[data-nebula-beat='signal']) .hero-nebula__spot--signal,
+        :global(body[data-nebula-beat='card']) .hero-nebula__spot--card,
+        :global(body[data-nebula-beat='discharge']) .hero-nebula__spot--discharge {
+          animation: hero-nebula-flare 2.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+      }
+
+      @keyframes hero-nebula-breathe {
+        0%, 100% { opacity: 0.4; }
+        18% { opacity: 0.95; }
+        33% { opacity: 0.5; }
+        52% { opacity: 1; }
+        70% { opacity: 0.42; }
+        86% { opacity: 0.78; }
+      }
+
+      @keyframes hero-nebula-idle {
+        0%, 100% { opacity: 0.05; }
+        24% { opacity: 0.24; }
+        41% { opacity: 0.09; }
+        63% { opacity: 0.2; }
+        82% { opacity: 0.06; }
+      }
+
+      @keyframes hero-nebula-flare {
+        0% { opacity: 0; }
+        16% { opacity: 1; }
+        55% { opacity: 0.6; }
+        100% { opacity: 0; }
       }
 
       /* ── Wordmark ─────────────────────────────────────────── */
@@ -503,6 +798,25 @@ const sourceSchema = {
         pointer-events: none;
       }
 
+      /* Two circuit patterns share one card: the coarse compact one is the
+         approved phone look (its viewBox squeezes ~4x horizontally there),
+         the wide one redraws the same board at that finer pitch for
+         desktop, in the reactor plates' current paired-corridor language.
+         The bark layer is a third svg, shared and identical at both
+         breakpoints - the birch pattern must not change with the circuit. */
+      :global(.reactor-card__circuit--compact) {
+        display: none;
+      }
+
+      @media (max-width: 720px) {
+        :global(.reactor-card__circuit--compact) {
+          display: block;
+        }
+        :global(.reactor-card__circuit--wide) {
+          display: none;
+        }
+      }
+
       :global(.reactor-card__circuit-frame) {
         fill: none;
         stroke: rgba(146, 106, 20, 0.28);
@@ -546,17 +860,34 @@ const sourceSchema = {
       }
 
       /* Birch-bark lenticel marks: short dark horizontal slashes between
-         the circuit rows. The card surface is a pale warm paper, so these
-         should be a dark green-brown (like real birch lenticels), slightly
-         translucent with a soft drop shadow so they read as part of the
-         material texture rather than drawn-on ink. */
+         the circuit rows. Each mark sits over a filled half-ellipse
+         "shadow" - the dark crescent real birch lenticel scars cast
+         underneath the mark itself - rather than a second stroked copy of
+         the same line, which just read as a duplicate stick. Fill alpha
+         and blur vary per mark (set inline from barkShadowArc() in
+         HeroScene.tsx, scaled off each mark's own computed size) so
+         bigger crescents read as deeper shadows instead of a single flat
+         tone copy-pasted 67 times; the values below are only the
+         pre-hydration fallback. */
+      :global(.reactor-card__bark-marks-shadow) {
+        pointer-events: none;
+      }
+
+      :global(.reactor-card__bark-marks-shadow path) {
+        fill: rgba(35, 24, 12, 0.2);
+        stroke: none;
+        filter: blur(1.2px);
+        opacity: 0;
+      }
+
       :global(.reactor-card__bark-marks) {
-        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.15));
+        position: relative;
+        z-index: 1;
       }
 
       :global(.reactor-card__bark-marks path) {
         fill: none;
-        stroke: rgba(7, 30, 18, 0.72);
+        stroke: rgba(7, 30, 18, 0.75);
         stroke-width: 3.2;
         stroke-linecap: round;
         stroke-dasharray: 1;
@@ -567,23 +898,34 @@ const sourceSchema = {
 
       :global(.reactor-card__bark-marks path:nth-child(3n)) {
         stroke-width: 2.2;
-        stroke: rgba(7, 30, 18, 0.52);
+        stroke: rgba(7, 30, 18, 0.55);
       }
 
       :global(.reactor-card__bark-marks path:nth-child(5n + 1)) {
         stroke-width: 4;
-        stroke: rgba(5, 20, 12, 0.82);
+        stroke: rgba(5, 20, 12, 0.85);
       }
 
       :global(.reactor-card__bark-marks path:nth-child(7n + 3)) {
         stroke-width: 1.8;
-        stroke: rgba(7, 30, 18, 0.38);
+        stroke: rgba(7, 30, 18, 0.4);
         stroke-dasharray: 0.7 0.3;
       }
 
+      :global(.reactor-card.is-visible .reactor-card__bark-marks-shadow path) {
+        animation:
+          reactor-bark-appear 0.8s ease-out
+            calc(0.55s + var(--bark-delay, 0s)) both,
+          reactor-bark-breathe var(--bark-breathe-duration, 11s) ease-in-out
+            var(--bark-breathe-delay, 2s) infinite;
+      }
+
       :global(.reactor-card.is-visible .reactor-card__bark-marks path) {
-        animation: reactor-bark-appear 0.7s ease-out
-          calc(0.6s + var(--bark-delay, 0s)) both;
+        animation:
+          reactor-bark-appear 0.7s ease-out
+            calc(0.6s + var(--bark-delay, 0s)) both,
+          reactor-bark-breathe var(--bark-breathe-duration, 11s) ease-in-out
+            var(--bark-breathe-delay, 2s) infinite;
       }
 
       :global(.reactor-card__circuit-pads rect) {
@@ -615,6 +957,50 @@ const sourceSchema = {
         transform: translate3d(0, 0, 0) scale(1);
         animation: reactor-card-arrival 1.8s ease-out both;
         pointer-events: auto;
+      }
+
+      /* Staged text-block reveal: the board etches itself first, then the
+         copy lands in reading order (meta, heading, rule, paragraphs), then
+         the corrector's cinnabar marks draw on top of the settled text, and
+         the contact actions fade in last. Everything runs off .is-visible
+         with backwards fill, so before the card arrives nothing here needs
+         a hidden default state. */
+      :global(.reactor-card.is-visible .reactor-card__meta) {
+        animation: reactor-copy-rise 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.42s both;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__heading-initial) {
+        animation: reactor-copy-rise 0.62s cubic-bezier(0.16, 1, 0.3, 1) 0.55s both;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__heading-text) {
+        animation: reactor-copy-rise 0.72s cubic-bezier(0.16, 1, 0.3, 1) 0.64s both;
+      }
+
+      :global(.reactor-card.is-visible h2::after) {
+        animation: reactor-rule-sweep 0.66s cubic-bezier(0.16, 1, 0.3, 1) 0.86s both;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__body > p) {
+        animation: reactor-copy-rise 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.78s both;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__body > p:nth-child(2)) {
+        animation-delay: 0.94s;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__body > p:nth-child(3)) {
+        animation-delay: 1.1s;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__accent::before),
+      :global(.reactor-card.is-visible .reactor-card__accent::after) {
+        animation: reactor-accent-mark 0.5s ease-out
+          calc(1.45s + var(--accent-delay, 0s)) both;
+      }
+
+      :global(.reactor-card.is-visible .reactor-card__actions) {
+        animation: reactor-copy-rise 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.72s both;
       }
 
       /* Vivaldi can suspend CSS transitions in offscreen extension iframes.
@@ -660,6 +1046,32 @@ const sourceSchema = {
 
       :global(html[data-viewport-lab-card] .reactor-card__actions) {
         visibility: visible;
+      }
+
+      /* The staged text-block reveal resolves to its final frame as well,
+         so the frozen card inspection shows the settled copy and marks. */
+      :global(html[data-viewport-lab-card] .reactor-card__meta),
+      :global(html[data-viewport-lab-card] .reactor-card__heading-initial),
+      :global(html[data-viewport-lab-card] .reactor-card__heading-text),
+      :global(html[data-viewport-lab-card] .reactor-card__body > p),
+      :global(html[data-viewport-lab-card] .reactor-card__accent::after),
+      :global(html[data-viewport-lab-card] .reactor-card__actions) {
+        animation: none;
+        opacity: 1;
+        transform: none;
+        filter: none;
+      }
+      :global(html[data-viewport-lab-card] .reactor-card h2::after) {
+        animation: none;
+        opacity: 0.82;
+        transform: none;
+        filter: none;
+      }
+      :global(html[data-viewport-lab-card] .reactor-card__accent::before) {
+        animation: none;
+        opacity: var(--accent-ink, 1);
+        transform: none;
+        filter: none;
       }
 
       :global(.reactor-card__content) {
@@ -761,6 +1173,7 @@ const sourceSchema = {
         left: 0;
         height: 2px;
         opacity: 0.82;
+        transform-origin: 0 50%;
         background: linear-gradient(
           90deg,
           #0c5c3d 0 18%,
@@ -928,7 +1341,7 @@ const sourceSchema = {
       }
 
       /* Desktop (>960px): the card body is typeset like a Slavonic
-         manuscript — Ponomar capitals over an Old Standard book hand.
+         manuscript - Ponomar capitals over an Old Standard book hand.
          On mobile the dense pager cards keep the plainer treatment,
          which already reads well at small sizes. */
       @media (min-width: 961px) {
@@ -950,125 +1363,201 @@ const sourceSchema = {
           letter-spacing: 0.1em;
         }
 
-        :global(.reactor-card__body p::first-letter) {
-          color: #b2303a;
-          font-family: var(--font-vyaz);
-          font-size: 1.62em;
-          line-height: 0.86;
-          padding-right: 0.045em;
+        /* Illuminated drop caps - each column gets its own palette,
+           echoing the heading-initial treatment but scaled smaller.
+           ════════════════════════════════════════════════════════ */
+
+        /* Column 1 - Emerald manuscript initial: light letter on
+           deep-ink ground, gold-and-green border shadows */
+        :global(.reactor-card__body > :nth-child(1) p::first-letter) {
+          float: left;
+          margin: 0.02em 0.08em 0 -0.02em;
+          padding: 0.03em 0.12em 0.04em;
+          color: #fefcf0;
+          font-size: 2.18em;
+          line-height: 0.74;
+          -webkit-text-stroke: 0.03em rgba(5, 60, 35, 0.94);
+          text-shadow:
+            -0.035em 0.03em 0 #c39b3d,
+             0.035em 0.035em 0 #1a7a52,
+            0 0 0.2em rgba(255, 251, 226, 0.55),
+            0 0.06em 0.14em rgba(4, 50, 28, 0.3);
+        }
+
+        /* Column 2 - Amber warm-ground initial: light letter with
+           gold-copper stroke and a soft fire glow */
+        :global(.reactor-card__body > :nth-child(2) p::first-letter) {
+          float: left;
+          margin: 0.02em 0.08em 0 -0.02em;
+          padding: 0.03em 0.12em 0.04em;
+          color: #fefcf0;
+          font-size: 2.18em;
+          line-height: 0.74;
+          -webkit-text-stroke: 0.03em rgba(110, 55, 18, 0.92);
+          text-shadow:
+            -0.035em 0.03em 0 #b28a25,
+             0.035em 0.035em 0 #7a3020,
+            0 0 0.2em rgba(255, 230, 170, 0.5),
+            0 0.06em 0.14em rgba(55, 22, 8, 0.3);
+        }
+
+        /* Column 3 - Cinnabar manuscript initial: light letter with
+           deep-rose stroke and a cool-ruby shimmer */
+        :global(.reactor-card__body > :nth-child(3) p::first-letter) {
+          float: left;
+          margin: 0.02em 0.08em 0 -0.02em;
+          padding: 0.03em 0.12em 0.04em;
+          color: #fefcf0;
+          font-size: 2.18em;
+          line-height: 0.74;
+          -webkit-text-stroke: 0.03em rgba(90, 18, 28, 0.92);
+          text-shadow:
+            -0.035em 0.03em 0 #b2303a,
+             0.035em 0.035em 0 #1a5c3a,
+            0 0 0.2em rgba(240, 200, 210, 0.4),
+            0 0.06em 0.14em rgba(35, 8, 12, 0.35);
         }
       }
 
-      /* Accent words from bracketed [tokens] get visible decoration on all
-         sizes - not only desktop. Simple CSS tools: background highlight,
-         text outline through text-shadow, a colored underline via ::before,
-         and a small diacritic glyph via ::after. */
+      /* Accent words from bracketed [tokens] read as several hands on the
+         page: the scribe's word in the paragraph's own ink, plus later
+         readers' annotations cycling through four marks - a hand-wobbled
+         cinnabar loop, a cinnabar scribble-underline with a small spark, a
+         flat gold wash rubbed in like chalk, and a deep-green double wave
+         (the manuscript's second ink answering back). Marks are SVG
+         backgrounds, not text-shadow/glyph tricks, so the line quality
+         reads as drawn, not typeset; each one stamps on after its word has
+         landed via reactor-accent-mark with a per-word stagger. */
       :global(.reactor-card__accent) {
         position: relative;
         font-style: normal;
         font-weight: 600;
         color: #1a3530;
-        padding: 0.04em 0.12em 0.06em;
-        border-radius: 0.12em;
-        background: linear-gradient(
-          135deg,
-          rgba(199, 162, 71, 0.18),
-          rgba(199, 162, 71, 0.06) 70%
-        );
-        box-shadow:
-          inset 0 0 0 0.5px rgba(199, 162, 71, 0.35),
-          0 1px 0 rgba(199, 162, 71, 0.15);
-        text-shadow:
-          0 0.5px 0 rgba(255, 253, 244, 0.9),
-          0 1.5px 3px rgba(5, 30, 20, 0.18);
       }
 
-      :global(.reactor-card__accent::before) {
+      :global(.reactor-card__accent:nth-of-type(4n + 1)::before) {
         content: '';
         position: absolute;
-        left: 0.08em;
-        right: 0.08em;
-        bottom: -0.1em;
-        height: 2px;
-        border-radius: 1px;
-        background: linear-gradient(
-          90deg,
-          transparent 5%,
-          rgba(199, 162, 71, 0.6),
-          transparent 95%
-        );
+        inset: -0.32em -0.24em -0.18em -0.22em;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 46'%3E%3Cpath d='M14 27C10 14 28 5 60 5C93 5 111 13 108 26C105 39 84 42 59 41C36 40 21 36 16 28C15 26 17 23 21 21' fill='none' stroke='%23b2303a' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        opacity: 0.82;
+        --accent-ink: 0.82;
       }
 
-      :global(.reactor-card__accent::after) {
-        content: '✦';
+      :global(.reactor-card__accent:nth-of-type(4n + 2)::before) {
+        content: '';
         position: absolute;
-        top: -0.6em;
-        right: -0.15em;
-        color: rgba(199, 162, 71, 0.55);
-        font-size: 0.55em;
-        line-height: 1;
-        text-shadow: 0 0.5px 1px rgba(0, 0, 0, 0.3);
+        left: -0.06em;
+        right: -0.06em;
+        bottom: -0.26em;
+        height: 0.55em;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 20'%3E%3Cpath d='M4 8C20 3 34 12 50 7C66 2 80 11 96 6C102 4 108 6 114 5' fill='none' stroke='%23b2303a' stroke-width='2.6' stroke-linecap='round'/%3E%3Cpath d='M6 13C24 16 40 10 58 14C78 18 96 12 112 15' fill='none' stroke='%23b2303a' stroke-width='2' stroke-linecap='round' opacity='0.7'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        opacity: 0.85;
+        --accent-ink: 0.85;
       }
 
-      /* Second-column accents get a different glyph and cooler tone */
-      :global(.reactor-card__body > :nth-child(2) .reactor-card__accent) {
-        background: linear-gradient(
-          135deg,
-          rgba(47, 158, 110, 0.15),
-          rgba(47, 158, 110, 0.04) 70%
-        );
-        box-shadow:
-          inset 0 0 0 0.5px rgba(47, 158, 110, 0.3),
-          0 1px 0 rgba(47, 158, 110, 0.12);
+      :global(.reactor-card__accent:nth-of-type(4n + 2)::after) {
+        content: '';
+        position: absolute;
+        top: -0.64em;
+        right: -0.24em;
+        width: 0.58em;
+        height: 0.58em;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2L13.5 9.5L21 11L13.5 12.8L12 20L10.6 12.8L3 11L10.6 9.5Z' fill='%23b2303a'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        opacity: 0.85;
+        --accent-ink: 0.85;
       }
 
-      :global(.reactor-card__body > :nth-child(2) .reactor-card__accent::after) {
-        content: '◆';
-        color: rgba(47, 158, 110, 0.5);
+      /* Flat gold wash: a rubbed-in chalk highlight sitting BEHIND the
+         word (z-index -1 keeps the scribe's ink on top), two torn-edge
+         strokes so it reads as pigment, not a UI selection box. */
+      :global(.reactor-card__accent:nth-of-type(4n + 3)::before) {
+        content: '';
+        position: absolute;
+        z-index: -1;
+        inset: -0.04em -0.14em -0.02em;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 30'%3E%3Cpath d='M4 7C32 2 68 8 116 4L114 25C76 29 38 24 6 27Z' fill='%23ead99b' fill-opacity='0.55'/%3E%3Cpath d='M10 12C40 9 74 13 110 10L109 20C70 23 36 19 11 21Z' fill='%23c7a247' fill-opacity='0.28'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
       }
 
-      /* Third-column: warmer, like colophon marks */
-      :global(.reactor-card__body > :nth-child(3) .reactor-card__accent) {
-        background: linear-gradient(
-          135deg,
-          rgba(178, 48, 58, 0.12),
-          rgba(178, 48, 58, 0.03) 70%
-        );
-        box-shadow:
-          inset 0 0 0 0.5px rgba(178, 48, 58, 0.25),
-          0 1px 0 rgba(178, 48, 58, 0.1);
+      :global(.reactor-card__accent:nth-of-type(4n)::before) {
+        content: '';
+        position: absolute;
+        left: -0.04em;
+        right: -0.04em;
+        bottom: -0.24em;
+        height: 0.5em;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 16'%3E%3Cpath d='M3 5C16 1 28 8 42 4C56 0 68 8 82 4C96 0 108 7 117 4' fill='none' stroke='%231a7a52' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M5 11C20 8 34 13 50 10C68 7 88 13 115 10' fill='none' stroke='%231a7a52' stroke-width='1.6' stroke-linecap='round' opacity='0.6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-size: 100% 100%;
+        opacity: 0.85;
+        --accent-ink: 0.85;
       }
 
-      :global(.reactor-card__body > :nth-child(3) .reactor-card__accent::after) {
-        content: '❖';
-        color: rgba(178, 48, 58, 0.42);
-      }
-
-      /* On mobile where paragraphs don't overflow:hidden, keep accents but
-         smaller - they should never break line-height flow. On desktop the
-         manuscript treatment keeps larger accents. */
+      /* On mobile: keep the marks but drop the spark - at pager font sizes a
+         third floating mark per word reads as clutter, not annotation. */
       @media (max-width: 960px) {
         :global(.reactor-card__accent) {
-          font-weight: 500;
-          padding: 0.02em 0.08em 0.04em;
-          background: transparent;
-          box-shadow: none;
-          border-radius: 0;
-          color: #0f4a38;
-          text-shadow: none;
+          font-weight: 600;
         }
-        :global(.reactor-card__accent::before) {
-          height: 1.5px;
-          bottom: -0.06em;
-          background: linear-gradient(
-            90deg,
-            transparent 5%,
-            rgba(199, 162, 71, 0.4),
-            transparent 95%
-          );
+        :global(.reactor-card__accent:nth-of-type(4n + 1)::before) {
+          inset: -0.24em -0.18em -0.14em -0.16em;
+          opacity: 0.75;
         }
-        :global(.reactor-card__accent::after) {
+        :global(.reactor-card__accent:nth-of-type(4n + 2)::before) {
+          bottom: -0.2em;
+          height: 0.46em;
+          opacity: 0.75;
+        }
+        :global(.reactor-card__accent:nth-of-type(4n + 2)::after) {
           display: none;
+        }
+        :global(.reactor-card__accent:nth-of-type(4n + 3)::before) {
+          inset: -0.02em -0.12em 0;
+        }
+        :global(.reactor-card__accent:nth-of-type(4n)::before) {
+          bottom: -0.2em;
+          height: 0.44em;
+          opacity: 0.75;
+        }
+
+        /* Mobile drop caps - same palette as desktop but no text-shadow
+           glow and a tighter fit for the compact pager layout. */
+        :global(.reactor-card__body > :nth-child(1) p::first-letter) {
+          float: left;
+          margin: 0.01em 0.06em 0 -0.01em;
+          padding: 0.02em 0.08em 0.03em;
+          color: #fefcf0;
+          font-size: 1.8em;
+          line-height: 0.76;
+          -webkit-text-stroke: 0.025em rgba(5, 60, 35, 0.88);
+        }
+
+        :global(.reactor-card__body > :nth-child(2) p::first-letter) {
+          float: left;
+          margin: 0.01em 0.06em 0 -0.01em;
+          padding: 0.02em 0.08em 0.03em;
+          color: #fefcf0;
+          font-size: 1.8em;
+          line-height: 0.76;
+          -webkit-text-stroke: 0.025em rgba(110, 55, 18, 0.85);
+        }
+
+        :global(.reactor-card__body > :nth-child(3) p::first-letter) {
+          float: left;
+          margin: 0.01em 0.06em 0 -0.01em;
+          padding: 0.02em 0.08em 0.03em;
+          color: #fefcf0;
+          font-size: 1.8em;
+          line-height: 0.76;
+          -webkit-text-stroke: 0.025em rgba(90, 18, 28, 0.85);
         }
       }
 
@@ -1185,6 +1674,23 @@ const sourceSchema = {
         }
       }
 
+      /* After the one-shot draw-on (reactor-bark-appear, untouched below),
+         every lenticel keeps living: a slow opacity breathe with no
+         stroke-dashoffset of its own, so it layers on top of the appear
+         animation's held end state (stroke stays fully drawn) and only
+         takes over opacity. Each mark's --bark-breathe-duration/-delay is
+         independently randomized in HeroScene.tsx, so 67 marks x however
+         many card tiles never move in sync - the birch board reads as
+         alive rather than a printed pattern that plays once and freezes. */
+      @keyframes reactor-bark-breathe {
+        0%, 100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.26;
+        }
+      }
+
       @keyframes reactor-bark-appear {
         0% {
           opacity: 0;
@@ -1204,6 +1710,50 @@ const sourceSchema = {
         0% { opacity: 0; }
         60% { opacity: 0.72; }
         100% { opacity: 1; }
+      }
+
+      /* Text-block reveal: soft rise with a blur-to-ink settle, like the
+         copy being printed onto the finished board rather than the board
+         fading up with text already on it. */
+      @keyframes reactor-copy-rise {
+        0% {
+          opacity: 0;
+          transform: translate3d(0, 0.55rem, 0);
+          filter: blur(3px);
+        }
+        100% {
+          opacity: 1;
+          transform: translate3d(0, 0, 0);
+          filter: blur(0);
+        }
+      }
+
+      @keyframes reactor-rule-sweep {
+        0% {
+          opacity: 0;
+          transform: scaleX(0);
+        }
+        100% {
+          opacity: 0.82;
+          transform: scaleX(1);
+        }
+      }
+
+      /* Corrector's-hand marks: the cinnabar circle/scribble and the other
+         accent inks stamp on with a slight rotation, the way a real
+         marginal mark lands - after the word itself is already printed. */
+      @keyframes reactor-accent-mark {
+        0% {
+          opacity: 0;
+          transform: scale(0.62) rotate(-6deg);
+        }
+        60% {
+          opacity: 1;
+        }
+        100% {
+          opacity: var(--accent-ink, 1);
+          transform: scale(1) rotate(0deg);
+        }
       }
 
       /* ── Hero overlay ─────────────────────────────────────── */
@@ -1683,9 +2233,44 @@ const sourceSchema = {
         :global(.reactor-card::after),
         :global(.reactor-card__circuit-grooves path),
         :global(.reactor-card__circuit-metal path),
-        :global(.reactor-card__circuit-pads rect) {
+        :global(.reactor-card__circuit-pads rect),
+        :global(.reactor-card__bark-marks path),
+        :global(.reactor-card__bark-marks-shadow path),
+        :global(.reactor-card__meta),
+        :global(.reactor-card__heading-initial),
+        :global(.reactor-card__heading-text),
+        :global(.reactor-card h2::after),
+        :global(.reactor-card__body > p),
+        :global(.reactor-card__accent::before),
+        :global(.reactor-card__accent::after),
+        :global(.reactor-card__actions) {
           animation: none !important;
           transition: none;
+        }
+        :global(.reactor-card__meta),
+        :global(.reactor-card__heading-initial),
+        :global(.reactor-card__heading-text),
+        :global(.reactor-card__body > p),
+        :global(.reactor-card__accent::after),
+        :global(.reactor-card__actions) {
+          opacity: 1;
+          transform: none;
+          filter: none;
+        }
+        :global(.reactor-card h2::after) {
+          opacity: 0.82;
+          transform: none;
+          filter: none;
+        }
+        :global(.reactor-card__accent::before) {
+          opacity: var(--accent-ink, 1);
+          transform: none;
+          filter: none;
+        }
+        :global(.reactor-card__bark-marks path),
+        :global(.reactor-card__bark-marks-shadow path) {
+          opacity: 1;
+          stroke-dashoffset: 0;
         }
         :global(.reactor-card::after) {
           opacity: 0.82;
@@ -2192,7 +2777,22 @@ const sourceSchema = {
       }
     </script>
     <HeroScene client:load copy={t.card} />
-    <div class="hero-nebula" aria-hidden="true"></div>
+    <div class="hero-nebula" aria-hidden="true">
+      <div class="hero-nebula__spot hero-nebula__spot--roll"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ignite"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--shell"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--reactor"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--divide"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--signal"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--card"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--discharge"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ambient hero-nebula__spot--amb-emerald"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ambient hero-nebula__spot--amb-gold"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ambient hero-nebula__spot--amb-rays"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ambient hero-nebula__spot--amb-headline-top"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ambient hero-nebula__spot--amb-headline-mid"></div>
+      <div class="hero-nebula__spot hero-nebula__spot--ambient hero-nebula__spot--amb-headline-bottom"></div>
+    </div>
 
     <header class="brand">
       <BrandMark />

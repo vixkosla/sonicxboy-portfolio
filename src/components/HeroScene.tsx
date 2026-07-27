@@ -75,9 +75,23 @@ import {
   type SurfaceDischargeState,
 } from '../lib/DischargeScheduler'
 import {
+  createDischargeBacklightMaterial,
+  updateDischargeBacklightMaterial,
+} from '../lib/DischargeBacklight.ts'
+import {
+  createBlackHoleMaterial,
+  updateBlackHoleMaterial,
+} from '../lib/BlackHoleMaterial.ts'
+import { PrologueSequence } from '../lib/PrologueSequence.ts'
+import {
   MobileCameraStory,
   type MobileCameraStoryTimings,
 } from '../lib/MobileCameraStory.ts'
+import {
+  DESKTOP_ASSEMBLY_POINTS,
+  DESKTOP_MOTION_POINTS,
+} from '../lib/desktopCameraPoints.ts'
+import { resolveSceneViewport } from '../lib/viewportMode.ts'
 import { SOURCE_REPOSITORY } from '../i18n.ts'
 
 const EMERALD = new Color('#18d383')
@@ -99,28 +113,15 @@ const DIAMOND_ORIENTATION = new Quaternion()
 const INITIAL_X = 1.2
 const DESKTOP_SCENE_SCALE = 1.3
 const COMPACT_SCENE_SCALE = 0.82
-const COMPACT_MAX_WIDTH = 720
-const COMPACT_LANDSCAPE_MAX_WIDTH = 1180
-const COMPACT_LANDSCAPE_MAX_HEIGHT = 800
 const COMPACT_PORTRAIT_TARGET_Y = 0.72
-const isCompactViewport = (width: number, height: number) =>
-  width <= COMPACT_MAX_WIDTH ||
-  (width <= COMPACT_LANDSCAPE_MAX_WIDTH &&
-    height <= COMPACT_LANDSCAPE_MAX_HEIGHT &&
-    width > height)
-const isPortraitCompactViewport = (width: number, height: number) =>
-  width <= COMPACT_MAX_WIDTH && height >= width
 // After the edge roll the whole choreography is anchored at
 // INITIAL_X + 2 * contactHalfExtent (the no-slip roll displacement).
-// Desktop and short landscape keep the camera on the assembly point so the
-// settled reactor sits right of the text column; compact portrait aims at
-// the settled anchor instead so the show is centered.
+// Compact portrait aims at the settled anchor so the show is centered.
 const settledCenterX = (scale: number) =>
   INITIAL_X + 2 * (CUBE_SIZE / 2 + CUBE_STEP) * scale
-// Camera offset from its aim point (base rig: [4.8, 3.4, 7.2] looking at
-// INITIAL_X). Narrow viewports shrink the horizontal FOV, so compact
-// pulls the camera back along the same axis; fog and the scatter-hide
-// distance shift by the same delta to keep the depth story identical.
+// Compact/reduced-motion camera offset from its aim point. Narrow viewports
+// shrink the horizontal FOV, so compact pulls the camera back along the same
+// axis; fog and the scatter-hide distance shift by the same delta.
 const CAMERA_BASE_OFFSET = new Vector3(3.6, 3.4, 7.2)
 const CAMERA_BASE_DISTANCE = CAMERA_BASE_OFFSET.length()
 const COMPACT_CAMERA_PULLBACK = 1.45
@@ -129,6 +130,31 @@ const COMPACT_CAMERA_EXTRA_DISTANCE =
 const FOG_NEAR = 10
 const FOG_FAR = 20
 const SCATTER_HIDE_DISTANCE = 18.35
+// Final-idle core flourish, composed from the accidental ?blackhole-preview
+// frame ss_8386ci65x that prompted the idea. Three blocks open out of the
+// settled nucleus, then stop completely; only their material keeps breathing.
+const BLACK_HOLE_LOCAL_OFFSETS: ReadonlyArray<readonly [number, number, number]> = [
+  [1.05, 0.48, 0.18],
+  [-0.88, 0.65, -0.25],
+  [0.68, -0.52, 0.36],
+]
+const BLACK_HOLE_LOCAL_SCALES = [1.25, 0.92, 1.05] as const
+const BLACK_HOLE_LOCAL_ROTATIONS: ReadonlyArray<readonly [number, number, number]> = [
+  [0.34, 0.82, 0.08],
+  [-0.52, 0.18, 0.64],
+  [0.7, -0.42, 0.26],
+]
+const BLACK_HOLE_CAMERA_TARGET = new Vector3()
+const BLACK_HOLE_CAMERA_POSITION = new Vector3()
+const BLACK_HOLE_EULER_SCRATCH = new Euler()
+const PROLOGUE_CAMERA_TARGET = new Vector3()
+const PROLOGUE_CAMERA_POSITION = new Vector3()
+const PROLOGUE_BLEND_POSITION = new Vector3()
+const PROLOGUE_BLEND_TARGET = new Vector3()
+// Post-prologue camera handoff: a short smootherstep blend from the chase
+// cam's final pose into the camera story's live sample replaces the former
+// hard cut hidden only by the explode flash.
+const PROLOGUE_CAMERA_BLEND = 0.6
 const cameraAimScratch = new Vector3()
 const PAGE_SEARCH_PARAMS =
   typeof window !== 'undefined'
@@ -138,6 +164,9 @@ const VIEWPORT_LAB_PREVIEW =
   PAGE_SEARCH_PARAMS?.has('viewport-lab') === true
 const DEVELOPMENT_PREVIEW_ENABLED =
   import.meta.env.DEV || VIEWPORT_LAB_PREVIEW
+const BACKLIGHT_PREVIEW_ENABLED =
+  DEVELOPMENT_PREVIEW_ENABLED &&
+  PAGE_SEARCH_PARAMS?.has('backlight-preview') === true
 const FREEZE_VIEWPORT_LAB_GRID =
   PAGE_SEARCH_PARAMS !== null &&
   PAGE_SEARCH_PARAMS.get('viewport-lab') === 'grid' &&
@@ -148,6 +177,28 @@ const FREEZE_VIEWPORT_LAB_GRID =
 const FORCE_COMPACT_PREVIEW =
   DEVELOPMENT_PREVIEW_ENABLED &&
   PAGE_SEARCH_PARAMS?.has('compact-preview') === true
+const CAMERA_STORY_PREVIEW_REQUESTED =
+  DEVELOPMENT_PREVIEW_ENABLED &&
+  PAGE_SEARCH_PARAMS?.has('camera-story') === true
+const PROLOGUE_PREVIEW_ENABLED =
+  DEVELOPMENT_PREVIEW_ENABLED &&
+  PAGE_SEARCH_PARAMS?.has('prologue-preview') === true
+// Lookdev previews freeze or re-aim the scene on their own terms; the
+// prologue would only add a ~3s preamble to every reload of those tools,
+// so any active preview opts the page out of the default-on prologue.
+const PROLOGUE_EXCLUDED_BY_PREVIEW =
+  DEVELOPMENT_PREVIEW_ENABLED &&
+  PAGE_SEARCH_PARAMS !== null &&
+  [
+    'plasma-preview',
+    'camera-story',
+    'blackhole-preview',
+    'assembly-glow-preview',
+    'material-baseline',
+    'backlight-preview',
+    'compact-preview',
+    'viewport-lab',
+  ].some((key) => PAGE_SEARCH_PARAMS.has(key))
 const PREFERS_REDUCED_MOTION =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -257,6 +308,15 @@ const REACTOR_SCATTER_START =
   REACTOR_SIGNAL_START + REACTOR_SIGNAL_DURATION + 0.05
 const REACTOR_SCATTER_STAGGER = 0.72
 const REACTOR_SCATTER_MAX_FLIGHT = 4.4
+// Wait until every scattered plate is gone, then leave a quiet beat before
+// the core performs its final idle flourish. This must not overlap the card.
+const IDLE_CORE_FLOURISH_START =
+  REACTOR_SCATTER_START +
+  REACTOR_SCATTER_STAGGER +
+  REACTOR_SCATTER_MAX_FLIGHT +
+  0.45
+const IDLE_CORE_FLOURISH_DURATION = 2.6
+const IDLE_CORE_FLOURISH_STAGGER = 0.18
 const HERO_PLATE_LAUNCH_START = REACTOR_SCATTER_START - 0.15
 const HERO_PLATE_RECOIL_DURATION = 0.15
 const HERO_PLATE_FLIGHT_DURATION = 1.55
@@ -282,10 +342,12 @@ const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 const DISCHARGE_AUTO_START =
   NUCLEUS_FINAL_EXPAND_START + NUCLEUS_FINAL_EXPAND_DURATION * 0.7
 const SURFACE_AUTO_START = PLASMA_RIM_START + PLASMA_RIM_DURATION + 0.5
-// Portrait-mobile camera story uses the scene's actual phase constants rather
-// than a duplicate wall-clock timeline. Values are SpinSimulation.elapsed,
-// including roll/lift before mainElapsed begins.
-const MOBILE_CAMERA_STORY_TIMINGS = {
+// Both the portrait-mobile and desktop camera stories key off the scene's
+// actual phase constants rather than a duplicate wall-clock timeline -
+// the named beats are identical either way, only the shot vectors differ.
+// Values are SpinSimulation.elapsed, including roll/lift before
+// mainElapsed begins.
+const CAMERA_STORY_TIMINGS = {
   roll: EDGE_ROLL_DURATION,
   diamond: MAIN_SPIN_START,
   spin: MAIN_SPIN_START + 0.55,
@@ -297,7 +359,6 @@ const MOBILE_CAMERA_STORY_TIMINGS = {
   division: MAIN_SPIN_START + REACTOR_DIVIDE_ONE_START + 0.72,
   handoff: MAIN_SPIN_START + REACTOR_HERO_SELECT_TIME - 0.08,
 } satisfies MobileCameraStoryTimings
-const ARC_LIGHT_TINT = new Color('#8fb4ff')
 const NUCLEUS_BASE_EMISSIVE = new Color('#6cf3b3')
 const INNER_GLOW_COLD = new Color('#d1f0ff')
 
@@ -329,6 +390,19 @@ interface ReactorTileProfile {
 function deterministicNoise(index: number, salt: number) {
   const value = Math.sin((index + 1) * 12.9898 + salt * 78.233) * 43758.5453
   return value - Math.floor(value)
+}
+
+// SSR-visible style values must hydrate byte-identically, and Math.sin is
+// not bit-stable across JS engines (Node and the browser can differ in the
+// last ULP), so DOM markup noise uses integer math instead - ECMAScript
+// specifies imul/shifts exactly, making this identical in every engine.
+// Scene-only values above keep the GLSL-style hash and its validated data.
+function ssrStableNoise(index: number, salt: number) {
+  let value = Math.imul(index + 1, 0x9e3779b1) ^ Math.imul(salt + 1, 0x85ebca6b)
+  value = Math.imul(value ^ (value >>> 16), 0x21f0aaad)
+  value = Math.imul(value ^ (value >>> 15), 0x735a2d97)
+  value ^= value >>> 15
+  return (value >>> 0) / 4294967296
 }
 
 function createRadialPlateOrientation(direction: Vector3) {
@@ -617,6 +691,75 @@ const TITLE_WAVE_STAGES = [
   'outer-return',
 ] as const
 
+// The desktop nebula echoes eight visible turning points instead of sitting
+// static: main spin taking hold, ignition's warm flash, the completed
+// emerald shell, the plates going metallic, the second-generation split,
+// the saturated red signal plate, the card's gold settle, and the first
+// electric discharge. Same stepping pattern as the title wave - each stage
+// name is unique so the CSS animation restarts cleanly.
+const NEBULA_BEAT_TIMES = [
+  0,
+  PLASMA_CORE_START,
+  ORBIT_END,
+  REACTOR_TRANSFORM_START,
+  REACTOR_DIVIDE_ONE_START,
+  REACTOR_SIGNAL_START,
+  HERO_CARD_REVEAL,
+  DISCHARGE_AUTO_START,
+] as const
+const NEBULA_BEAT_STAGES = [
+  'roll',
+  'ignite',
+  'shell',
+  'reactor',
+  'divide',
+  'signal',
+  'card',
+  'discharge',
+] as const
+// The cubelet engraving used to stay one fixed gold the whole time it's
+// visible. Same idea as the nebula: let the trace color answer whatever
+// beat is actually happening instead of sitting static, reusing the exact
+// hue each NEBULA_BEAT_STAGES entry already shows in the backdrop so the
+// object and the empty space around it read as one palette. sampleReactorHue
+// walks the same NEBULA_BEAT_TIMES thresholds and lerps between the two
+// bracketing hues, so the trace color drifts continuously through
+// roll -> ignite -> shell -> reactor -> divide -> signal -> card -> discharge
+// instead of snapping stage to stage.
+const REACTOR_HUE_ROLL = new Color('#6cf3b3')
+const REACTOR_HUE_IGNITE = new Color('#ffb653')
+const REACTOR_HUE_REACTOR = new Color('#c7a247')
+const REACTOR_HUE_DIVIDE = new Color('#4febb3')
+const REACTOR_HUE_CARD = new Color('#ead99b')
+const REACTOR_HUE_DISCHARGE = new Color('#4de1ff')
+const REACTOR_HUE_STAGES = [
+  REACTOR_HUE_ROLL,
+  REACTOR_HUE_IGNITE,
+  EMERALD,
+  REACTOR_HUE_REACTOR,
+  REACTOR_HUE_DIVIDE,
+  SIGNAL_RED,
+  REACTOR_HUE_CARD,
+  REACTOR_HUE_DISCHARGE,
+] as const
+const REACTOR_HUE_SCRATCH = new Color()
+
+function sampleReactorHue(target: Color, mainElapsed: number): Color {
+  let index = 0
+  while (
+    index < NEBULA_BEAT_TIMES.length - 1 &&
+    mainElapsed >= NEBULA_BEAT_TIMES[index + 1]
+  ) {
+    index += 1
+  }
+  const nextIndex = Math.min(index + 1, REACTOR_HUE_STAGES.length - 1)
+  const spanStart = NEBULA_BEAT_TIMES[index]
+  const spanEnd = NEBULA_BEAT_TIMES[Math.min(index + 1, NEBULA_BEAT_TIMES.length - 1)]
+  const span = spanEnd - spanStart
+  const localT = span > 0 ? Math.min(1, Math.max(0, (mainElapsed - spanStart) / span)) : 1
+  return target.copy(REACTOR_HUE_STAGES[index]).lerp(REACTOR_HUE_STAGES[nextIndex], localT)
+}
+
 const ORBIT_GROUP_BY_INDEX = new Map<number, OrbitGroup>()
 for (const group of ORBIT_GROUPS) {
   for (const index of group.indices) ORBIT_GROUP_BY_INDEX.set(index, group)
@@ -737,6 +880,11 @@ const smootherstep = (value: number) => {
   )
 }
 
+const easeOutQuart = (value: number) => {
+  const progress = Math.min(1, Math.max(0, value))
+  return 1 - (1 - progress) ** 4
+}
+
 const capturestep = (value: number) => {
   const progress = Math.min(1, Math.max(0, value))
   if (progress <= 0.5) return smootherstep(progress)
@@ -800,10 +948,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const groupRef = useRef<Group>(null)
   const nucleusFrameRef = useRef<Group>(null)
   const plasmaRef = useRef<Mesh>(null)
+  const dischargeBacklightRef = useRef<Mesh>(null)
   const meshRef = useRef<InstancedMesh>(null)
   const assemblyGlowMeshRef = useRef<InstancedMesh>(null)
   const orbitMeshRef = useRef<InstancedMesh>(null)
   const reactorMeshRef = useRef<InstancedMesh>(null)
+  const blackHoleMeshRef = useRef<InstancedMesh>(null)
+  const prologueOrbMeshRef = useRef<InstancedMesh>(null)
+  const prologueHeroMeshRef = useRef<Mesh>(null)
   const heroPlateRef = useRef<Mesh>(null)
   const plasmaLightRef = useRef<PointLight>(null)
   const heroPlateLightRef = useRef<PointLight>(null)
@@ -813,10 +965,14 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const cardRevealed = useRef(false)
   const ovalExitStarted = useRef(false)
   const titleWaveStep = useRef(0)
+  const nebulaBeatStep = useRef(0)
+  const nebulaCoreRevealed = useRef(false)
   const reactorApertureFrozen = useRef(false)
   const viewportLabReady = useRef(false)
   const cameraShotId = useRef('')
   const transform = useMemo(() => new Object3D(), [])
+  const blackHoleTransform = useMemo(() => new Object3D(), [])
+  const prologueOrbTransform = useMemo(() => new Object3D(), [])
   const assemblyGlowTransform = useMemo(() => new Object3D(), [])
   const orbitTransform = useMemo(() => new Object3D(), [])
   const reactorTransform = useMemo(() => new Object3D(), [])
@@ -840,17 +996,20 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const plasmaWorldCenter = useMemo(() => new Vector3(), [])
   const plasmaProxyCenter = useMemo(() => new Vector3(), [])
   const plasmaWorldRadii = useMemo(() => new Vector3(), [])
-  const compact =
-    useThree((state) =>
-      isCompactViewport(state.size.width, state.size.height),
-    ) || FORCE_COMPACT_PREVIEW
-  const portraitCompact =
-    useThree((state) =>
-      isPortraitCompactViewport(state.size.width, state.size.height),
-    ) || FORCE_COMPACT_PREVIEW
+  const dischargeBacklightDirection = useMemo(() => new Vector3(), [])
+  const dischargeBacklightAxis = useMemo(() => new Vector3(), [])
+  const dischargeBacklightView = useMemo(() => new Vector3(), [])
+  const dischargeBacklightScreenSide = useMemo(() => new Vector3(), [])
+  const viewport = useThree((state) =>
+    resolveSceneViewport(state.size.width, state.size.height),
+  )
+  const compact = viewport.compact || FORCE_COMPACT_PREVIEW
+  const portraitCompact = viewport.portraitCompact || FORCE_COMPACT_PREVIEW
+  const desktopCameraViewport = viewport.desktopCamera
   const shortPortrait = useThree(
     (state) =>
-      isPortraitCompactViewport(state.size.width, state.size.height) &&
+      resolveSceneViewport(state.size.width, state.size.height)
+        .portraitCompact &&
       state.size.height <= 680,
   )
   const setDpr = useThree((state) => state.setDpr)
@@ -880,12 +1039,27 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       new MobileCameraStory({
         assemblyX: INITIAL_X,
         settledX: settledCenterX(COMPACT_SCENE_SCALE),
-        timings: MOBILE_CAMERA_STORY_TIMINGS,
+        timings: CAMERA_STORY_TIMINGS,
         distanceScale: shortPortrait ? 1.16 : 1,
         targetYBias: shortPortrait ? 0.5 : 0,
       }),
     [shortPortrait],
   )
+  // Wide desktop and portrait mobile use separate authored tracks on the same
+  // engine. Compact landscape and reduced-motion keep the static fallback.
+  const desktopCameraStory = useMemo(
+    () =>
+      new MobileCameraStory({
+        assemblyX: INITIAL_X,
+        settledX: settledCenterX(DESKTOP_SCENE_SCALE),
+        timings: CAMERA_STORY_TIMINGS,
+        assemblyPoints: DESKTOP_ASSEMBLY_POINTS,
+        motionPoints: DESKTOP_MOTION_POINTS,
+        driftEnabled: false,
+      }),
+    [],
+  )
+  const activeCameraStory = portraitCompact ? cameraStory : desktopCameraStory
   const previewCameraStoryId = useMemo(
     () =>
       DEVELOPMENT_PREVIEW_ENABLED
@@ -894,19 +1068,59 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     [],
   )
   const previewCamera = useMemo(
-    () => cameraStory.resolvePreview(previewCameraStoryId),
-    [cameraStory, previewCameraStoryId],
+    () => activeCameraStory.resolvePreview(previewCameraStoryId),
+    [activeCameraStory, previewCameraStoryId],
   )
   const previewCameraPoint = previewCamera?.point ?? null
   const previewCameraStory = previewCamera !== null
-  const mobileCameraStoryEnabled =
-    portraitCompact && (!PREFERS_REDUCED_MOTION || previewCameraStory)
+  const cameraStoryEnabled =
+    (!PREFERS_REDUCED_MOTION &&
+      (portraitCompact || desktopCameraViewport)) ||
+    previewCameraStory ||
+    PROLOGUE_PREVIEW_ENABLED
   const previewMaterialBaseline = useMemo(
     () =>
       DEVELOPMENT_PREVIEW_ENABLED &&
       PAGE_SEARCH_PARAMS?.has('material-baseline') === true,
     [],
   )
+  // Isolated lookdev pass for the "black hole" cube cluster near the
+  // nucleus (BlackHoleMaterial.ts) - a proposal, not yet wired into the
+  // real choreography. Freezes assembly at time 0 (so the far-away swarm
+  // stays out of frame) and points the camera at a fixed close view of the
+  // nucleus instead of running the normal camera story.
+  const blackHolePreview = useMemo(
+    () =>
+      DEVELOPMENT_PREVIEW_ENABLED &&
+      PAGE_SEARCH_PARAMS?.has('blackhole-preview') === true,
+    [],
+  )
+  // Cold-open prologue: on by default, but only in viewports with a
+  // scripted camera story to receive the chase-cam handoff (static-fallback
+  // viewports keep their established rig - nothing would own the camera
+  // after the prologue there). `?no-prologue` restores the old
+  // start-on-swarm behavior, lookdev previews opt out on their own.
+  const prologueEnabled =
+    PROLOGUE_PREVIEW_ENABLED ||
+    (!PREFERS_REDUCED_MOTION &&
+      (portraitCompact || desktopCameraViewport) &&
+      PAGE_SEARCH_PARAMS?.has('no-prologue') !== true &&
+      !PROLOGUE_EXCLUDED_BY_PREVIEW)
+  const prologue = useMemo(
+    () =>
+      new PrologueSequence({
+        screenRight: portraitCompact ? 1.0 : 2.0,
+      }),
+    [portraitCompact],
+  )
+  const prologueEndCaptured = useRef(false)
+  const prologueBlendStart = useMemo(() => new Vector3(), [])
+  const prologueBlendTargetStart = useMemo(() => new Vector3(), [])
+  useLayoutEffect(() => {
+    // A viewport-class change rebuilds the sequence from t=0; the stale
+    // captured end pose from the previous instance must not blend in.
+    prologueEndCaptured.current = false
+  }, [prologue])
   const previewPlasma = previewStage !== null
   useLayoutEffect(() => {
     setDpr(
@@ -917,11 +1131,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   }, [compact, setDpr])
   useLayoutEffect(() => {
     if (import.meta.env.DEV) {
-      ;(window as unknown as Record<string, unknown>).__mobileCameraStory =
-        cameraStory
+      const debugWindow = window as unknown as Record<string, unknown>
+      debugWindow.__mobileCameraStory = cameraStory
+      debugWindow.__desktopCameraStory = desktopCameraStory
     }
 
-    if (!mobileCameraStoryEnabled) {
+    if (!cameraStoryEnabled) {
       document.body.removeAttribute('data-camera-shot')
       cameraShotId.current = ''
     }
@@ -929,11 +1144,40 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     return () => {
       document.body.removeAttribute('data-camera-shot')
       if (import.meta.env.DEV) {
-        delete (window as unknown as Record<string, unknown>)
-          .__mobileCameraStory
+        const debugWindow = window as unknown as Record<string, unknown>
+        delete debugWindow.__mobileCameraStory
+        delete debugWindow.__desktopCameraStory
       }
     }
-  }, [cameraStory, mobileCameraStoryEnabled])
+  }, [cameraStory, desktopCameraStory, cameraStoryEnabled])
+  useLayoutEffect(() => {
+    const mesh = blackHoleMeshRef.current
+    if (!mesh) return
+    const reveal = blackHolePreview ? 1 : 0
+    for (let index = 0; index < BLACK_HOLE_LOCAL_OFFSETS.length; index += 1) {
+      const offset = BLACK_HOLE_LOCAL_OFFSETS[index]
+      const rotation = BLACK_HOLE_LOCAL_ROTATIONS[index]
+      blackHoleTransform.position.set(
+        offset[0] * reveal,
+        offset[1] * reveal,
+        offset[2] * reveal,
+      )
+      blackHoleTransform.quaternion.setFromEuler(
+        BLACK_HOLE_EULER_SCRATCH.set(
+          rotation[0] * reveal,
+          rotation[1] * reveal,
+          rotation[2] * reveal,
+        ),
+      )
+      blackHoleTransform.scale.setScalar(
+        BLACK_HOLE_LOCAL_SCALES[index] * reveal,
+      )
+      blackHoleTransform.updateMatrix()
+      mesh.setMatrixAt(index, blackHoleTransform.matrix)
+    }
+    mesh.visible = blackHolePreview
+    mesh.instanceMatrix.needsUpdate = true
+  }, [blackHolePreview, blackHoleTransform])
   const assembly = useMemo(() => {
     const simulation = new LayeredAssembly()
     if (previewAssemblyGlow) {
@@ -1007,10 +1251,15 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
                               ? REACTOR_SCATTER_START + 0.72
                               : previewStage === 'card'
                                 ? HERO_CARD_REVEAL + 0.42
-                                : REACTOR_SCATTER_START +
-                                  REACTOR_SCATTER_STAGGER +
-                                  REACTOR_SCATTER_MAX_FLIGHT +
-                                  0.2
+                                : previewStage === 'idle'
+                                  ? IDLE_CORE_FLOURISH_START +
+                                    IDLE_CORE_FLOURISH_DURATION +
+                                    IDLE_CORE_FLOURISH_STAGGER * 2 +
+                                    0.2
+                                  : REACTOR_SCATTER_START +
+                                    REACTOR_SCATTER_STAGGER +
+                                    REACTOR_SCATTER_MAX_FLIGHT +
+                                    0.2
       simulation.elapsed = MAIN_SPIN_START + previewMainElapsed
       simulation.settled = true
     } else if (previewCamera?.clock === 'motion') {
@@ -1065,8 +1314,23 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     () => createAssemblySeamMaterial(),
     [],
   )
+  const blackHoleMaterial = useMemo(() => createBlackHoleMaterial(), [])
+  const prologueHeroMaterial = useMemo(
+    () =>
+      createMetamaterial({
+        color: '#18d383',
+        metalness: 0.22,
+        roughness: 0.32,
+        emissive: '#6cf3b3',
+      }),
+    [],
+  )
   const gridMaterial = useMemo(() => createGridMaterial(), [])
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
+  const dischargeBacklightMaterial = useMemo(
+    () => createDischargeBacklightMaterial(),
+    [],
+  )
   const flashMaterial = useMemo(() => createFlashMaterial(), [])
   const previewArcBaseline = useMemo(
     () =>
@@ -1088,6 +1352,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         seed: 5.1,
       }
     } else if (
+      BACKLIGHT_PREVIEW_ENABLED ||
       previewStage === 'arcsurf' ||
       previewStage === 'arcrev' ||
       previewStage === 'arcnet'
@@ -2107,12 +2372,16 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     document.body.removeAttribute('data-orbit-title-wave')
     document.body.removeAttribute('data-oval-on')
     document.body.removeAttribute('data-oval-leaving')
+    document.body.removeAttribute('data-nebula-beat')
+    document.body.removeAttribute('data-nebula-core')
     if (previewMaterialBaseline) {
       document.body.setAttribute('data-material-baseline', '')
     } else {
       document.body.removeAttribute('data-material-baseline')
     }
     titleWaveStep.current = 0
+    nebulaBeatStep.current = 0
+    nebulaCoreRevealed.current = false
     reactorApertureFrozen.current = false
     selectedPlateIndex.current = -1
     heroLaunchCaptured.current = false
@@ -2128,6 +2397,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       document.body.removeAttribute('data-oval-on')
       document.body.removeAttribute('data-oval-leaving')
       document.body.removeAttribute('data-material-baseline')
+      document.body.removeAttribute('data-nebula-beat')
+      document.body.removeAttribute('data-nebula-core')
     }
   }, [
     assembly,
@@ -2141,24 +2412,25 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     transform,
   ])
 
-  const applyMobileCameraStory = (camera: Camera, scene: Scene) => {
-    if (!mobileCameraStoryEnabled) return
+  const applyCameraStory = (camera: Camera, scene: Scene) => {
+    if (!cameraStoryEnabled) return
 
     if (previewCameraPoint) {
-      cameraStory.samplePoint(previewCameraPoint)
+      activeCameraStory.samplePoint(previewCameraPoint)
     } else if (previewCamera) {
-      cameraStory.sampleClock(previewCamera.clock, previewCamera.time)
+      activeCameraStory.sampleClock(previewCamera.clock, previewCamera.time)
     } else {
-      cameraStory.sample(
+      activeCameraStory.sample(
         Math.min(1, assembly.time / assembly.endTime),
         spin.elapsed,
         Math.min(assembly.time, assembly.endTime) + spin.elapsed,
+        spin.angularVelocity,
       )
     }
 
-    camera.position.copy(cameraStory.position)
+    camera.position.copy(activeCameraStory.position)
     camera.up.copy(UP)
-    camera.lookAt(cameraStory.target)
+    camera.lookAt(activeCameraStory.target)
     // The aperture, signal selection, and release paths read matrixWorld in
     // this same frame, before Three's render traversal updates the camera.
     camera.updateMatrixWorld(true)
@@ -2167,16 +2439,41 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     // the scene fog. Without this coupling, the wide assembly/orbit shots
     // would dim their subject merely because the camera moved backwards.
     if (scene.fog instanceof Fog) {
-      const storyDistance = camera.position.distanceTo(cameraStory.target)
+      const storyDistance = camera.position.distanceTo(
+        activeCameraStory.target,
+      )
       const fogShift = storyDistance - CAMERA_BASE_DISTANCE
       scene.fog.near = FOG_NEAR + fogShift
       scene.fog.far = FOG_FAR + fogShift
     }
 
-    const activeId = cameraStory.activePoint.id
+    const activeId = activeCameraStory.activePoint.id
     if (cameraShotId.current !== activeId) {
       document.body.dataset.cameraShot = activeId
       cameraShotId.current = activeId
+    }
+
+    // Prologue handoff: the story's first sample is a fixed far-left aim,
+    // the chase cam ends close behind the cast cube - blend between them
+    // over the first PROLOGUE_CAMERA_BLEND seconds of assembly time (the
+    // explode flash covers the swing) instead of cutting.
+    if (
+      prologueEndCaptured.current &&
+      assembly.time < PROLOGUE_CAMERA_BLEND
+    ) {
+      const blendT = smootherstep(assembly.time / PROLOGUE_CAMERA_BLEND)
+      PROLOGUE_BLEND_POSITION.copy(prologueBlendStart).lerp(
+        camera.position,
+        blendT,
+      )
+      camera.position.copy(PROLOGUE_BLEND_POSITION)
+      PROLOGUE_BLEND_TARGET.copy(prologueBlendTargetStart).lerp(
+        activeCameraStory.target,
+        blendT,
+      )
+      camera.up.copy(UP)
+      camera.lookAt(PROLOGUE_BLEND_TARGET)
+      camera.updateMatrixWorld(true)
     }
   }
 
@@ -2184,6 +2481,82 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     if (VIEWPORT_LAB_PREVIEW && !viewportLabReady.current) {
       viewportLabReady.current = true
       document.documentElement.dataset.heroCanvasReady = 'true'
+    }
+
+    // Cold-open prologue: plays once before assembly starts counting (the
+    // early return below means assembly.update() is never reached while
+    // this is active, so it stays parked at time 0 - the far-away swarm
+    // start position - exactly where the prologue hands off). Positions
+    // from PrologueSequence are in the same local space as everything else
+    // under groupRef, so meshes just take them directly; the camera is a
+    // top-level object, so its position/target need the same
+    // position+scale conversion applyCameraStory uses elsewhere.
+    if (prologueEnabled && !prologue.complete) {
+      prologue.update(delta)
+      updateBlackHoleMaterial(blackHoleMaterial, clock.elapsedTime)
+
+      const nucleusFrame = nucleusFrameRef.current
+      if (nucleusFrame) nucleusFrame.scale.setScalar(0)
+
+      PROLOGUE_CAMERA_POSITION.copy(prologue.cameraPosition).multiplyScalar(
+        sceneScale,
+      )
+      PROLOGUE_CAMERA_POSITION.x += INITIAL_X
+      PROLOGUE_CAMERA_TARGET.copy(prologue.cameraTarget).multiplyScalar(
+        sceneScale,
+      )
+      PROLOGUE_CAMERA_TARGET.x += INITIAL_X
+      camera.position.copy(PROLOGUE_CAMERA_POSITION)
+      camera.up.copy(UP)
+      camera.lookAt(PROLOGUE_CAMERA_TARGET)
+      camera.updateMatrixWorld(true)
+
+      if (prologue.complete && !prologueEndCaptured.current) {
+        prologueEndCaptured.current = true
+        prologueBlendStart.copy(PROLOGUE_CAMERA_POSITION)
+        prologueBlendTargetStart.copy(PROLOGUE_CAMERA_TARGET)
+      }
+
+      const orbMesh = prologueOrbMeshRef.current
+      if (orbMesh) {
+        for (let index = 0; index < prologue.orbPositions.length; index += 1) {
+          prologueOrbTransform.position.copy(prologue.orbPositions[index])
+          prologueOrbTransform.scale.setScalar(
+            prologue.orbVisible[index] ? 0.4 : 0,
+          )
+          prologueOrbTransform.updateMatrix()
+          orbMesh.setMatrixAt(index, prologueOrbTransform.matrix)
+        }
+        orbMesh.instanceMatrix.needsUpdate = true
+      }
+
+      const heroMesh = prologueHeroMeshRef.current
+      if (heroMesh) {
+        heroMesh.visible = prologue.heroVisible
+        heroMesh.position.copy(prologue.heroPosition)
+        heroMesh.scale.setScalar(prologue.heroScale)
+      }
+      prologueHeroMaterial.emissiveIntensity = 0.15 + prologue.explodeFlash * 2.4
+
+      return
+    }
+
+    // Isolated lookdev: skip the whole choreography (assembly never
+    // advances past its time-0 start, so the far-away swarm stays out of
+    // frame) and point the camera at a fixed close view of the nucleus so
+    // the new cluster is easy to judge on its own.
+    if (blackHolePreview) {
+      const nucleusFrame = nucleusFrameRef.current
+      if (nucleusFrame) nucleusFrame.scale.setScalar(0)
+
+      BLACK_HOLE_CAMERA_TARGET.set(INITIAL_X, 0.05, 0)
+      BLACK_HOLE_CAMERA_POSITION.set(INITIAL_X + 2.1, 1.35, 2.5)
+      camera.position.copy(BLACK_HOLE_CAMERA_POSITION)
+      camera.up.copy(UP)
+      camera.lookAt(BLACK_HOLE_CAMERA_TARGET)
+      camera.updateMatrixWorld(true)
+      updateBlackHoleMaterial(blackHoleMaterial, clock.elapsedTime)
+      return
     }
 
     const previousAssemblyTime = assembly.time
@@ -2283,7 +2656,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
     const group = groupRef.current
     if (!group || !assembly.complete) {
-      applyMobileCameraStory(camera, scene)
+      applyCameraStory(camera, scene)
       syncInstances()
       return
     }
@@ -2292,7 +2665,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       ? 0
       : assembly.time - Math.max(previousAssemblyTime, assembly.endTime)
     spin.update(spinDelta)
-    applyMobileCameraStory(camera, scene)
+    applyCameraStory(camera, scene)
 
     if (!previewMaterialBaseline && spin.mainElapsed < REACTOR_TRANSFORM_START) {
       const elapsed = spin.elapsed
@@ -2376,6 +2749,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         surface,
         elapsed,
         energy,
+        0,
+        sampleReactorHue(REACTOR_HUE_SCRATCH, spin.mainElapsed),
       )
     }
 
@@ -2391,6 +2766,23 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         document.body.dataset.ovalOn = ''
       }
       titleWaveStep.current += 1
+    }
+
+    while (
+      nebulaBeatStep.current < NEBULA_BEAT_TIMES.length &&
+      spin.mainElapsed >= NEBULA_BEAT_TIMES[nebulaBeatStep.current]
+    ) {
+      document.body.dataset.nebulaBeat = NEBULA_BEAT_STAGES[nebulaBeatStep.current]
+      nebulaBeatStep.current += 1
+    }
+
+    // The nebula backdrop stays dark through assembly and the roll/spin -
+    // there's no object worth answering with color yet. It only fades in
+    // once the plasma core actually ignites inside the shell, same moment
+    // as the 'ignite' beat above.
+    if (!nebulaCoreRevealed.current && spin.mainElapsed >= PLASMA_CORE_START) {
+      nebulaCoreRevealed.current = true
+      document.body.dataset.nebulaCore = ''
     }
 
     if (
@@ -2604,6 +2996,125 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       finalExpandProgress,
     )
     discharge.update(spin.mainElapsed)
+
+    // One real WebGL source sits behind the plasma and follows the strongest
+    // surface arc's illumination midpoint. Projecting the arc direction onto
+    // the camera plane preserves the struck side; offsetting against the view
+    // vector places the billboard physically behind the plasma. No DOM spots,
+    // timers, global peak, or group rotation participate in this response.
+    const dischargeBacklight = dischargeBacklightRef.current
+    if (dischargeBacklight) {
+      let backlightSource: SurfaceDischargeState | null = null
+      for (const surface of discharge.surfaces) {
+        if (
+          surface.illum > 0.001 &&
+          (backlightSource === null || surface.illum > backlightSource.illum)
+        ) {
+          backlightSource = surface
+        }
+      }
+
+      // Art direction 2026-07-27: the diffused spark light lives only in the
+      // final idle composition; the busy scatter/card beats stay unlit. The
+      // dev preview bypasses the gate so it can freeze the effect at any time.
+      const finalIdleLighting =
+        spin.mainElapsed >= IDLE_CORE_FLOURISH_START || BACKLIGHT_PREVIEW_ENABLED
+      dischargeBacklight.visible =
+        finalIdleLighting && backlightSource !== null
+
+      if (dischargeBacklight.visible && backlightSource) {
+        dischargeBacklightAxis
+          .set(
+            backlightSource.axis[0],
+            backlightSource.axis[1],
+            backlightSource.axis[2],
+          )
+          .normalize()
+        dischargeBacklightDirection
+          .set(
+            backlightSource.tanA[0],
+            backlightSource.tanA[1],
+            backlightSource.tanA[2],
+          )
+          .applyAxisAngle(
+            dischargeBacklightAxis,
+            backlightSource.headAngle * 0.5,
+          )
+          .normalize()
+        dischargeBacklightView
+          .copy(camera.position)
+          .sub(plasmaWorldCenter)
+          .normalize()
+        dischargeBacklightScreenSide
+          .copy(dischargeBacklightDirection)
+          .addScaledVector(
+            dischargeBacklightView,
+            -dischargeBacklightDirection.dot(dischargeBacklightView),
+          )
+
+        const shellRadius =
+          plasmaWorldRadii.x *
+          (1 + 0.95 * finalExpandProgress) *
+          backlightSource.radius
+        dischargeBacklight.position
+          .copy(plasmaWorldCenter)
+          .addScaledVector(dischargeBacklightScreenSide, shellRadius)
+          .addScaledVector(dischargeBacklightView, -shellRadius * 0.4)
+        dischargeBacklight.quaternion.copy(camera.quaternion)
+        const backlightScale = shellRadius * 0.78
+        dischargeBacklight.scale.set(backlightScale, backlightScale, 1)
+        updateDischargeBacklightMaterial(
+          dischargeBacklightMaterial,
+          backlightSource.illum * 0.68,
+        )
+      } else {
+        updateDischargeBacklightMaterial(dischargeBacklightMaterial, 0)
+      }
+    }
+
+    // Final-idle flourish: once all moving plates have left and the scene has
+    // held still, three black-hole blocks unfold from the core into the
+    // ss_8386ci65x composition. The bounded ease reaches an exact rest state;
+    // there is no spring tail or perpetual transform wobble afterwards.
+    const blackHoleMesh = blackHoleMeshRef.current
+    if (blackHoleMesh) {
+      const flourishElapsed = spin.mainElapsed - IDLE_CORE_FLOURISH_START
+      blackHoleMesh.visible = !compact && flourishElapsed >= 0
+      if (blackHoleMesh.visible) {
+        for (let index = 0; index < BLACK_HOLE_LOCAL_OFFSETS.length; index += 1) {
+          const rawProgress =
+            (flourishElapsed - index * IDLE_CORE_FLOURISH_STAGGER) /
+            IDLE_CORE_FLOURISH_DURATION
+          const progress = PREFERS_REDUCED_MOTION
+            ? rawProgress >= 0
+              ? 1
+              : 0
+            : easeOutQuart(rawProgress)
+          const offset = BLACK_HOLE_LOCAL_OFFSETS[index]
+          const rotation = BLACK_HOLE_LOCAL_ROTATIONS[index]
+          blackHoleTransform.position.set(
+            offset[0] * progress,
+            offset[1] * progress,
+            offset[2] * progress,
+          )
+          blackHoleTransform.quaternion.setFromEuler(
+            BLACK_HOLE_EULER_SCRATCH.set(
+              rotation[0] * progress,
+              rotation[1] * progress,
+              rotation[2] * progress,
+            ),
+          )
+          blackHoleTransform.scale.setScalar(
+            BLACK_HOLE_LOCAL_SCALES[index] * progress,
+          )
+          blackHoleTransform.updateMatrix()
+          blackHoleMesh.setMatrixAt(index, blackHoleTransform.matrix)
+        }
+        blackHoleMesh.instanceMatrix.needsUpdate = true
+        updateBlackHoleMaterial(blackHoleMaterial, clock.elapsedTime, 0.46)
+      }
+    }
+
     updatePlasmaMaterial(
       plasmaMaterial,
       assembly.time,
@@ -2646,12 +3157,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       plasmaLight.intensity =
         coreProgress * (5.8 + flicker * 0.35) +
         warmProgress * (1.8 + flicker * 0.65) +
-        finalExpandProgress * (1.6 + flicker * 0.28) +
-        discharge.peak * 2.4
-      plasmaLight.color.lerp(
-        ARC_LIGHT_TINT,
-        Math.min(1, discharge.peak) * 0.3,
-      )
+        finalExpandProgress * (1.6 + flicker * 0.28)
       plasmaLight.distance = 2.6 + finalExpandProgress * 3.8
     }
   })
@@ -2707,7 +3213,50 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           castShadow
           receiveShadow
         />
+
+        <instancedMesh
+          ref={blackHoleMeshRef}
+          args={[undefined, undefined, BLACK_HOLE_LOCAL_OFFSETS.length]}
+          geometry={cubeletGeometry}
+          material={blackHoleMaterial}
+          frustumCulled={false}
+          castShadow
+          receiveShadow
+        />
+
+        {prologueEnabled && (
+          <>
+            <instancedMesh
+              ref={prologueOrbMeshRef}
+              args={[undefined, undefined, 3]}
+              geometry={cubeletGeometry}
+              material={blackHoleMaterial}
+              frustumCulled={false}
+              castShadow
+              receiveShadow
+            />
+            <mesh
+              ref={prologueHeroMeshRef}
+              geometry={cubeletGeometry}
+              material={prologueHeroMaterial}
+              frustumCulled={false}
+              castShadow
+              receiveShadow
+              visible={false}
+            />
+          </>
+        )}
       </group>
+
+      <mesh
+        ref={dischargeBacklightRef}
+        material={dischargeBacklightMaterial}
+        renderOrder={0}
+        frustumCulled={false}
+        visible={false}
+      >
+        <planeGeometry args={[2, 2]} />
+      </mesh>
 
       <mesh
         ref={plasmaRef}
@@ -2791,26 +3340,30 @@ function ReactorWarmSpotlight() {
   )
 }
 
-/** Static camera and decorative drag for desktop/landscape. Portrait mobile
- * is owned frame-by-frame by MobileCameraStory; mounting OrbitControls there
- * would make its internal spherical state fight the authored shot track. */
+/** Static fallback for reduced-motion and compact landscape. Scripted camera
+ * viewports return null because mounting OrbitControls would fight the track. */
 function SceneControls() {
   const camera = useThree((state) => state.camera)
   const scene = useThree((state) => state.scene)
-  const compact =
-    useThree((state) =>
-      isCompactViewport(state.size.width, state.size.height),
-    ) || FORCE_COMPACT_PREVIEW
-  const portraitCompact =
-    useThree((state) =>
-      isPortraitCompactViewport(state.size.width, state.size.height),
-    ) || FORCE_COMPACT_PREVIEW
+  const viewport = useThree((state) =>
+    resolveSceneViewport(state.size.width, state.size.height),
+  )
+  const compact = viewport.compact || FORCE_COMPACT_PREVIEW
+  const portraitCompact = viewport.portraitCompact || FORCE_COMPACT_PREVIEW
+  const desktopCameraViewport = viewport.desktopCamera
   const targetX = portraitCompact
     ? settledCenterX(COMPACT_SCENE_SCALE)
     : INITIAL_X
   const targetY = portraitCompact ? COMPACT_PORTRAIT_TARGET_Y : 0
+  const scriptedCameraStory =
+    (!PREFERS_REDUCED_MOTION &&
+      (portraitCompact || desktopCameraViewport)) ||
+    CAMERA_STORY_PREVIEW_REQUESTED ||
+    PROLOGUE_PREVIEW_ENABLED
 
   useLayoutEffect(() => {
+    if (scriptedCameraStory) return
+
     const pullback = compact ? COMPACT_CAMERA_PULLBACK : 1
     camera.position
       .copy(CAMERA_BASE_OFFSET)
@@ -2830,13 +3383,23 @@ function SceneControls() {
         scene,
         compact,
         portraitCompact,
+        desktopCameraViewport,
         targetX,
         targetY,
       }
     }
-  }, [camera, scene, compact, portraitCompact, targetX, targetY])
+  }, [
+    camera,
+    scene,
+    compact,
+    portraitCompact,
+    desktopCameraViewport,
+    scriptedCameraStory,
+    targetX,
+    targetY,
+  ])
 
-  if (portraitCompact) return null
+  if (scriptedCameraStory || portraitCompact) return null
 
   return (
     <OrbitControls
@@ -2967,43 +3530,96 @@ const CARD_CIRCUIT_PATHS = [
 // tapered stroke with varied spacing, tilt, and weight to feel organic.
 // Three densities: dense cluster (3-4 tight), normal pair, and isolated single
 // marks scattered across the band.
+// Kept sparse and irregular on purpose: an earlier pass filled every row
+// edge-to-edge at even spacing, which read as a repeating printed pattern
+// rather than bark - real lenticels cluster occasionally and otherwise
+// leave long stretches of bare bark between them.
 const CARD_BARK_MARKS = [
   // ── top band (Y ≈ 140..176) ──────────────────────
   // row 1: sparse
-  'M46 148L78 146', 'M120 154L166 150', 'M228 144L268 149',
-  'M344 152L388 146', 'M458 145L504 150',
-  // row 2: dense cluster
-  'M558 164L582 162', 'M596 160L620 158', 'M636 162L658 160',
-  'M690 148L732 143', 'M790 152L824 148', 'M864 156L906 150',
+  'M46 148L78 146', 'M228 144L268 149', 'M458 145L504 150',
+  // row 2: one real cluster (loosened, not a solid run)
+  'M558 164L582 162', 'M596 160L620 158',
+  'M690 148L732 143', 'M864 156L906 150',
   // row 3: mixed
-  'M936 166L968 163', 'M990 160L1032 156', 'M1052 162L1084 158',
-  'M1126 148L1168 144', 'M1246 153L1292 147', 'M1348 146L1396 152',
-  'M1430 156L1470 151', 'M1508 144L1550 148',
+  'M936 166L968 163', 'M1052 162L1084 158',
+  'M1246 153L1292 147', 'M1508 144L1550 148',
   // row 4: near lower band
-  'M58 172L98 170', 'M140 178L180 174', 'M264 172L316 169',
-  'M400 176L440 170', 'M510 172L564 168',
+  'M58 172L98 170', 'M264 172L316 169', 'M510 172L564 168',
   // ── middle band (Y ≈ 180..210) ───────────────────
-  'M82 192L114 190', 'M168 196L206 193', 'M262 188L310 185',
-  'M378 194L420 190', 'M478 188L540 184',
-  'M568 192L600 189', 'M644 196L680 192', 'M714 188L758 185',
-  'M792 194L832 190', 'M876 188L930 184',
-  'M964 192L998 189', 'M1036 196L1080 192', 'M1112 188L1156 184',
-  'M1200 195L1244 191', 'M1290 190L1342 186', 'M1396 193L1446 189',
-  'M1480 188L1534 184',
+  'M82 192L114 190', 'M262 188L310 185', 'M478 188L540 184',
+  'M714 188L758 185', 'M964 192L998 189',
+  'M1200 195L1244 191', 'M1480 188L1534 184',
   // ── lower band (Y ≈ 210..240) ────────────────────
-  'M40 226L84 222', 'M110 232L148 228', 'M200 228L248 224',
-  'M306 232L352 226', 'M398 228L456 223',
-  'M500 224L544 220', 'M580 228L628 224', 'M670 226L726 220',
-  'M762 222L810 218', 'M852 228L906 222',
-  'M944 224L988 220', 'M1028 230L1082 224', 'M1122 226L1172 222',
-  'M1218 228L1276 224', 'M1330 222L1378 218',
-  'M1420 226L1474 222',
+  'M40 226L84 222', 'M200 228L248 224', 'M398 228L456 223',
+  'M580 228L628 224', 'M852 228L906 222',
+  'M1122 226L1172 222', 'M1420 226L1474 222',
   // ── bottom scatter (Y ≈ 242..260) ────────────────
-  'M64 244L104 240', 'M182 250L228 245', 'M320 246L376 242',
-  'M470 248L516 244', 'M630 252L672 246',
-  'M776 248L830 244', 'M926 252L968 246', 'M1100 248L1152 243',
-  'M1288 246L1344 242', 'M1424 250L1478 244',
+  'M64 244L104 240', 'M320 246L376 242', 'M630 252L672 246',
+  'M926 252L968 246', 'M1424 250L1478 244',
 ] as const
+
+// Each lenticel mark gets a filled half-ellipse shadow beneath it, like the
+// dark crescent under a real birch bark scar, instead of a blurred copy of
+// the same line - a stroke duplicate reads as "a stick behind a stick", not
+// as a shadow. Derived once from CARD_BARK_MARKS so the crescent always
+// spans (and centers under) its own stroke.
+//
+// A single fixed pad/roundness ratio made all 67 crescents read as one
+// stamped shape repeated - real bark scars vary a lot. Three deterministic
+// cycles (lengths 11, 7, 5 - mutually prime, so their combined period is
+// 385, longer than the whole mark set) pick the pad, roundness, and drop
+// per mark with no visible repeat; an occasional mod-13 mark gets a much
+// bigger "eye" the way birch bark has scattered larger scars among the
+// small lenticels. No Math.random(): this array is built once at module
+// load and must render identically on the server and during hydration.
+// Darkness and blur then scale off the mark's own resulting size, so a
+// bigger crescent also reads as a deeper, softer shadow instead of just a
+// scaled-up copy of the same flat mark.
+const BARK_SHADOW_PAD_RATIOS = [0.14, 0.34, 0.2, 0.5, 0.16, 0.28, 0.42, 0.12, 0.3, 0.22, 0.38]
+const BARK_SHADOW_ROUND_RATIOS = [0.42, 0.7, 0.52, 0.8, 0.46, 0.62, 0.36]
+const BARK_SHADOW_DROP = [1.5, 3, 2, 4, 2.5]
+const BARK_MARK_ENDPOINTS = /^M(-?[\d.]+) (-?[\d.]+)L(-?[\d.]+) (-?[\d.]+)$/
+
+interface BarkShadow {
+  d: string
+  fill: string
+  blur: string
+}
+
+function barkShadowArc(mark: string, index: number): BarkShadow {
+  const parsed = mark.match(BARK_MARK_ENDPOINTS)
+  if (!parsed) return { d: mark, fill: 'rgba(35, 24, 12, 0.2)', blur: '1.2px' }
+  const x1 = Number(parsed[1])
+  const y1 = Number(parsed[2])
+  const x2 = Number(parsed[3])
+  const y2 = Number(parsed[4])
+  const width = Math.abs(x2 - x1)
+  const isBigEye = index % 13 === 4
+  const eyeBoost = isBigEye ? 1.6 : 1
+  const padRatio = BARK_SHADOW_PAD_RATIOS[index % BARK_SHADOW_PAD_RATIOS.length] * eyeBoost
+  const roundRatio =
+    BARK_SHADOW_ROUND_RATIOS[index % BARK_SHADOW_ROUND_RATIOS.length] * (isBigEye ? 1.25 : 1)
+  const drop = BARK_SHADOW_DROP[index % BARK_SHADOW_DROP.length]
+  const pad = width * padRatio
+  const sx = Math.min(x1, x2) - pad
+  const ex = Math.max(x1, x2) + pad
+  const chordY = (y1 + y2) / 2 + drop
+  const rx = (ex - sx) / 2
+  const ry = rx * roundRatio
+  // Round to numbers, not strings: toFixed leaves trailing zeros ("0.20")
+  // that CSSOM normalizes away ("0.2") during hydration, which React then
+  // reports as a style mismatch. Plain rounded numbers serialize the same
+  // on the server, on the client, and inside the browser's CSS parser.
+  const alpha = Math.min(0.34, Math.round((0.13 + rx * 0.0035) * 100) / 100)
+  const blurPx = Math.min(2.6, Math.round((0.9 + rx * 0.018) * 100) / 100)
+  return {
+    d: `M${sx} ${chordY}A${rx} ${ry} 0 0 0 ${ex} ${chordY}Z`,
+    fill: `rgba(35, 24, 12, ${alpha})`,
+    blur: `${blurPx}px`,
+  }
+}
+const CARD_BARK_SHADOWS = CARD_BARK_MARKS.map((mark, index) => barkShadowArc(mark, index))
 
 const CARD_CIRCUIT_PADS = [
   [24, 30, 3], [154, 28, 2.5], [226, 28, 3],
@@ -3032,6 +3648,71 @@ const CARD_CIRCUIT_PADS = [
   [1184, 118, 2.5], [1230, 140, 3], [1278, 140, 2.5],
 ] as const
 
+// ── Wide/desktop circuit pattern (>=721px) ────────────────────────────────
+// The compact pattern above squeezes ~4x horizontally on phone-sized cards,
+// which is exactly the pitch the user approved as "аккуратно". On wide cards
+// the same viewBox stretches ~1:1, so the old coarse Manhattan traces read
+// oversized. This desktop-only sibling redraws the pattern in the current
+// reactor-plate surface language (the v10 look the orbiting cubelets use):
+// paired high-speed corridors with a constant lane gap, 45-degree
+// transitions instead of right angles, sparse vias only at corridor ends,
+// and two short corner registration rails instead of the closed frame.
+// Mobile keeps the compact pattern untouched; the bark layer never changes.
+const CARD_CIRCUIT_PATHS_WIDE = [
+  // top band, paired corridors with 45-degree jogs
+  'M24 32H78L94 48H150L166 32H228M24 43H72L88 59H139L155 43H228',
+  'M258 20V34H330L346 50H420V36H470M269 20V45H336L352 61H431V47H481',
+  'M500 26H560L576 42H640L656 26H720M500 37H554L570 53H629L645 37H720',
+  'M760 20V36H830L846 52H910V68M771 20V47H836L852 63H921V79',
+  'M950 28H1010L1026 44H1090L1106 28H1160M950 39H1004L1020 55H1079L1095 39H1160',
+  'M1210 22V38H1280L1296 54H1360V40H1420M1221 22V49H1286L1302 65H1371V51H1431',
+  'M1460 30H1520L1536 46H1576M1460 41H1514L1530 57H1576',
+  // bottom band
+  'M24 328H80L96 312H160L176 328H240M24 339H86L102 323H166L182 339H240',
+  'M280 340V326H350L366 310H430V324H490M291 340V315H356L372 299H436V313H501',
+  'M540 330H610L626 314H690L706 330H770M540 341H604L620 325H679L695 341H770',
+  'M810 340V324H880L896 308H960V322M821 340V313H886L902 297H966V311',
+  'M1010 330H1070L1086 314H1150L1166 330H1230M1010 341H1064L1080 325H1139L1155 341H1230',
+  'M1270 340V326H1340L1356 310H1420L1436 326H1500M1281 340V315H1346L1362 299H1431L1447 315H1511',
+  // edge verticals
+  'M24 108H52L68 124V156L84 172H110M24 119H46L57 130V162L73 178H104',
+  'M24 250H56L72 266V300M24 261H50L61 272V306',
+  'M1576 106H1548L1532 122V154L1516 170H1490M1576 117H1554L1543 128V160L1527 176H1496',
+  'M1576 252H1544L1528 268V302M1576 263H1550L1539 274V308',
+  // short drops toward the text band (stop clear of the copy)
+  'M486 112V138L502 154H536M497 112V144L508 155H542',
+  'M1056 110V136L1072 152H1106M1067 110V142L1078 153H1112',
+] as const
+
+// Two short corner registration rails replace the wide pattern's closed
+// frame (the v10 surface did the same when its frame read as an archival PCB).
+const CARD_CIRCUIT_RAILS_WIDE = ['M18 64V18H64', 'M1582 296V342H1536'] as const
+
+// Sparse vias at corridor ends only - the compact card carries 48 pads,
+// which at this finer pitch read as clutter; every fourth stays a filled
+// dot through the shared pad CSS.
+const CARD_CIRCUIT_PADS_WIDE = [
+  [24, 37, 3], [232, 37, 3],
+  [264, 20, 2.5], [478, 41, 3],
+  [500, 31, 2.5], [720, 31, 3],
+  [765, 20, 2.5], [916, 73, 3],
+  [950, 33, 2.5], [1160, 33, 3],
+  [1215, 22, 2.5], [1426, 45, 3],
+  [1460, 35, 2.5], [1576, 51, 3],
+  [24, 333, 3], [240, 333, 2.5],
+  [285, 340, 3], [495, 318, 2.5],
+  [540, 335, 3], [770, 335, 2.5],
+  [815, 340, 3], [960, 316, 2.5],
+  [1010, 335, 3], [1230, 335, 2.5],
+  [1275, 340, 3], [1506, 320, 2.5],
+  [24, 113, 3], [107, 175, 2.5],
+  [24, 255, 2.5], [72, 303, 3],
+  [1576, 111, 2.5], [1493, 173, 3],
+  [1576, 257, 3], [1528, 305, 2.5],
+  [491, 112, 2.5], [539, 154, 3],
+  [1061, 110, 3], [1109, 152, 2.5],
+] as const
+
 export default function HeroScene({
   copy = DEFAULT_CARD_COPY,
 }: {
@@ -3054,10 +3735,19 @@ export default function HeroScene({
   // without breaking the copy-fit measurements.
   const renderAccentText = (text: string) => {
     const parts = text.split(/(\[[^\]]+\])/g)
+    let accentOrder = 0
     return parts.map((part, index) => {
       if (part.startsWith('[') && part.endsWith(']')) {
+        // Per-mark stagger for the corrector's-hand draw-on; the CSS adds
+        // its own base delay after the paragraph text has landed.
+        const delay = `${accentOrder * 0.09}s`
+        accentOrder += 1
         return (
-          <em key={index} className="reactor-card__accent">
+          <em
+            key={index}
+            className="reactor-card__accent"
+            style={{ '--accent-delay': delay } as CSSProperties}
+          >
             {part.slice(1, -1)}
           </em>
         )
@@ -3095,7 +3785,10 @@ export default function HeroScene({
       }
       if (!shouldFit) return
 
-      const minimum = horizontalPager ? 12 : 13
+      // Ponomar is rendered at 1.06x the fitted custom property on desktop.
+      // Keep the effective floor close to the previous 13.1px book copy while
+      // still allowing the longest RU/EN leaf to clear its bounded column.
+      const minimum = horizontalPager ? 12 : 12.5
       const maximum = horizontalPager ? 30 : 20
       const safetyReduction = horizontalPager ? 0.3 : 0.18
 
@@ -3215,7 +3908,7 @@ export default function HeroScene({
         inert
       >
         <svg
-          className="reactor-card__circuit"
+          className="reactor-card__circuit reactor-card__circuit--compact"
           viewBox="0 0 1600 360"
           preserveAspectRatio="none"
           aria-hidden="true"
@@ -3236,18 +3929,6 @@ export default function HeroScene({
                 pathLength="1"
                 style={{
                   '--circuit-delay': `${index * 0.042}s`,
-                } as CSSProperties}
-              />
-            ))}
-          </g>
-          <g className="reactor-card__bark-marks">
-            {CARD_BARK_MARKS.map((path, index) => (
-              <path
-                key={`bark-${path}`}
-                d={path}
-                pathLength="1"
-                style={{
-                  '--bark-delay': `${index * 0.03}s`,
                 } as CSSProperties}
               />
             ))}
@@ -3275,6 +3956,104 @@ export default function HeroScene({
                 rx={index % 4 === 0 ? size : 0.6}
                 style={{
                   '--pad-delay': `${(index % 16) * 0.035}s`,
+                } as CSSProperties}
+              />
+            ))}
+          </g>
+        </svg>
+        <svg
+          className="reactor-card__circuit reactor-card__circuit--wide"
+          viewBox="0 0 1600 360"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          {CARD_CIRCUIT_RAILS_WIDE.map((rail) => (
+            <path
+              key={`rail-${rail}`}
+              className="reactor-card__circuit-frame"
+              d={rail}
+            />
+          ))}
+          <g className="reactor-card__circuit-grooves">
+            {CARD_CIRCUIT_PATHS_WIDE.map((path, index) => (
+              <path
+                key={`groove-wide-${index}`}
+                d={path}
+                pathLength="1"
+                style={{
+                  '--circuit-delay': `${index * 0.042}s`,
+                } as CSSProperties}
+              />
+            ))}
+          </g>
+          <g className="reactor-card__circuit-metal">
+            {CARD_CIRCUIT_PATHS_WIDE.map((path, index) => (
+              <path
+                key={`metal-wide-${index}`}
+                d={path}
+                pathLength="1"
+                style={{
+                  '--circuit-delay': `${index * 0.042}s`,
+                } as CSSProperties}
+              />
+            ))}
+          </g>
+          <g className="reactor-card__circuit-pads">
+            {CARD_CIRCUIT_PADS_WIDE.map(([x, y, size], index) => (
+              <rect
+                key={`wide-${x}-${y}-${index}`}
+                x={x - size}
+                y={y - size}
+                width={size * 2}
+                height={size * 2}
+                rx={index % 4 === 0 ? size : 0.6}
+                style={{
+                  '--pad-delay': `${(index % 16) * 0.035}s`,
+                } as CSSProperties}
+              />
+            ))}
+          </g>
+        </svg>
+        <svg
+          className="reactor-card__circuit reactor-card__circuit--bark"
+          viewBox="0 0 1600 360"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+          focusable="false"
+        >
+          <g className="reactor-card__bark-marks-shadow" aria-hidden="true">
+            {CARD_BARK_SHADOWS.map((shadow, index) => (
+              <path
+                key={`bark-sd-${index}`}
+                d={shadow.d}
+                style={{
+                  '--bark-delay': `${index * 0.03}s`,
+                  // Once drawn on, lenticels don't stay static - they breathe
+                  // continuously, each on its own slow, chaotic cycle so the
+                  // board reads as living material rather than a printed
+                  // pattern. Duration and delay are both per-mark deterministic
+                  // noise (no Math.random - stays SSR/hydration-stable); the
+                  // delay is offset past this mark's own reveal so breathing
+                  // never fights the initial draw-on.
+                  '--bark-breathe-duration': `${7 + ssrStableNoise(index, 141) * 9}s`,
+                  '--bark-breathe-delay': `${1.7 + index * 0.03 + ssrStableNoise(index, 173) * 7}s`,
+                  fill: shadow.fill,
+                  filter: `blur(${shadow.blur})`,
+                } as CSSProperties}
+              />
+            ))}
+          </g>
+          <g className="reactor-card__bark-marks">
+            {CARD_BARK_MARKS.map((path, index) => (
+              <path
+                key={`bark-${path}`}
+                d={path}
+                pathLength="1"
+                style={{
+                  '--bark-delay': `${index * 0.03}s`,
+                  '--bark-breathe-duration': `${7 + ssrStableNoise(index, 41) * 9}s`,
+                  '--bark-breathe-delay': `${1.6 + index * 0.03 + ssrStableNoise(index, 73) * 7}s`,
                 } as CSSProperties}
               />
             ))}
