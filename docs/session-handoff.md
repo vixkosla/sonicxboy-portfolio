@@ -1,6 +1,89 @@
 # Session handoff
 
-Updated: 2026-07-27
+Updated: 2026-07-31
+
+## 2026-08-01 desktop opening ported to portrait; black-hole flourish now visible on every viewport
+
+The 2026-07-31 checkpoint below explicitly left portrait/mobile out of the
+desktop restoration pass. This pass ports the relevant pieces and closes the
+gap, per the user: "перенеси десктопное начало на мобилку, адаптировав его,
+и заодно посмотри серьёзнее на всё, что накопилось" (port the desktop opening
+to mobile, adapted, and take a more serious look at what's accumulated).
+
+**Audit first.** Before touching anything, read the full working-tree diff
+(`git diff --stat HEAD`, ~2200 lines across 10 files) and confirmed the key
+fact that made the rest of this pass safe: `CAMERA_STORY_TIMINGS` in
+`HeroScene.tsx` is a single shared object built from the real physics/reactor
+constants (`MAIN_SPIN_START`, `ORBIT_END`, `REACTOR_TRANSFORM_START`, etc.),
+consumed by both `cameraStory` (portrait) and `desktopCameraStory`. So the
+07-31 desktop timing rework (assembly `0.78x` compression, `ORBIT_END`
+farewell/reactor cascade, tile thickness, etc.) was never a portrait-desktop
+desync risk - only per-point camera vectors and the missing lead-in were.
+Verified this with a full `node -e` sweep of the real `MobileCameraStory`
+across the whole `motion` timeline (0..20s in 0.05s steps): zero degenerate
+frames, camera-target distance stayed in a sane 3.22..14.53 range throughout,
+and the subject stayed within ~0.1 NDC of dead centre at every named point
+around the farewell/division/overview/handoff window - the engraving fade the
+user noticed ("гравировка пропадает") is the same intentional shared
+farewell behavior described in the 07-31 entry below, correctly synced on
+portrait, not a portrait-specific bug. No fix was needed there.
+
+**1. Portrait opening replaced** (`src/lib/MobileCameraStory.ts`,
+`src/components/HeroScene.tsx`). The old four-point `arrival -> swarm ->
+gather -> lock` (opening on a close, still core before the swarm was visible)
+is gone, replaced with the same two-point `arrival -> lock` concept desktop
+uses: one continuous camera move, constant aim `[0, 0.44, 0]` (the existing
+`lock`/`weight` target) throughout, only distance changing (`arrival`'s
+offset is the `lock` offset x`1.5`). The actual "empty frame, then a fast
+burst" read comes from a new `PORTRAIT_ASSEMBLY_LEAD_START` constant in
+`HeroScene.tsx`, aimed along the portrait `arrival` camera's own screen-right
+axis (`[24.148, 0, 14.174]`, derived numerically, not desktop's vector) and
+decayed with the *same* `desktopAssemblyLeadRemaining`/
+`DESKTOP_ASSEMBLY_LEAD_SETTLE_PROGRESS` curve desktop already uses (reused as-
+is - it's viewport-agnostic, just a seventh-power remainder shape). Gated on
+`portraitCompact` in the group-position-during-assembly block, alongside the
+existing `desktopCameraViewport` gate. Verified end-to-end with the *real*
+wired modules (not a standalone reimplementation): subject starts off the
+right edge (NDC x up to 18 at p=0), enters around p=0.18-0.2, settles dead
+centre, across both a 375x667 and 390x844 viewport; `lock`'s and `weight`'s
+projected subject position match to 4 decimal places (seamless assembly ->
+motion handoff, no camera jump).
+
+**2. Black-hole flourish now visible on portrait, repositioned above the
+card.** The three "black hole" cubes (see the 07-28/07-30 entries below) were
+gated `!compact`, i.e. invisible on every mobile/compact viewport - there was
+simply no equivalent final flourish on mobile. Separately, the user pointed
+out that `.reactor-card` (`HomePage.astro`) is a `position: fixed` strip
+pinned to the bottom of the viewport at a fixed height
+(`clamp(300px, 27.5vh, 360px)`) that on short/wide phones covers the plasma
+and core entirely - confirmed numerically (core NDC y -0.13 vs. card-top NDC
+y -0.10 on a 375x667 viewport: the core sits *behind* the card). Fix:
+- `blackHoleMesh.visible` no longer excludes compact viewports - just
+  `flourishElapsed >= 0` now, same as desktop.
+- New `BLACK_HOLE_SCREEN_{RIGHT,UP,DEPTH}_COMPACT` constants place the trio
+  well above the card instead of low in frame near the plasma (which is
+  where the desktop set, now suffixed `_DESKTOP`, is judged). Values were
+  derived and verified numerically across 5 representative viewports
+  (375x667 iPhone SE up to 600x960) for three things at once: stays on
+  screen, stays above the card (with a margin), and clears the plasma's own
+  teardrop reach at compact scale (`0.235 * COMPACT_SCENE_SCALE * 6.05`).
+- **Important scoping catch:** the array choice is gated on `portraitCompact`,
+  *not* the broader `compact` flag. `compact` is also true for landscape-
+  compact viewports, but those use `desktopCameraStory` (see
+  `activeCameraStory` above) - since this placement mechanism is expressed in
+  whatever camera is actually live that frame (`camera.getWorldDirection()`
+  at runtime), applying portrait-verified offsets under the desktop camera's
+  basis would have been wrong. Landscape-compact keeps the desktop set,
+  matching the camera it actually renders under.
+
+**Not yet confirmed live** - same automation limitation as every prior entry
+in this file (`visibilityState` stuck `hidden`, rAF frozen, canvas stays
+blank in this sandbox). Everything above is numeric verification only,
+including against the real production modules where noted. Ask the user to
+check `?camera-story=assembly:0.1` through `:0.24` (portrait, narrow window)
+and `?plasma-preview=idle` (both viewports, black-hole positions) themselves.
+
+`pnpm build` and `pnpm test` (22/22) pass.
 
 ## Start here
 
@@ -11,8 +94,9 @@ Project root:
 ```
 
 Read this file together with `docs/animation-choreography.md` before changing the
-animation. The development server was last confirmed running in Astro background
-mode at `http://localhost:4321/`. Manage it with:
+animation. The development server was last confirmed running at
+`http://localhost:4321/` as a foreground `pnpm dev` process. For a later managed
+restart use:
 
 ```bash
 pnpm astro dev status
@@ -24,6 +108,583 @@ pnpm astro dev --background
 `pnpm build` currently passes. The only build warning is the existing bundle chunk
 larger than 500 kB. Runtime logs also contain upstream Three.js deprecation warnings
 for `THREE.Clock` and `PCFSoftShadowMap`; neither blocks the current work.
+
+## New-session checkpoint — 2026-07-31
+
+This is the canonical restart point for the next session. Read this section first,
+then `docs/animation-choreography.md`. Older dated sections are history and may
+contain camera positions, timings, or the discarded layer-inversion concept that
+are explicitly superseded here.
+
+### Current outcome
+
+The requested desktop restoration and the later horizontal lead entrance are
+implemented locally. The user accepted the restored final handoff framing and moved
+on to the opening; only the new lead-cube entrance still awaits their visual approval
+in the normal browser:
+
+1. assembly begins with the solid seed beyond the right edge at the same screen height
+   as the former preferred arrival; it drives horizontally at high speed, then
+   progressively brakes while the hidden movers catch and join it in flight;
+2. desktop applies that entrance to the shared assembly root, preserving all
+   relative cubelet paths and collisions, while the camera keeps one continuous
+   `arrival -> lock` move at `43deg`;
+3. roll and corner lift remain phase-locked with their camera moves;
+4. first spin and oversized orbital breakup use a close reverse-flank isometry;
+5. the textolite engraving remains present through every rotating/capturing frame;
+6. only after the shell and camera stop does the engraving receive a farewell sweep,
+   fade to zero, and hold as a clean shell;
+7. clean plates divide `26 -> 52 -> 104` and remain the outer shell at radius
+   `1.22`; the nucleus grid stays inside at `1.7x` with no layer-role exchange;
+8. a quiet post-division overview uses a wide positive-flank isometry, then the
+   existing handoff moves directly to the final medium-close framing;
+9. the circuit/textolite pattern is latched off and never returns on reactor or
+   signal plates;
+10. desktop scene scale is restored to `1.3`; the assembly, orbital story, reactor
+    shell, and compact/mobile `0.82` story are not enlarged;
+11. the handoff framing is held unchanged through plate release and final idle.
+    There is no late `final-idle` camera point and no small-then-large flourish
+    after the physical action has ended.
+
+Do not move the engraving fade back into the rotating interval. The latest explicit
+direction was: “гравировка текстолитом пропадает, когда уже вращение закончено, а не
+во время”. Camera movement is part of that rule: the camera also holds through the
+farewell, otherwise a static object still appears to rotate.
+
+### Canonical timing and geometry
+
+- `ASSEMBLY_TIME_SCALE = 0.78`; assembly ends near `4.3686s` without changing path
+  ordering or the collision-authored spacetime relationships.
+- Desktop assembly root starts at offset `[-34.71, 0, -9.53]`, aligned to the
+  arrival camera's screen-right basis, and removes it with a seventh-power remainder
+  by progress `0.48`. The lead crosses the right frame edge around progress `0.13`,
+  is fully inside around `0.16`, and covers more than `0.45` NDC horizontally between
+  progress `0.10` and `0.16`; every equal interval then travels less than the
+  preceding one.
+- Desktop assembly holds `43deg`; its two-point camera track moves from relative
+  target X `4.8` to `3.1` while the arrivals remain in the open right field.
+- `ORBIT_END = 10.825s` on the `mainElapsed` clock. Group precession freezes there.
+- Engraving farewell starts after a `0.12s` still beat: `0.22s` attack, `0.12s`
+  hold, `0.55s` release. A clean shell then holds `0.14s`.
+- Reactor morph starts at `mainElapsed = 11.975s`; its desktop camera move is
+  `0.62s`, so object and camera begin the new action together.
+- Final reactor tiles are `0.27 x 0.27 x 0.022`, on the outer shell radius `1.22`.
+- Maximum wave deformation is radial lift `0.085`, tangential growth `8%`, and
+  thickness growth `48%`.
+- The nucleus grid stays inside at `1.7x` throughout division, overview, and waves.
+  It expands only with plate release toward the temporary `4.35x` demolition volume;
+  it does not rotate twice or move outside the plates.
+- Desktop scene scale is `1.3`; settled centre X is `3.1864`. Compact/mobile scale
+  and its authored camera points are unchanged.
+- Spin offset is `[-5, 5, -5]`; orbit offset is `[-5.4, 5.4, -5.4]`.
+- Post-division overview offset is `[9.2, 9.2, 9.2]`.
+- Final handoff relative target `[-2.5864, 0, 0]` resolves to world target
+  `[0.6, 0, 0]`; offset `[4.68, 4.42, 9.36]` resolves to camera
+  `[5.28, 4.42, 9.36]` at motion time `18.875s`. Its move is `0.6s`, beginning
+  exactly when the overview arrives, so the two director windows do not overlap.
+  This one rig is held through plate release and all later idle motion.
+
+### Implementation map
+
+- `src/components/HeroScene.tsx`: desktop-only shared-root entrance, phase
+  boundaries, held post-capture rotation, engraving farewell envelope,
+  clean-shell pause, outer-shell reactor matrices, neutral post-division hold, and
+  permanently zero reactor/signal engraving.
+- `src/lib/LayeredAssembly.ts`: uniform `0.78` assembly time compression.
+- `src/lib/desktopCameraPoints.ts`: horizontal right-entry drive and braking envelope,
+  synchronized roll/lift, reverse and positive isometries, oversized orbit, and one
+  final handoff rig held after arrival.
+- `src/lib/ReactorLayout.ts`: shared 104-plate dimensions, outer-shell radius, wave
+  deformation limits, Fibonacci directions, and radial orientation helpers.
+- `src/lib/ReactorMetamaterial.ts`: separate engraving uniform; later materials keep
+  it and circuit progress at zero while retaining the independent lattice branch.
+- `tests/desktopCameraFraming.test.mjs`: assembly copy exclusion, horizontal right-
+  edge crossing, high-amplitude initial drive, and progressive lead braking; exact
+  phase boundaries, both isometric camera families, non-overlapping overview/handoff,
+  absence of a later idle point, monotonic arc, `1.3` scale, and subject safe field.
+- `tests/reactorLayerSeparation.test.mjs`: dense pairwise OBB checks at rest and at
+  conservative maximum wave deformation.
+- `docs/animation-choreography.md`: canonical creative/mathematical specification.
+
+### Deterministic review URLs
+
+Use the current server at `http://localhost:4321/`. These are DEV-only seek points;
+`motion:<t>` uses `SpinSimulation.elapsed`, which includes the
+`1.56s` roll/lift prefix before `mainElapsed`:
+
+```text
+/?camera-story=assembly:0     leading cube beyond the right edge on the original height
+/?camera-story=assembly:0.13  leading cube cuts through the right frame edge
+/?camera-story=assembly:0.16  leading cube fully enters with the high-speed drive
+/?camera-story=assembly:0.24  first wave catches the now-braking lead
+/?camera-story=assembly:0.60  moving mid-assembly join
+/?camera-story=assembly:0.90  final arrivals before lock
+/?camera-story=spin          close first-spin isometry
+/?camera-story=orbit         deliberate breakup overscan
+/?camera-story=motion:12.30  last moving shell, engraving intact
+/?camera-story=motion:12.42  stopped hold before farewell
+/?camera-story=motion:12.76  farewell highlight
+/?camera-story=motion:13.12  engraving release
+/?camera-story=motion:13.43  clean, still shell
+/?camera-story=motion:13.75  clean reactor morph and camera move underway
+/?camera-story=overview      outer plates, inner grid, isometric pull-back
+/?camera-story=motion:19.95  late signal/handoff composition
+/?camera-story=handoff       final framing, already fixed before plate release
+/?plasma-preview=idle        fully settled final system and card
+```
+
+The last review generated these temporary evidence files on this machine:
+
+```text
+/tmp/restored-flight-start.jpg
+/tmp/restored-flight-entry.jpg
+/tmp/restored-flight-join.jpg
+/tmp/restored-flight-lock.jpg
+/tmp/restored-flight-autoplay-{0,1,2,3,4}.jpg
+/tmp/engraving-12.30.jpg
+/tmp/engraving-12.42.jpg
+/tmp/engraving-12.76.jpg
+/tmp/engraving-13.12.jpg
+/tmp/engraving-13.43.jpg
+/tmp/engraving-13.75.jpg
+/tmp/isometric-reactor-inversion-spacing.jpg
+/tmp/isometric-reactor-signal-spacing.jpg
+/tmp/no-late-dolly-handoff.png
+/tmp/no-late-dolly-idle-settled.png
+/tmp/no-late-dolly-autoplay-final-settled.png
+/tmp/opening-horizontal-preview-{016,034}.png
+```
+
+### Verification at handoff
+
+- `git diff --check`: passes.
+- `pnpm test`: 22/22 passes, including horizontal right-edge entry, a projected
+  high-amplitude initial drive, and strictly decreasing lead travel over equal
+  assembly-progress intervals.
+- `pnpm build`: passes; only the pre-existing `>500 kB` chunk warning remains.
+- The currently served Vite module contains start offset `[-34.71, 0, -9.53]`, settle
+  progress `0.48`, and the seventh-power braking remainder; no stale full-file rewrite
+  is being served.
+- The new opening has desktop `1440 x 900` renderer frames at the fully entered and
+  already-braking states (`opening-horizontal-preview-*`). The prior uninterrupted
+  full autoplay still applies to the unchanged later choreography, but replay this
+  new opening in the user's normal GPU browser before calling the opening visually
+  final.
+- A real hardware-accelerated Vivaldi autoplay at `1440 x 900`, DPR `1`, on the
+  GTX 1060 traversed every desktop shot. `handoff` became the final camera owner
+  at about `24.48s` after navigation and remained the final owner through the end;
+  no `final-idle` transition occurred. Across release and idle it averaged about
+  `64.3 FPS`, with `16.6ms` median frame time.
+- `/tmp/no-late-dolly-handoff.png` and
+  `/tmp/no-late-dolly-idle-settled.png` confirm the same held camera before and
+  after plate disappearance. The final system remains in the open right field.
+- Pairwise OBB audit reports no plate intersections, including maximum wave scale.
+- `MobileCameraStory.ts`, the portrait point array, its distances, and compact scale
+  were not edited for this correction. The neutral overview retains the former
+  absolute downstream timings, so the mobile handoff does not arrive `0.71s` early.
+  Portrait was intentionally left outside this desktop-only visual replay.
+
+### Workspace and server state
+
+- Branch: `main`; HEAD: `924a580` (`feat: search engine verification, cold-open
+  prologue, card circuit fixes, living bark marks`).
+- The working tree is intentionally dirty. It contains the current hero pass plus
+  earlier user/agent work. Do not reset, checkout, or broadly rewrite it.
+- No commit, push, Vercel deployment, or production change was made in this pass.
+- Foreground `pnpm dev` is running at `4321`; the served Vite module was checked for
+  scale `1.3`, the single held handoff camera, and the absence of the old inversion
+  constants or a late `final-idle` point.
+- Modified tracked files at handoff:
+  `.gitignore`, both choreography/handoff docs, `HeroScene.tsx`,
+  `LayeredAssembly.ts`, `MobileCameraStory.ts`, `PrologueSequence.ts`,
+  `ReactorMetamaterial.ts`, `desktopCameraPoints.ts`, and
+  `tests/desktopCameraFraming.test.mjs`.
+- Important untracked files to preserve include `docs/deferred-features.md`,
+  `scripts/sceneproof/core-lens.scene.ts`, `CoreLensMaterial.ts`,
+  `LiquidMorphMaterial.ts`, `ReactorLayout.ts`, `coreLensLayout.ts`,
+  `plasmaIgnitionScale.ts`, `tests/prologueCinematicCamera.test.mjs`, and
+  `tests/reactorLayerSeparation.test.mjs`.
+
+### First action in the next session
+
+Review the horizontal right-entry drive in the user's normal browser. If its first
+appearance needs retiming, tune only `DESKTOP_ASSEMBLY_LEAD_START` and
+`DESKTOP_ASSEMBLY_LEAD_SETTLE_PROGRESS`; keep the shared-root model so the movers
+retain their authored relationship to the seed. Do not add another late camera point,
+enlarge `DESKTOP_SCENE_SCALE`, or restore the plate/grid role exchange.
+Portrait/mobile remains outside this pass unless the user explicitly reopens it.
+
+## Historical: 2026-07-30 layer-inversion pass (superseded 2026-07-31)
+
+The physical layer-inversion claims in this section are retained only as session
+history. They are superseded by the 2026-07-31 canonical checkpoint above. The
+opening, engraving farewell, division, and camera work remain relevant where they
+do not depend on plates/grid exchanging spatial roles.
+
+The opening-camera paragraph immediately below is historical. The current user
+direction restores the preceding two-point right-entry shot at a constant `43deg`;
+the accelerated `0.78` assembly timing and every later phase in this section remain
+current.
+
+- **Simple cube, then exponential reveal.** The assembly opens on the solid seed in
+  the centre of the free right field with a `20deg` FOV. All 26 movers remain beyond
+  the right edge. At 10% assembly progress the FOV begins a C2 pull-back and reaches
+  the normal `43deg` by 50%; camera waypoints at `0`, `0.28`, `0.72`, and `1.0`
+  carry the same reveal through the first latch, growing lattice, and final lock.
+- **Arrivals hit faster without invalidating their paths.** `ASSEMBLY_TIME_SCALE =
+  0.78` multiplies every original delay and duration, shortening the full schedule
+  from `5.6008s` to about `4.3686s`. The operation is a uniform spacetime
+  compression: path curves, ordering, velocity-profile shape, and relative
+  collision windows are unchanged. The dense 600 FPS test still reports zero
+  intersections and more than `0.005` extra axis clearance.
+- **Orbital break-up deliberately exceeds the frame.** The desktop `orbit` rig is
+  approximately `1.6x` closer than the former overview. Extreme pieces are allowed
+  beyond the viewport edge, while the system's energetic centre remains in the open
+  right field. This is intentional overscan, not a containment regression.
+- **Engraving exits only after motion has stopped.** The complete orbit/capture ends
+  at main-spin time `10.825s`; group rotation and the desktop camera freeze there.
+  After a `0.12s` still beat, the cube circuits receive a `0.22s` mint-white farewell
+  attack and a `0.12s` hold. Engraving depth, surface response, and emission then
+  fade together over `0.55s`, followed by a `0.14s` clean-shell hold. Only then, at
+  `11.975s`, do the reactor morph and its camera move begin together. The removal is
+  latched across the mesh handoff: the 104 reactor plates and standalone signal
+  plate keep circuit progress and engraving at zero, so textolite and conductor
+  routes never reappear.
+- **Grid and plates exchange roles visibly.** After the `26 -> 52 -> 104` division,
+  a `1.15s` continuous turn rotates the plate system by `0.55pi` and moves its radius
+  `1.22 -> 1.18`. The plates remain an inner working shell but are far enough from
+  the core and from one another. Simultaneously the nucleus grid expands `1.7x ->
+  5.25x` and makes two eased counter-rotations, becoming a close outer containment
+  cage. Neither layer disappears during the exchange. The `inversion` camera pulls
+  back into a positive-flank isometry over the same duration; waves start only after
+  the exchange settles. `tests/reactorLayerSeparation.test.mjs` uses OBBs to confirm
+  zero intersections at rest and at conservative maximum wave deformation.
+- **The disliked flat angles are gone.** The first spin/disassembly shot now uses
+  reverse-flank isometry `[-5, 5, -5]`; the inversion and handoff resolve to the
+  positive-flank isometric family. The final fixed rig is camera `[7, 8.6, 10]`,
+  target `[-3, -1.4, 0]`, composed far enough right that the `5.25x` cage clears the
+  headline.
+
+The downstream camera handoff reaches its isometric invariant at motion time
+`18.875` and remains fixed. Deterministic `2048 x 1152` SwiftShader captures cover
+the last rotating frame, stopped hold, farewell highlight, mid-fade, clean shell,
+reactor morph, inversion, and signal state. The stopped hold through clean shell is
+pixel-stable in object and camera orientation. `pnpm test` passes all 19 tests,
+including desktop projection, exact roll/lift boundaries, reverse-flank isometry,
+uniform time compression, dense assembly collision audit, and both reactor OBB
+separation cases. `pnpm build` passes with only the existing chunk-size warning.
+
+## 2026-07-29 desktop camera final composition pass
+
+This supersedes the older desktop-camera tuning and experimental warnings later in
+this file. The desktop story remains the normal live path; the phase-0 prologue is
+still intentionally unhooked as documented below.
+
+- **Assembly now enters from beyond the right edge.** The desktop camera looks from
+  the reverse-Z flank, so the unchanged negative-X `LayeredAssembly` launches project
+  as a right-to-left arrival. At time zero all 26 moving cubelets, including their
+  full cubic bounds, are outside the viewport; only the solid seed remains visible in
+  the open right field. A single continuous assembly move brings them to `lock`
+  without entering the measured desktop copy rectangle.
+- **The action owns the centre of the empty right half.** `arrival`, `lock`, `weight`,
+  `roll`, `diamond`, and `spin` were recomposed around the free area to the right of
+  the headline. The previous distant-surveillance opening and the large-object
+  headline crossings are gone.
+- **Roll and lift are phase-locked.** The `roll` camera move is exactly
+  `EDGE_ROLL_DURATION` (`0.72s`), beginning with the edge roll and ending with it.
+  The `diamond` move is exactly `CORNER_LIFT_DURATION` (`0.84s`), beginning at the
+  roll boundary and ending at `MAIN_SPIN_START`. There is no delayed camera settle
+  after either object move.
+- **Spin is viewed at a true right angle.** Its camera offset is `[0, 0, -8.2]`, so
+  the view direction has zero dot product with the vertical spin axis. The camera
+  holds that perpendicular view until orbital expansion begins.
+- **The return to the final rig is one monotonic arc.** From `orbit` through
+  `ignition`, `capture`, `shell`, and `reactor`, azimuth advances in one direction
+  while the wide geometry is pulled back enough to remain contained on the right.
+  It then resolves to the untouched handoff invariant: camera
+  `[4.8, 3.4, 7.2]`, target `[1.2, 0, 0]`.
+
+Validation: `tests/desktopCameraFraming.test.mjs` now projects all eight corners of
+every moving cubelet at twelve assembly samples, verifies the copy exclusion and
+off-screen launch, asserts exact roll/lift boundaries, proves perpendicular spin,
+and checks the monotonic return arc. `pnpm test` and `pnpm build` pass. Real WebGL
+captures at all twelve named desktop points plus assembly/roll/lift midpoints had no
+runtime errors. The final-second samples reached the exact invariant at motion
+`16.415` and remained byte-for-byte identical at `16.7` and `17.2`; the captures and
+JSON report are in `/tmp/desktop-camera-points/`.
+
+## 2026-07-30 final-idle black-hole composition pass
+
+The retained three-cube flourish is now visually composed around the fixed final
+camera rather than only checked by numeric projection. The previous offsets put the
+large upper-left cube over the logo/eyebrow and left the lower cube hidden under the
+reactor card. The current screen-plane triangle keeps **A** at the narrow upper-left
+shoulder of the plume, **B** below the language switch, and **C** above the reactor
+card. All three stay in the open right field and remain visually separate from the
+plasma, copy, controls, and viewport edges.
+
+Current tuning in `HeroScene.tsx`:
+
+- screen-right offsets `[-0.75, 2.05, 1.65]`;
+- screen-up offsets `[1.85, 1.2, 0.2]`;
+- local scales `[0.98, 0.92, 1]`;
+- bob amplitudes `[0.22, 0.18, 0.12]` — the lower cube deliberately has the
+  smallest travel so its lower silhouette cannot drift into the card.
+
+Live SwiftShader WebGL captures passed at 1440x900 and 1280x800 with no page or
+console errors. The 1280 audit sampled the idle motion at 2s, 4s, and 6s, spanning
+the lower cube's vertical extrema; it retained a visible gap above the card in all
+three frames. The final 1440 capture is `/tmp/desktop-idle-1440x900-final.jpg`; the
+1280 samples are `/tmp/desktop-idle-1280x800-t{2,4,6}.jpg`.
+
+## 2026-07-28 dev transport (Pause / Restart)
+
+A dev-only overlay was added to `HeroScene.tsx` for iterating on the animation
+(the user asked for it while the camera work is in progress): a fixed
+bottom-left panel with **Pause/Play** and **Restart** buttons. It is wrapped
+in `import.meta.env.DEV &&`, so it appears under `pnpm dev` (localhost) and is
+tree-shaken out of `pnpm build` (confirmed: the string is absent from `dist/`).
+Mechanism: `paused` state → `AssemblyCube`'s `paused` prop → a ref that gates
+the single `assembly.update(delta)` call (assembly.time drives spin/camera/
+plasma, so freezing it holds the whole scene; material shimmer keeps ticking
+so it doesn't look dead). Restart bumps `runId`, which is `AssemblyCube`'s
+React `key`, remounting the subtree from time 0 - its mount effect already
+resets every latched ref and the card/body DOM, so no manual reset logic was
+needed. Verified the buttons render and toggle with no console errors
+(canvas itself stays blank under the frozen-rAF sandbox, as usual).
+
+## 2026-07-28 cold-open prologue and core-lens filter cubes unhooked; black-hole trio now orbits
+
+Not enough capacity right now to see the cinematic prologue and the core-lens
+filter cubes (see the two "2026-07-27" entries below) through to a finished
+state, so both were unhooked from the live scene at the user's request. Full
+detail on what each feature was, exactly what got removed, and how to revive
+either one is in **`docs/deferred-features.md`** - read that before touching
+either area again. Short version: `PrologueSequence.ts`, `LiquidMorphMaterial.ts`,
+`CoreLensMaterial.ts`, and `coreLensLayout.ts` are all still present and
+untouched, just no longer imported/rendered from `HeroScene.tsx`. The site
+starts directly on the normal swarm arrival again, same as before either
+feature existed.
+
+The three big "black hole" cubes (`BLACK_HOLE_LOCAL_OFFSETS` in
+`HeroScene.tsx`, material in `src/lib/BlackHoleMaterial.ts`) were kept - the
+user singled them out as worth keeping - but their behavior went through four
+iterations this session. (1) each cube on its own tilted 3D orbit plane around
+the nucleus - user said too much, asked for "just levitation, scattered in one
+plane across the empty screen areas." (2) fixed float positions but the cubes
+*travelled* out from the origin via `lerpVectors` (path cut through the
+plasma). (3) materialize-in-place (only `scale` animates) with positions
+picked from the plasma's radial reach. (4) - current - the user sent a
+screenshot with one cube on the core and one hidden behind the plume and
+nailed the real cause: the cubes are children of the **tumbling nucleus
+group** (diamond tilt + braked precession), while the plasma stands vertical
+in WORLD space (`plasmaWorldCenter`, `IDENTITY_ORIENTATION`). So a local-space
+offset gets rotated into an unpredictable world direction - local clearance
+math is meaningless.
+
+Current mechanism (the fix): placement is authored in the idle camera's
+**screen plane** and applied in **world** space, immune to the group's
+rotation. New constants `BLACK_HOLE_SCREEN_RIGHT/UP/DEPTH` (replacing
+`BLACK_HOLE_FLOAT_POSITIONS`) give each cube a `[screenRight, screenUp,
+towardCamera]` offset from the plasma centre. In the flourish loop we
+`BLACK_HOLE_INV_QUAT.copy(group.quaternion).invert()`, rebuild the camera
+basis live (`camera.getWorldDirection` + two crosses with world UP), form the
+world offset `plasmaWorldCenter + right*sx + up*(sy+bob) + forward*(-depth)`,
+then map it back into the group's local frame via the inverse quaternion and
+`1/sceneScale`. Orientation is `inverse(group) * (baseTilt + own slow spin)`
+so the group's tumble drops out and each cube turns on its own axis. Positions
+chosen as a loose triangle framing the plume - **A** upper-left in the open
+corner above the hero text, **B** upper-right, **C** lower-right below the
+teardrop.
+
+Historical verification before the live pass above was numeric only: it extracted
+the exact idle camera from the code
+(`C=[4.8,3.4,7.2]`, `T=[1.2,0,0]`, fov 43) and plasma centre
+(`group.position` at idle `=[3.19,0.73,0]`, minus the reactor drop); modelled
+the plasma as a **teardrop** (widest ~1.85 world at the core, narrowing as the
+plume rises) rather than a cylinder; a `node -e` projection confirmed all
+three land in empty screen regions and stay on-screen across 1280..2560 widths
+(A clears horizontally +2.6, B horizontally +0.56, C vertically below the
+teardrop); and a second `node -e` test built a real three.js `Group`+child at
+a tilted/precessed idle pose, applied the exact production transform, and
+confirmed the round-trip lands each cube at its intended world spot (error
+~1e-16) still clearing the plasma. The 2026-07-30 rendered audit supersedes the old
+numeric-only placement and its unverified composition.
+
+**The whole "blue dome" plasma feature (`uBlueExpansion`) has been fully
+reverted, later in this same session.** After the widened-density fix above,
+the user reported the dome's edges still read as clipped/cut off in the live
+scene (a real screenshot showed a hard straight edge cutting into the blue
+plume) and asked to just return the plasma to how it looked before, rather
+than continue chasing the clipping through another fix. Since every
+`uBlueExpansion`/blue-dome change this session lived entirely on top of an
+already-committed, already-working baseline (verified via
+`git diff HEAD -- src/lib/FireEffect.ts` showing the *entire* diff was this
+one feature, nothing else mixed in), the revert was a plain
+`git checkout -- src/lib/FireEffect.ts` - not a manual reconstruction, so
+there's no risk of missing a spot. `src/lib/plasmaIgnitionScale.ts` (never
+committed, so `git checkout` doesn't apply to it) was hand-reverted to drop
+`PLASMA_BLUE_START/DURATION/IGNITION_MAX/PROXY_RADIAL_SCALE/PROXY_VERTICAL_SCALE`
+and the `plasmaBlueExpansion` field, back to the single `finalExpandProgress`
+driving everything. Call sites updated to match (`HeroScene.tsx`,
+`scripts/sceneproof/core-lens.scene.ts`); `scripts/sceneproof/plasma-blue.scene.ts`
+(the fixture built solely to test the now-gone feature) was deleted. Build and
+all 11 tests pass. The blue ionization object is back to its pre-session
+shape: a compact sphere-only shell tied to the single `uExpansion`/
+`finalExpandProgress` timeline, no independent early growth, no dome. If this
+"sphere + rising dome" direction gets picked up again later, treat it as a
+fresh design rather than resuming from the reverted code - the clipping
+problem was never actually solved, just removed.
+
+This session's Claude-in-Chrome tab hit the known
+`requestAnimationFrame`-frozen/`visibilityState: hidden` automation issue
+documented in prior sessions throughout - dev-preview screenshots showed
+blank/frozen canvases rather than proof of anything, so the black-hole float
+positions above were verified only numerically (`node -e` script with
+`three`'s own `Vector3`, checking the lerp/bob math produces sane, distinct
+values), not visually, and the plasma revert was trusted on the strength of
+the clean git diff rather than a fresh render. Ask the user to check
+`?plasma-preview=idle` themselves for the float positions, and confirm the
+reverted plasma actually looks right again.
+
+## 2026-07-28 ignition plume shipped: the flame fills its enlarged vessel
+
+Continues the interrupted Claude session (`dd214f93`, "доделать начало"): the
+user's brief was that ignition plasma must seriously grow and claim the free
+upper screen. Claude had raised the proxy scales (3.4/7.5 → 4.8/11) and tuned
+the core lens, but verification showed the visible flame stayed a compact
+~1-unit ball around the nucleus: the rising-fire machinery in `FireEffect.ts`
+(plume column, seven strands, the up-left tendril, blue ionization column) is
+gated behind the shader's `uExpansion`, which only the much-later reactor
+blowout drives. Enlarging the proxy had only enlarged an empty vessel.
+
+- `src/lib/plasmaIgnitionScale.ts` adds the ignition plume envelope:
+  `PLASMA_PLUME_START = PLASMA_WARM_START + 0.8`, `PLASMA_PLUME_DURATION = 2.6`,
+  `PLASMA_IGNITION_PLUME_MAX = 0.6`. `computePlasmaScale` now returns
+  `plasmaPlumeProgress` and `plasmaExpansion = max(finalExpandProgress, plume *
+  0.6)`. `HeroScene.tsx` feeds `plasmaExpansion` to `updatePlasmaMaterial`;
+  geometry selection and the point light still track the reactor envelope
+  alone, so the blowout at `1.0` remains a distinct larger event and the
+  crossover is continuous. Both SceneProof fixtures
+  (`scripts/sceneproof/plasma-ignition.scene.ts`, `core-lens.scene.ts`) sample
+  the same new field, keeping evidence identical to production.
+- Opening the plume exposed a pre-existing artifact the reactor phase had
+  hidden: above the bright body the volume read as a rigid sooty chimney —
+  two dark vertical bands with pale rails climbing to the frame edge, caused
+  by (a) the wide orange/red mantles keeping density without emission once
+  tapered, and (b) the hollow blue ionization column showing bright tangent
+  walls around a dark interior. `FireEffect.ts` now dissolves all three with
+  height: the unlit mantle (`mantleFade`), the shell's occlusion term, and
+  the hollow blue shell itself. Only the luminous strand filaments continue
+  upward — the "hair-thin lines high above" the stream design always
+  intended. This improves the reactor/idle phases equally; their accepted
+  looks at body height are untouched.
+- Verified live at `1440x900` and `390x844` across `flash`, `core`, `lens`,
+  `warm`, `10.5`, `12`, `reactor`, `tiles`, and `idle` previews: the
+  fireball burns with its rising column and up-left tendril into the free
+  upper screen, the blue halo survives, no chimney, cubelets/headline clear,
+  and the idle flourish (Hellsing tendril bending the flame tongues left)
+  reads exactly as briefed. Captures: `artifacts/plasma-live-*.png`,
+  `artifacts/ignition-fixture-10500.png`. `pnpm build`, `pnpm test` (11/11),
+  and `git diff --check` pass. The Playwright-MCP browser is unusable on this
+  machine (no system Chrome); screenshots go through
+  `/tmp/opencode/plasma-shots.mjs` (playwright-core from bun globals +
+  chromium-1234, SwiftShader) against the dev server — recreate it from this
+  note if `/tmp` was cleaned.
+- Still awaiting the user's visual verdict, same as before: whether the
+  plume scale/energy at ignition is "enough", and the CoreLensMaterial
+  chromatic pass from the prior session. The prologue cinematic rework below
+  also remains uncommitted pending user sign-off.
+
+## 2026-07-27 cinematic prologue and travelling-swarm camera rework
+
+This supersedes the phase-0 implementation described in "desktop camera story
+shipped + prologue cold-open shipped" below. The old distant chase, scale-only
+cube explosion, and 0.6-second reset blend are gone.
+
+- `src/lib/PrologueSequence.ts` is now a deterministic 9.30-second sequence with
+  five readable beats: close anomaly chase, incoming rigid monolith, a molten
+  surface wipe, rigid-cube travel, and the default-camera handoff. The ordinary
+  cube resolves into a Rubik-like 3x3x3 lattice before anything separates; the 26
+  child positions are the final `LayeredAssembly` targets translated to the
+  prologue launch centre.
+- `src/lib/LiquidMorphMaterial.ts` no longer deforms geometry. It implements three
+  complementary shader masks over one continuous radial surface coordinate: the
+  ordinary structural shell ahead of the front, the exact normal cubelet material
+  behind it, and a narrow conductive molten contour between them. The contour
+  begins at the camera-facing upper corner and wraps across connected faces; only
+  that boundary reads as liquid.
+- Parent and descendants are rigid at every sampled time: no vertex waves,
+  motion-aligned stretch, cross-axis compression, or scale-based subdivision.
+  Travel timing remains deliberately long, but its weight comes from the bowed
+  paths, rigid orientation, and camera follow rather than soft-body deformation.
+- The camera now treats the active object as an actor. Desktop begins in a tight
+  trailing shot composed in the right action area; portrait uses a larger
+  close-distance multiplier so the rigid cube remains fully visible in its narrow
+  horizontal FOV. Once division starts, the rig solves its distance from the live
+  projected extent of every descendant instead of following a fixed clock dolly.
+- The divided frame at `5.15s` and the completed assembly `lock` frame are now a
+  deliberate visual rhyme. Prologue receives the real lock camera offset and target
+  from the active desktop/mobile `CameraStory`; every initial child has the same
+  object-space coordinate and identity orientation as its later assembled self.
+  Numeric projection tests prove the two frames identical for all 26 cubelets.
+- The measured rig owns only prologue disassembly. From `8.00s` it moves exactly to
+  the original assembly-arrival camera and reveals the central nucleus. At `9.30s`
+  the rigid prologue instances hand off in-place to the original structural
+  instances without a material dissolve. The untouched default camera story then
+  resumes at time zero, so portrait cubelets again enter from the left before the
+  camera converges on the matched lock frame.
+- Development review supports exact seeks such as
+  `?prologue-preview=0.8`, `3.35`, `4.05`, `4.30`, `4.58`, `4.85`, `5.15`,
+  `7.20`, and `9.29`.
+  Storyboards and uninterrupted autoplay were inspected at `1440x900` and
+  `390x844`, including the final assembly/roll boundary. The new test
+  `tests/prologueCinematicCamera.test.mjs` proves exact descendant lineage, exact
+  camera handoff continuity, close monolith framing, and full-swarm retention for
+  desktop and portrait samples, including every rigid cube corner rather than
+  center points alone. The prologue file contains eight focused subtests,
+  including identical breakup/reassembly projection and exact default-camera
+  handoff checks for both viewport classes;
+  `pnpm test` (11 tests across three files), `pnpm build`, and
+  `git diff --check` pass; live runtime reported no exceptions and only the two
+  existing Three.js deprecation warnings.
+- The separate refractive core-lens prototype remains local in
+  `src/lib/CoreLensMaterial.ts` and `HeroScene.tsx`; it has not yet received the
+  same visual approval pass and should be tuned only after this phase-0 direction
+  is accepted.
+
+## 2026-07-27 reactor-card engraving pass completed
+
+The card pass interrupted by the OpenCode account quota is finished in `924a580`:
+
+- The current card is the warm ivory/birch manuscript surface shown in the four
+  captures below; the older green-resin restoration remains documented only as
+  historical context.
+- Desktop now uses its own finer textolite drawing (`CARD_CIRCUIT_PATHS_WIDE`,
+  `CARD_CIRCUIT_RAILS_WIDE`, and `CARD_CIRCUIT_PADS_WIDE`): paired routed corridors,
+  restrained 45-degree turns, corner rails, and smaller pads replace the enlarged
+  mobile-looking pattern. The existing compact SVG remains unchanged and is the only
+  circuit layer displayed at mobile widths.
+- The copy reveal is staged as metadata, heading/rule, three leaves, then actions.
+  Corrector marks draw after their owning paragraph lands. The four repeating accent
+  treatments are cinnabar circle, cinnabar scribble with a small spark, translucent
+  antique-gold wash, and malachite wave underline.
+- Birch/bark marks use a one-shot arrival followed by restrained independent breathing.
+  Their inline values come from the SSR-stable integer hash described below, so the
+  animation does not reintroduce the former hydration mismatch. Reduced motion and
+  Viewport Lab both resolve to the completed readable state.
+- The desktop paragraph fitter floor is `12.5px` before Ponomar's `1.06x` scale. This
+  keeps the effective book face near the previous size while allowing the longest RU
+  leaf to fit: all RU/EN desktop and mobile paragraphs now report zero height and width
+  overflow. At `1440 x 900`, only the wide circuit is displayed; at `390 x 844`, only
+  compact is displayed and document overflow is zero.
+
+Final hydrated checks covered RU/EN at `1440 x 900` and `390 x 844`: zero console or
+hydration errors, all card/action bounds visible, and all four accent families present.
+Captures are `/tmp/opencode/codex-ru-desktop.png`,
+`/tmp/opencode/codex-en-desktop.png`, `/tmp/opencode/codex-ru-mobile.png`, and
+`/tmp/opencode/codex-en-mobile.png`. `pnpm test`, `pnpm build`, and
+`git diff --check` pass; the build retains only the known large Three.js chunk warning.
 
 ## 2026-07-27 desktop camera story shipped + prologue cold-open shipped
 
@@ -71,12 +732,12 @@ below: the desktop story is back on by default and the prologue plays before it.
   gotcha); it now runs detached from the dead hermes supervisor
   (`pnpm exec astro dev --port 4321`, log at `/tmp/astro-dev.log`).
 - Build: `pnpm build` and `git diff --check` pass after this set. Everything
-  above is **uncommitted**, together with the card-decoration work below.
+  above is committed in `924a580` together with the card-decoration work.
 
-## Green resin and gold-stone card restoration
+## Historical: green resin and gold-stone card restoration
 
-Completed on 2026-07-24 and supersedes the light ivory card experiment documented
-later in this file:
+Completed on 2026-07-24, then superseded by the 2026-07-27 light birch/manuscript
+pass documented above:
 
 - The latest OpenCode material discussion and the scene itself agree on one physical
   language: green FR4/solder mask with pale-gold conductors. The lower card is again a
@@ -1067,7 +1728,9 @@ Implementation: `src/lib/LayeredAssembly.ts` and `src/lib/trajectoryData.ts`.
   and velocity profiles in `SPACETIME_DATA`. Curves do not dodge other cubelets.
 - One broad control point for cubelet 17 clears the static nucleus; this is a smooth
   environmental path constraint rather than a local moving-cube correction.
-- Total assembly duration: `5.6008s`.
+- Original authored assembly duration: `5.6008s`; the live uniform `0.78`
+  time scale makes it approximately `4.3686s` without changing path geometry or
+  relative collision timing.
 - Dense 600 FPS AABB validation: zero intersections; minimum extra axis clearance
   is approximately `0.00606` world units.
 - At the runtime path sampling resolution, the largest adjacent tangent change fell
@@ -1549,3 +2212,147 @@ or shader-console errors. A 0.001-step OBB audit of both generation envelopes fo
 that each paired footprint cleared before half of its phase, while the new sibling
 was still only about 51% / 55% of full scale; no per-frame Three.js allocations or
 downstream timing constants were added.
+
+## 2026-07-27 SEO verification, living bark marks, Hellsing-style plasma reach
+
+### Search engine verification — completed, deployed
+
+Google Search Console, Bing Webmaster Tools, and Yandex Webmaster are all wired
+in and confirmed live on production:
+- Google: `<meta name="google-site-verification" content="Pq...hipM">` in
+  `HomePage.astro`'s shared `<head>`.
+- Bing: `<meta name="msvalidate.01" content="EC1...5124">`, same location.
+- Yandex: file-based, `public/yandex_13acc97535ca1f10.html` (their convention -
+  filename mirrors the code in the file body).
+
+Deployed via `vercel --prod` (this project has no GitHub-push auto-deploy -
+every production release here has been a manual `vercel --prod` from the CLI,
+confirmed via `vercel ls` showing the prior deploy was 2 days stale relative
+to a fresh `git push`). Curled `sonicxboy.dev` directly post-deploy to confirm
+all three markers are actually served, not just present in the local `dist/`.
+User still needs to click "Verify" in each of the three consoles - that part
+isn't automatable.
+
+### Card bark-marks (birch lenticels) — now breathe continuously
+
+Previously a one-shot `reactor-bark-appear` reveal that held static forever
+after. Added a second `reactor-bark-breathe` animation (opacity only, no
+`stroke-dashoffset` - layers cleanly on top of the appear animation's `both`
+fill without disturbing it) to both `.reactor-card__bark-marks` and its
+`-shadow` sibling, keyed by two new CSS custom properties computed inline per
+mark in `HeroScene.tsx`: `--bark-breathe-duration` and `--bark-breathe-delay`.
+
+Three real corrections from live user feedback, each worth remembering for
+next time this file is touched:
+1. **Speed**: user's first read was "no animation at all" - it was running,
+   just too slow to notice at a glance (original range was 7-16s). Cut to
+   5-11s (`5 + noise * 6`).
+2. **Shadow contrast**: the birch "big eye" mechanism already existed
+   (`index % 13 === 4`, ~3 of 33 marks per card) but read as barely different
+   from the rest. Boosted `eyeBoost` 1.6 -> 2.6 and the round-ratio boost
+   1.25 -> 1.5.
+3. **Sync, not independent chaos** (the one that actually mattered): marks
+   and their shadows were breathing on *different* noise salts (141/173 for
+   shadows vs 41/73 for marks), so a shadow could be at peak opacity while
+   its own mark was nearly invisible, or vice versa - reads as a stray smudge,
+   not "a mark and its cast shadow are one bark detail." Fixed by giving each
+   shadow the *same* salts as its paired mark (41/73 for both), so a pair
+   always moves in lockstep. The chaos/desync is only ever *between* different
+   marks now, never within one mark's own pair. Verified via
+   `getPropertyValue('--bark-breathe-duration')` equality across all 33 pairs
+   (0 mismatches) after the fix.
+
+Uses `ssrStableNoise` (integer-hash based), not the older `deterministicNoise`
+(Math.sin based) - a different session already fixed a real SSR/hydration
+byte-mismatch bug here by adding `ssrStableNoise` specifically for values that
+get serialized into DOM style attributes. Keep using it for anything similar;
+`deterministicNoise` stays reserved for scene-only (non-DOM) values.
+
+### Plasma "Hellsing reach" — in progress, not yet confirmed done
+
+User's brief (their own words, paraphrased): the plasma's ignition silhouette
+should behave like Alucard's shadow crawling up a wall/ceiling in Hellsing -
+but built of *contained, undying fire* rather than spreading darkness, i.e.
+the read should be "the plasma isn't dying out, it's restraining its own
+energy," not "the flame is dying into shadow." Should reach up and to one
+side and claim a large part of the empty upper screen, well before the
+later/existing final reactor blowout.
+
+Two passes so far, both in `src/lib/FireEffect.ts` (1296-line raymarched GLSL
+plasma shader) and `src/components/HeroScene.tsx`:
+
+1. **Directional bias on one strand.** The plasma body is built from "seven
+   independent material streams" (existing architecture, search
+   `strandCenter0`..`strandCenter6`). Added a growing `tendrilReach` offset
+   and a `tendrilWidthBoost` (inverse-width-squared multiplier, shrinking
+   with height so the strand gets *wider* as it climbs) to strand 0
+   specifically (already the widest of the seven at baseline). User confirmed
+   this direction read correctly and looked better than before - but said the
+   correction I made afterward wasn't about pacing/check-ins, it was that the
+   *scale* of the whole thing needed to be much bigger, not just one strand.
+2. **Whole-ignition-stage scale boost** (the actual ask). Previously the
+   plasma mesh only grew via `finalExpandProgress`, which doesn't start until
+   deep into the reactor-scatter phase - during core/warm/rim ignition
+   (`plasmaOpacity = max(coreProgress, warmProgress, rimProgress)`) the mesh
+   scale was flat `1x * sceneScale`, unboosted. Added
+   `PLASMA_IGNITION_RADIAL_SCALE = 3.4` / `PLASMA_IGNITION_VERTICAL_SCALE =
+   7.5`, driven by `plasmaOpacity`, combined with the existing
+   `finalExpandProgress`-driven scale via `Math.max()` (not multiplied - two
+   independent growth curves, take whichever is currently larger) so the two
+   don't compound into something absurd once `finalExpandProgress` also
+   kicks in later.
+
+**Not yet confirmed by the user as done** - the last exchange before this
+handoff was "смотри на деве, если всё ещё мало скажи насколько" (watching
+live on the dev server, will report back if still too small). Screen-left
+direction for `tendrilReach` (`vec2(-1.9, 1.4)`) was a guess against the fixed
+camera rig, not derived from the actual camera-relative projection - re-check
+it actually reads as *up-and-left on screen* (not up-and-right, or some other
+apparent direction) before trusting the sign of those numbers. If the next
+session picks this up cold: read this section, then just ask the user "is the
+current reach/scale enough, and does it read as reaching toward the correct
+corner" rather than re-deriving from scratch.
+
+### Other things touched this session, briefly
+
+- Fixed `~/.claude/settings.json` and `~/.claude.json` theme: `light-ansi` ->
+  `dark` (kitty terminal background is black; `light-ansi` was rendering
+  de-emphasized diff text at near-zero contrast - looked like "no content" in
+  removed-line diffs until you selected the text). Not a kitty bug, not a
+  Claude Code bug - just a theme/background mismatch. Requires restarting any
+  already-running Claude Code session to take effect.
+- Added manuscript-marginalia hand-drawn marks (red-pen circle / scribble-
+  underline / spark, SVG data-URIs, alternating by `:nth-of-type`) on every
+  bracketed `[accent]` word in the card copy, replacing the previous barely-
+  visible gold-outline-plus-tiny-glyph treatment. User confirmed this looks
+  good.
+- Diagnosed (did not fix) a real OAuth conflict: the user's Hermes agent and
+  their separate Codex CLI installation share one ChatGPT account's OAuth
+  refresh token, which is single-use/rotating - both clients refreshing it
+  independently causes `refresh_token_reused` errors and forces relogin.
+  Fix, if picked up later: separate ChatGPT accounts per client, or confirm
+  which one actually needs the login and stop the other from touching it.
+- Fixed the user's Codex CLI sandbox (`bubblewrap` needs unprivileged user
+  namespaces; Ubuntu 24.04 blocks that by default via
+  `kernel.apparmor_restrict_unprivileged_userns`). Set to `0`, persisted via
+  `/etc/sysctl.d/99-disable-userns-restrict.conf`. Confirmed via
+  `codex doctor` (17 ok, 0 warn, 0 fail) - `codex app-server` itself hanging
+  with no output is *expected* (experimental JSON-RPC-over-stdio server, not
+  an interactive command).
+- Flagged but did not act on: four AI providers configured in the user's
+  Hermes agent (`kernalrouter`, `foxandcat`, `ofoxai`, `tulexai`) all list a
+  model called `claude-opus-5`, which does not exist in Anthropic's real
+  catalog (current Opus tops out at 4.8) - whatever any of them return under
+  that name is not genuine Opus. `tulexai` (the active default) hit a shared-
+  pool rate limit on the very first test call; `kernalrouter` didn't respond
+  at all (Cloudflare 522). The user's own real Anthropic Pro/Max login is
+  already available to Hermes via OAuth pass-through and is sitting unused as
+  an alternative to all four.
+
+### Deploy state
+
+Everything through the search-engine-verification work is committed
+(`924a580`) and live on production. The plasma/Hellsing-reach work above is
+**not yet committed** - still local, still being visually tuned. Do not
+assume it's live until it's actually deployed the same way (`vercel --prod`;
+this repo has no auto-deploy on push).

@@ -12,6 +12,7 @@ export interface MobileCameraStoryTimings {
   shell: number
   reactor: number
   division: number
+  inversion: number
   handoff: number
 }
 
@@ -72,6 +73,20 @@ export interface CameraPointTemplate {
   story: string
 }
 
+// Ported from the desktop opening (2026-07-31 rework): the camera no longer
+// waits on a close, still core before the swarm is visible. One continuous
+// arrival -> lock move holds the same aim throughout ([0, 0.44, 0], the
+// `lock`/`weight` target already used downstream) while only distance pulls
+// back for the arrival frame - `1.5x` the lock offset. The actual "empty
+// frame, then a fast burst" read comes from HeroScene.tsx's
+// PORTRAIT_ASSEMBLY_LEAD_START, which - exactly like desktop's own
+// DESKTOP_ASSEMBLY_LEAD_START - translates the whole assembly root along
+// this arrival camera's own screen-right axis and decays it out with
+// `desktopAssemblyLeadRemaining`, so every cubelet starts beyond the right
+// edge and the seed drives in and brakes before this camera move even
+// finishes. `lock`'s offset is intentionally identical to the `weight`
+// motion point immediately after it, so assembly hands off to motion with no
+// camera jump.
 const ASSEMBLY_POINTS: readonly CameraPointTemplate[] = [
   {
     id: 'arrival',
@@ -79,43 +94,21 @@ const ASSEMBLY_POINTS: readonly CameraPointTemplate[] = [
     at: 0,
     move: 0,
     anchor: 'assembly',
-    target: [0, 0.58, 0],
-    offset: [2.6, 1.8, 4.4],
+    target: [0, 0.44, 0],
+    offset: [-4.05, 2.25, 6.9],
     title: 'Точка отсчёта',
-    story: 'Близкий план держит неподвижное ядро прямо у камеры, пока рой ещё не виден.',
-  },
-  {
-    id: 'swarm',
-    clock: 'assembly',
-    at: 0.44,
-    move: 0.16,
-    anchor: 'assembly',
-    target: [-2.1, 0.85, 0],
-    offset: [-3.4, 2.1, 6.6],
-    title: 'Общий ритм',
-    story: 'Камера стоит внутри потока — элементы проносятся мимо неё к центру пересечения.',
-  },
-  {
-    id: 'gather',
-    clock: 'assembly',
-    at: 0.72,
-    move: 0.16,
-    anchor: 'assembly',
-    target: [-0.8, 0.78, 0],
-    offset: [3.2, 2.4, 6.1],
-    title: 'Кристаллизация',
-    story: 'Дистанция сокращается вместе со сходящимся роем — структура собирается прямо перед камерой.',
+    story: 'Почти пустой кадр: рой ещё за правым краем и врывается в кадр коротким быстрым рывком.',
   },
   {
     id: 'lock',
     clock: 'assembly',
     at: 1,
-    move: 0.2,
+    move: 1,
     anchor: 'assembly',
     target: [0, 0.44, 0],
     offset: [-2.7, 1.5, 4.6],
     title: 'Замыкание',
-    story: 'Самый близкий план — последний элемент впечатывается в тело прямо перед камерой.',
+    story: 'Один непрерывный наезд удерживает сборку в кадре и заканчивается вместе с последним кубиком.',
   },
 ]
 
@@ -371,7 +364,7 @@ export class MobileCameraStory {
       resolvePoint(point, config),
     )
     this.points = [...this.assemblyPoints, ...this.motionPoints]
-    if (import.meta.env.DEV) {
+    if (import.meta.env?.DEV) {
       for (const track of [this.assemblyPoints, this.motionPoints]) {
         for (let index = 1; index < track.length; index += 1) {
           if (track[index].at <= track[index - 1].at) {

@@ -987,6 +987,15 @@ export function updateReactorCircuitSurface(
   if (conductorColor) uniforms.conductorColor.value.copy(conductorColor)
 }
 
+export function updateReactorEngraving(
+  material: MeshStandardMaterial,
+  engraving: number,
+) {
+  const uniforms = reactorSurfaceUniforms.get(material)
+  if (!uniforms) return
+  uniforms.engraving.value = clamp01(engraving)
+}
+
 export function updateStructuralMetamaterial(
   material: MeshStandardMaterial,
   crystallization: number,

@@ -6,6 +6,10 @@ export const CUBE_SIZE = 0.5
 export const CUBE_GAP = 0.014
 export const CUBE_STEP = CUBE_SIZE + CUBE_GAP
 export const CUBELET_COUNT = GRID ** 3 - 1
+// The original collision-authored schedule is uniformly compressed so the
+// right-edge arrival reads as an impact rather than a slow parade. Scaling
+// delay and duration together preserves every relative spacetime crossing.
+export const ASSEMBLY_TIME_SCALE = 0.78
 
 const PATH_STEPS = 480
 const TIME_STEPS = 320
@@ -142,8 +146,8 @@ function createMotions() {
       controls,
       ...createPathLut(controls),
       timeDistances: createTimeLut(profile),
-      delay: profile[0],
-      duration: profile[1],
+      delay: profile[0] * ASSEMBLY_TIME_SCALE,
+      duration: profile[1] * ASSEMBLY_TIME_SCALE,
     }
   })
 }

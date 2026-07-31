@@ -1,6 +1,6 @@
 import { OrbitControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, RefObject } from 'react'
 import {
   BackSide,
@@ -10,7 +10,6 @@ import {
   Euler,
   Fog,
   InstancedBufferAttribute,
-  Matrix4,
   Mesh,
   MeshBasicMaterial,
   Object3D,
@@ -18,6 +17,7 @@ import {
   PMREMGenerator,
   Quaternion,
   Scene,
+  Vector2,
   Vector3,
 } from 'three'
 import type {
@@ -67,6 +67,7 @@ import {
   createMetamaterial,
   enableReactorCircuitSurface,
   updateReactorCircuitSurface,
+  updateReactorEngraving,
   updateReactorMetamaterial,
   updateStructuralMetamaterial,
 } from '../lib/ReactorMetamaterial'
@@ -82,19 +83,41 @@ import {
   createBlackHoleMaterial,
   updateBlackHoleMaterial,
 } from '../lib/BlackHoleMaterial.ts'
-import { PrologueSequence } from '../lib/PrologueSequence.ts'
 import {
   MobileCameraStory,
   type MobileCameraStoryTimings,
 } from '../lib/MobileCameraStory.ts'
 import {
   DESKTOP_ASSEMBLY_POINTS,
+  DESKTOP_ASSEMBLY_LEAD_START,
   DESKTOP_MOTION_POINTS,
+  desktopAssemblyLeadRemaining,
 } from '../lib/desktopCameraPoints.ts'
+import {
+  REACTOR_INSTANCE_COUNT,
+  REACTOR_SHELL_RADIUS,
+  REACTOR_TILE_THICKNESS,
+  REACTOR_TILE_WIDTH,
+  REACTOR_WAVE_RADIAL_LIFT,
+  REACTOR_WAVE_TANGENTIAL_GROWTH,
+  REACTOR_WAVE_THICKNESS_GROWTH,
+  createFibonacciDirections,
+  createRadialPlateOrientation,
+} from '../lib/ReactorLayout.ts'
 import { resolveSceneViewport } from '../lib/viewportMode.ts'
+import {
+  computePlasmaScale,
+  PLASMA_CORE_DURATION,
+  PLASMA_CORE_START,
+  PLASMA_RIM_DURATION,
+  PLASMA_RIM_START,
+  PLASMA_WARM_DURATION,
+  PLASMA_WARM_START,
+} from '../lib/plasmaIgnitionScale.ts'
 import { SOURCE_REPOSITORY } from '../i18n.ts'
 
 const EMERALD = new Color('#18d383')
+const STRUCTURAL_EMISSIVE_COLOR = new Color('#063d2b')
 const WAVE_BLUE = new Color('#244cff')
 const SIGNAL_RED = new Color('#f2383f')
 const UP = new Vector3(0, 1, 0)
@@ -111,6 +134,18 @@ const DIAMOND_ORIENTATION = new Quaternion()
   .multiply(new Quaternion().setFromUnitVectors(CORNER, UP))
 
 const INITIAL_X = 1.2
+// Portrait's own lead-in, same technique as DESKTOP_ASSEMBLY_LEAD_START below
+// (a shared-root offset that decays out via desktopAssemblyLeadRemaining, so
+// every cubelet starts beyond the frame edge and the seed drives in and
+// brakes) - just aimed along the portrait `arrival` camera's own
+// screen-right/forward axes instead of desktop's. Ported 2026-08 alongside
+// the desktop opening, replacing portrait's former close-up-on-still-core
+// beat. Derived numerically (arrival camera basis x magnitude 28) and
+// verified projected on-screen across 0.46/0.62 portrait aspects, seamless
+// into `lock`; not yet confirmed live. See docs/session-handoff.md.
+const PORTRAIT_ASSEMBLY_LEAD_START: readonly [number, number, number] = [
+  24.148, 0, 14.174,
+]
 const DESKTOP_SCENE_SCALE = 1.3
 const COMPACT_SCENE_SCALE = 0.82
 const COMPACT_PORTRAIT_TARGET_Y = 0.72
@@ -129,16 +164,20 @@ const COMPACT_CAMERA_EXTRA_DISTANCE =
   CAMERA_BASE_DISTANCE * (COMPACT_CAMERA_PULLBACK - 1)
 const FOG_NEAR = 10
 const FOG_FAR = 20
+const CAMERA_FOV = 43
 const SCATTER_HIDE_DISTANCE = 18.35
 // Final-idle core flourish, composed from the accidental ?blackhole-preview
 // frame ss_8386ci65x that prompted the idea. Three blocks open out of the
-// settled nucleus, then stop completely; only their material keeps breathing.
+// settled nucleus and drift out to fixed, wide-spread float positions (see
+// BLACK_HOLE_FLOAT_* below). These offsets only seed the `?blackhole-preview`
+// static lookdev pose; the rotations also serve as each block's base
+// orientation before its own slow spin is added on top.
 const BLACK_HOLE_LOCAL_OFFSETS: ReadonlyArray<readonly [number, number, number]> = [
   [1.05, 0.48, 0.18],
   [-0.88, 0.65, -0.25],
   [0.68, -0.52, 0.36],
 ]
-const BLACK_HOLE_LOCAL_SCALES = [1.25, 0.92, 1.05] as const
+const BLACK_HOLE_LOCAL_SCALES = [0.98, 0.92, 1] as const
 const BLACK_HOLE_LOCAL_ROTATIONS: ReadonlyArray<readonly [number, number, number]> = [
   [0.34, 0.82, 0.08],
   [-0.52, 0.18, 0.64],
@@ -147,14 +186,54 @@ const BLACK_HOLE_LOCAL_ROTATIONS: ReadonlyArray<readonly [number, number, number
 const BLACK_HOLE_CAMERA_TARGET = new Vector3()
 const BLACK_HOLE_CAMERA_POSITION = new Vector3()
 const BLACK_HOLE_EULER_SCRATCH = new Euler()
-const PROLOGUE_CAMERA_TARGET = new Vector3()
-const PROLOGUE_CAMERA_POSITION = new Vector3()
-const PROLOGUE_BLEND_POSITION = new Vector3()
+// Once revealed, the three blocks levitate around the plasma cloud without
+// ever touching it. Two problems ruled their placement out of local nucleus
+// space: (1) the plasma stands vertical in WORLD space (plasmaWorldCenter,
+// IDENTITY_ORIENTATION) while these blocks are children of the tumbling
+// nucleus group (diamond tilt + braked precession), so a local offset gets
+// rotated into an unpredictable world direction - one block landed on the
+// core, another swung behind the plume and vanished; (2) the plasma is a tall
+// teardrop, widest (~1.85 world) at the core and narrowing as it rises, so
+// clearance has to be judged against that real shape, not a sphere.
+//
+// So placement is expressed in the idle camera's own SCREEN plane instead:
+// [screenRight, screenUp, towardCamera] offsets from the plasma centre. The
+// flourish code (see useFrame) rebuilds that camera basis live and undoes the
+// group's rotation, so each block sits exactly where intended on screen -
+// upper-left at the plume's narrow shoulder, upper-right below the language
+// switch, and lower-right above the reactor card - fully outside the teardrop
+// and always in front of it. See docs/session-handoff.md for the live desktop
+// captures that replaced the earlier numeric-only placement.
+const BLACK_HOLE_SCREEN_RIGHT_DESKTOP = [-0.75, 2.05, 1.65] as const
+const BLACK_HOLE_SCREEN_UP_DESKTOP = [1.85, 1.2, 0.2] as const
+const BLACK_HOLE_SCREEN_DEPTH_DESKTOP = [0.5, 0.5, 0.7] as const
+// Compact/portrait: the reactor card is a fixed-height strip pinned to the
+// bottom of the viewport (`--card-h`, HomePage.astro) and on short phones it
+// covers the plasma entirely, so the desktop placement (judged relative to
+// the plasma, low in frame) doesn't apply. These sit well above the card
+// instead - pushed high enough that the plasma's own teardrop reach (which
+// shrinks with height) can never touch them even fully expanded - spread
+// across the narrow portrait width rather than the wide desktop field.
+// Verified numerically across 375x667..600x960 viewports (card clearance,
+// plasma-teardrop clearance, on-screen bounds); not yet confirmed live.
+const BLACK_HOLE_SCREEN_RIGHT_COMPACT = [-1.3, 1.3, 0.0] as const
+const BLACK_HOLE_SCREEN_UP_COMPACT = [2.6, 2.9, 3.4] as const
+const BLACK_HOLE_SCREEN_DEPTH_COMPACT = [0.4, 0.45, 0.55] as const
+const BLACK_HOLE_FLOAT_BOB_AMOUNT = [0.22, 0.18, 0.12] as const
+const BLACK_HOLE_FLOAT_BOB_SPEED = [0.62, 0.51, 0.71] as const
+const BLACK_HOLE_FLOAT_BOB_PHASE = [0, 2.1, 4.3] as const
+const BLACK_HOLE_SPIN_SPEED: ReadonlyArray<readonly [number, number, number]> = [
+  [0.09, 0.14, 0],
+  [0, 0.11, 0.08],
+  [0.07, 0, 0.12],
+]
+const BLACK_HOLE_INV_QUAT = new Quaternion()
+const BLACK_HOLE_SPIN_QUAT = new Quaternion()
+const BLACK_HOLE_FORWARD = new Vector3()
+const BLACK_HOLE_RIGHT = new Vector3()
+const BLACK_HOLE_UP = new Vector3()
+const BLACK_HOLE_WORLD_OFFSET = new Vector3()
 const PROLOGUE_BLEND_TARGET = new Vector3()
-// Post-prologue camera handoff: a short smootherstep blend from the chase
-// cam's final pose into the camera story's live sample replaces the former
-// hard cut hidden only by the explode flash.
-const PROLOGUE_CAMERA_BLEND = 0.6
 const cameraAimScratch = new Vector3()
 const PAGE_SEARCH_PARAMS =
   typeof window !== 'undefined'
@@ -180,25 +259,6 @@ const FORCE_COMPACT_PREVIEW =
 const CAMERA_STORY_PREVIEW_REQUESTED =
   DEVELOPMENT_PREVIEW_ENABLED &&
   PAGE_SEARCH_PARAMS?.has('camera-story') === true
-const PROLOGUE_PREVIEW_ENABLED =
-  DEVELOPMENT_PREVIEW_ENABLED &&
-  PAGE_SEARCH_PARAMS?.has('prologue-preview') === true
-// Lookdev previews freeze or re-aim the scene on their own terms; the
-// prologue would only add a ~3s preamble to every reload of those tools,
-// so any active preview opts the page out of the default-on prologue.
-const PROLOGUE_EXCLUDED_BY_PREVIEW =
-  DEVELOPMENT_PREVIEW_ENABLED &&
-  PAGE_SEARCH_PARAMS !== null &&
-  [
-    'plasma-preview',
-    'camera-story',
-    'blackhole-preview',
-    'assembly-glow-preview',
-    'material-baseline',
-    'backlight-preview',
-    'compact-preview',
-    'viewport-lab',
-  ].some((key) => PAGE_SEARCH_PARAMS.has(key))
 const PREFERS_REDUCED_MOTION =
   typeof window !== 'undefined' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -226,7 +286,7 @@ const CUBELET_ENGRAVING_IGNITION_PEAK = 0.85
 const CUBELET_ENGRAVING_IGNITION_DURATION = 1.4
 const CUBELET_ENGRAVING_CAPTURE_PEAK = 0.52
 const CUBELET_ENGRAVING_CAPTURE_DURATION = 1.9
-const SHELL_RADIUS = 1.22
+const SHELL_RADIUS = REACTOR_SHELL_RADIUS
 const ORBIT_DEPART_DURATION = 2.05
 const ORBIT_CAPTURE_START = 7.15
 const ORBIT_CAPTURE_DURATION = 3.75
@@ -244,17 +304,25 @@ const ORBIT_END =
   ORBIT_CAPTURE_START +
   ORBIT_CAPTURE_MAX_OFFSET +
   ORBIT_CAPTURE_DURATION * ORBIT_SCALE_RECOVERY_END
+// The circuit language stays intact through every moving orbit. Only after
+// the final class has captured and the whole shell has stopped do we hold a
+// quiet beat, sweep the engraving once, and dissolve it. The clean-shell hold
+// prevents the following reactor morph from becoming an accidental hard cut.
+const CUBELET_ENGRAVING_FAREWELL_START = ORBIT_END + 0.12
+const CUBELET_ENGRAVING_FAREWELL_ATTACK = 0.22
+const CUBELET_ENGRAVING_FAREWELL_HOLD = 0.12
+const CUBELET_ENGRAVING_FAREWELL_RELEASE = 0.55
+const CUBELET_ENGRAVING_FAREWELL_PEAK = 0.94
+const CUBELET_ENGRAVING_FAREWELL_END =
+  CUBELET_ENGRAVING_FAREWELL_START +
+  CUBELET_ENGRAVING_FAREWELL_ATTACK +
+  CUBELET_ENGRAVING_FAREWELL_HOLD +
+  CUBELET_ENGRAVING_FAREWELL_RELEASE
 const NUCLEUS_GRID_START = 0.65
 const NUCLEUS_GRID_DURATION = 1.45
 const NUCLEUS_EXPAND_START = 2.45
 const NUCLEUS_EXPAND_DURATION = 2.5
 const NUCLEUS_MAX_SCALE = 1.7
-const PLASMA_CORE_START = 5.8
-const PLASMA_CORE_DURATION = 0.24
-const PLASMA_WARM_START = 7.55
-const PLASMA_WARM_DURATION = 1.2
-const PLASMA_RIM_START = 8.8
-const PLASMA_RIM_DURATION = 1.25
 const CUBELET_ENGRAVING_IGNITION_START =
   MAIN_SPIN_START + PLASMA_CORE_START - 0.24
 const CUBELET_ENGRAVING_CAPTURE_START =
@@ -265,8 +333,7 @@ const IGNITION_FLASH_DECAY = 0.86
 const ORBIT_APERTURE_START = PLASMA_CORE_START - 0.62
 const ORBIT_APERTURE_DURATION = 0.82
 const ORBIT_APERTURE_ROLL_SCALE = 0.72
-const REACTOR_INSTANCE_COUNT = CUBELET_COUNT * 4
-const REACTOR_TRANSFORM_START = ORBIT_END + 0.18
+const REACTOR_TRANSFORM_START = CUBELET_ENGRAVING_FAREWELL_END + 0.14
 const REACTOR_MORPH_DURATION = 0.9
 const REACTOR_APERTURE_START =
   REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION * 0.52
@@ -281,19 +348,21 @@ const REACTOR_DIVIDE_TWO_START =
 const REACTOR_DIVIDE_TWO_DURATION = 1.3
 const REACTOR_TRANSFORM_END =
   REACTOR_DIVIDE_TWO_START + REACTOR_DIVIDE_TWO_DURATION
-const REACTOR_CIRCUIT_REVEAL_START =
-  REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION * 0.28
-const REACTOR_CIRCUIT_REVEAL_DURATION =
-  REACTOR_TRANSFORM_END - REACTOR_CIRCUIT_REVEAL_START + 0.24
+// Preserve the established downstream timeline (including portrait handoff)
+// without restoring the discarded physical inversion. This interval is now a
+// calm post-division overview of the intact outer shell and inner grid.
+const REACTOR_OVERVIEW_START = REACTOR_TRANSFORM_END + 0.08
+const REACTOR_OVERVIEW_DURATION = 1.15
 const REACTOR_PARENT_WIDTH = 0.3
 const REACTOR_PARENT_THICKNESS = 0.07
 const REACTOR_LINEAGE_WIDTH = 0.285
 const REACTOR_LINEAGE_THICKNESS = 0.05
-const REACTOR_TILE_WIDTH = 0.27
-const REACTOR_TILE_THICKNESS = 0.022
 const REACTOR_PLATE_EDGE_RADIUS = 0.09
 const REACTOR_PLATE_EDGE_SEGMENTS = 3
-const REACTOR_WAVE_ONE_START = REACTOR_TRANSFORM_END + 0.7
+// Once division completes, the intact outer plate shell gets one quiet beat
+// before the spectator waves. The nucleus grid remains inside throughout.
+const REACTOR_WAVE_ONE_START =
+  REACTOR_OVERVIEW_START + REACTOR_OVERVIEW_DURATION + 0.18
 const REACTOR_WAVE_DURATION = 0.72
 const REACTOR_WAVE_GAP = 0.14
 const REACTOR_WAVE_TWO_START =
@@ -301,7 +370,8 @@ const REACTOR_WAVE_TWO_START =
 const REACTOR_WAVE_WIDTH = 0.2
 const REACTOR_ROTATION_BRAKE_DURATION =
   REACTOR_WAVE_TWO_START + REACTOR_WAVE_DURATION - REACTOR_WAVE_ONE_START
-const REACTOR_HERO_SELECT_TIME = REACTOR_TRANSFORM_END + 0.42
+const REACTOR_HERO_SELECT_TIME =
+  REACTOR_OVERVIEW_START + REACTOR_OVERVIEW_DURATION + 0.68
 const REACTOR_SIGNAL_START = REACTOR_WAVE_TWO_START + 0.05
 const REACTOR_SIGNAL_DURATION = 1.15
 const REACTOR_SCATTER_START =
@@ -329,13 +399,9 @@ const OVAL_EXIT_LEAD = 1.25
 const NUCLEUS_FINAL_EXPAND_START = REACTOR_SCATTER_START + 0.08
 const NUCLEUS_FINAL_EXPAND_DURATION = 2.45
 const NUCLEUS_REACTOR_SCALE = 4.35
-const PLASMA_REACTOR_RADIAL_SCALE = 2.78
-const PLASMA_REACTOR_PROXY_RADIAL_SCALE = 6.05
-const PLASMA_REACTOR_PROXY_VERTICAL_SCALE = 13.5
 const PLASMA_REACTOR_DROP = 0.17
 const WAVE_AXIS_A = new Vector3(0.14, 0.98, 0.1).normalize()
 const WAVE_AXIS_B = new Vector3(-0.74, 0.28, 0.61).normalize()
-const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))
 // Electric discharges: surface arcs crawl the blue shell from the moment the
 // core finishes igniting (the reactor "revving" phase); stream strikes join
 // once the flame fills the vacated reactor volume.
@@ -357,6 +423,10 @@ const CAMERA_STORY_TIMINGS = {
   shell: MAIN_SPIN_START + ORBIT_END - 0.05,
   reactor: MAIN_SPIN_START + REACTOR_TRANSFORM_START + 0.62,
   division: MAIN_SPIN_START + REACTOR_DIVIDE_ONE_START + 0.72,
+  // Kept as the director's compatibility timing key; desktop uses it for the
+  // post-division overview, while portrait has no waypoint at this key.
+  inversion:
+    MAIN_SPIN_START + REACTOR_OVERVIEW_START + REACTOR_OVERVIEW_DURATION,
   handoff: MAIN_SPIN_START + REACTOR_HERO_SELECT_TIME - 0.08,
 } satisfies MobileCameraStoryTimings
 const NUCLEUS_BASE_EMISSIVE = new Color('#6cf3b3')
@@ -405,16 +475,6 @@ function ssrStableNoise(index: number, salt: number) {
   return (value >>> 0) / 4294967296
 }
 
-function createRadialPlateOrientation(direction: Vector3) {
-  const normal = direction.clone().normalize()
-  const tangent = new Vector3().crossVectors(UP, normal)
-  if (tangent.lengthSq() < 1e-6) tangent.set(1, 0, 0)
-  tangent.normalize()
-  const bitangent = new Vector3().crossVectors(normal, tangent).normalize()
-  const basis = new Matrix4().makeBasis(tangent, bitangent, normal)
-  return new Quaternion().setFromRotationMatrix(basis)
-}
-
 function createReactorTileProfiles(families: readonly ReactorFamily[]) {
   const profiles: ReactorTileProfile[] = []
 
@@ -454,23 +514,6 @@ function createReactorTileProfiles(families: readonly ReactorFamily[]) {
   }
 
   return profiles
-}
-
-function createFibonacciDirections(count: number) {
-  const directions: Vector3[] = []
-  for (let index = 0; index < count; index += 1) {
-    const vertical = 1 - (2 * (index + 0.5)) / count
-    const horizontal = Math.sqrt(1 - vertical * vertical)
-    const angle = GOLDEN_ANGLE * index
-    directions.push(
-      new Vector3(
-        Math.cos(angle) * horizontal,
-        vertical,
-        Math.sin(angle) * horizontal,
-      ),
-    )
-  }
-  return directions
 }
 
 function createReactorFamilies(parentTargets: readonly Vector3[]) {
@@ -732,6 +775,7 @@ const REACTOR_HUE_REACTOR = new Color('#c7a247')
 const REACTOR_HUE_DIVIDE = new Color('#4febb3')
 const REACTOR_HUE_CARD = new Color('#ead99b')
 const REACTOR_HUE_DISCHARGE = new Color('#4de1ff')
+const CUBELET_ENGRAVING_FAREWELL_COLOR = new Color('#d9fff0')
 const REACTOR_HUE_STAGES = [
   REACTOR_HUE_ROLL,
   REACTOR_HUE_IGNITE,
@@ -942,9 +986,18 @@ function setCubicBezier(
 
 interface AssemblyCubeProps {
   cardRef: RefObject<HTMLElement | null>
+  // Dev-only pause: when true the choreography clock stops advancing (see the
+  // gated assembly.update in useFrame). Restart is handled by remounting this
+  // component with a fresh React key from HeroScene, so no reset logic lives
+  // here. Defaults false / no-op in production, where nothing sets it.
+  paused?: boolean
 }
 
-function AssemblyCube({ cardRef }: AssemblyCubeProps) {
+function AssemblyCube({ cardRef, paused = false }: AssemblyCubeProps) {
+  const pausedRef = useRef(paused)
+  useEffect(() => {
+    pausedRef.current = paused
+  }, [paused])
   const groupRef = useRef<Group>(null)
   const nucleusFrameRef = useRef<Group>(null)
   const plasmaRef = useRef<Mesh>(null)
@@ -954,8 +1007,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const orbitMeshRef = useRef<InstancedMesh>(null)
   const reactorMeshRef = useRef<InstancedMesh>(null)
   const blackHoleMeshRef = useRef<InstancedMesh>(null)
-  const prologueOrbMeshRef = useRef<InstancedMesh>(null)
-  const prologueHeroMeshRef = useRef<Mesh>(null)
   const heroPlateRef = useRef<Mesh>(null)
   const plasmaLightRef = useRef<PointLight>(null)
   const heroPlateLightRef = useRef<PointLight>(null)
@@ -972,7 +1023,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const cameraShotId = useRef('')
   const transform = useMemo(() => new Object3D(), [])
   const blackHoleTransform = useMemo(() => new Object3D(), [])
-  const prologueOrbTransform = useMemo(() => new Object3D(), [])
   const assemblyGlowTransform = useMemo(() => new Object3D(), [])
   const orbitTransform = useMemo(() => new Object3D(), [])
   const reactorTransform = useMemo(() => new Object3D(), [])
@@ -1002,6 +1052,9 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const dischargeBacklightScreenSide = useMemo(() => new Vector3(), [])
   const viewport = useThree((state) =>
     resolveSceneViewport(state.size.width, state.size.height),
+  )
+  const viewportAspect = useThree(
+    (state) => state.size.width / Math.max(1, state.size.height),
   )
   const compact = viewport.compact || FORCE_COMPACT_PREVIEW
   const portraitCompact = viewport.portraitCompact || FORCE_COMPACT_PREVIEW
@@ -1076,8 +1129,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
   const cameraStoryEnabled =
     (!PREFERS_REDUCED_MOTION &&
       (portraitCompact || desktopCameraViewport)) ||
-    previewCameraStory ||
-    PROLOGUE_PREVIEW_ENABLED
+    previewCameraStory
   const previewMaterialBaseline = useMemo(
     () =>
       DEVELOPMENT_PREVIEW_ENABLED &&
@@ -1095,32 +1147,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       PAGE_SEARCH_PARAMS?.has('blackhole-preview') === true,
     [],
   )
-  // Cold-open prologue: on by default, but only in viewports with a
-  // scripted camera story to receive the chase-cam handoff (static-fallback
-  // viewports keep their established rig - nothing would own the camera
-  // after the prologue there). `?no-prologue` restores the old
-  // start-on-swarm behavior, lookdev previews opt out on their own.
-  const prologueEnabled =
-    PROLOGUE_PREVIEW_ENABLED ||
-    (!PREFERS_REDUCED_MOTION &&
-      (portraitCompact || desktopCameraViewport) &&
-      PAGE_SEARCH_PARAMS?.has('no-prologue') !== true &&
-      !PROLOGUE_EXCLUDED_BY_PREVIEW)
-  const prologue = useMemo(
-    () =>
-      new PrologueSequence({
-        screenRight: portraitCompact ? 1.0 : 2.0,
-      }),
-    [portraitCompact],
-  )
-  const prologueEndCaptured = useRef(false)
-  const prologueBlendStart = useMemo(() => new Vector3(), [])
-  const prologueBlendTargetStart = useMemo(() => new Vector3(), [])
-  useLayoutEffect(() => {
-    // A viewport-class change rebuilds the sequence from t=0; the stale
-    // captured end pose from the previous instance must not blend in.
-    prologueEndCaptured.current = false
-  }, [prologue])
   const previewPlasma = previewStage !== null
   useLayoutEffect(() => {
     setDpr(
@@ -1233,9 +1259,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             ? PLASMA_CORE_START + 0.12
             : previewStage === 'core'
               ? PLASMA_WARM_START - 0.28
-              : previewStage === 'warm'
-                ? PLASMA_RIM_START - 0.2
-                : previewStage === 'reactor'
+              : previewStage === 'lens'
+                ? PLASMA_RIM_START + 0.55
+                : previewStage === 'warm'
+                  ? PLASMA_RIM_START - 0.2
+                  : previewStage === 'reactor'
                   ? REACTOR_TRANSFORM_START + REACTOR_MORPH_DURATION * 0.55
                   : previewStage === 'divide'
                     ? REACTOR_DIVIDE_ONE_START + REACTOR_DIVIDE_ONE_DURATION * 0.7
@@ -1315,16 +1343,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     [],
   )
   const blackHoleMaterial = useMemo(() => createBlackHoleMaterial(), [])
-  const prologueHeroMaterial = useMemo(
-    () =>
-      createMetamaterial({
-        color: '#18d383',
-        metalness: 0.22,
-        roughness: 0.32,
-        emissive: '#6cf3b3',
-      }),
-    [],
-  )
   const gridMaterial = useMemo(() => createGridMaterial(), [])
   const plasmaMaterial = useMemo(() => createPlasmaMaterial(), [])
   const dischargeBacklightMaterial = useMemo(
@@ -1421,9 +1439,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         roughness: previewMaterialBaseline ? 0.28 : CONDUCTIVE_ROUGHNESS,
         emissive: previewMaterialBaseline ? '#042b20' : '#063d2b',
       })
+      // Keep the shared surface shader for the later cell-by-cell lattice
+      // dematerialization, but never reactivate the textolite/circuit layer
+      // after the cubelet farewell has removed it.
       return previewMaterialBaseline
         ? material
-        : enableReactorCircuitSurface(material, { engraving: 0.92 })
+        : enableReactorCircuitSurface(material, { engraving: 0 })
     },
     [previewMaterialBaseline],
   )
@@ -1438,7 +1459,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       })
       return previewMaterialBaseline
         ? material
-        : enableReactorCircuitSurface(material, { engraving: 0.92 })
+        : enableReactorCircuitSurface(material, { engraving: 0 })
     },
     [previewMaterialBaseline],
   )
@@ -1835,10 +1856,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           true,
         ),
     )
-
     heroPlate.position
       .copy(tile.direction)
-      .multiplyScalar((SHELL_RADIUS + wavePulse * 0.085) * sceneScale)
+      .multiplyScalar(
+        (SHELL_RADIUS + wavePulse * REACTOR_WAVE_RADIAL_LIFT) * sceneScale,
+      )
       .applyQuaternion(reactorApertureOrientation)
       .applyQuaternion(group.quaternion)
       .add(group.position)
@@ -1847,9 +1869,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       .multiply(reactorApertureOrientation)
       .multiply(tile.orientation)
     heroPlate.scale.set(
-      REACTOR_TILE_WIDTH * sceneScale * (1 + wavePulse * 0.18),
-      REACTOR_TILE_WIDTH * sceneScale * (1 + wavePulse * 0.18),
-      REACTOR_TILE_THICKNESS * sceneScale * (1 + wavePulse * 0.48),
+      REACTOR_TILE_WIDTH * sceneScale *
+        (1 + wavePulse * REACTOR_WAVE_TANGENTIAL_GROWTH),
+      REACTOR_TILE_WIDTH * sceneScale *
+        (1 + wavePulse * REACTOR_WAVE_TANGENTIAL_GROWTH),
+      REACTOR_TILE_THICKNESS * sceneScale *
+        (1 + wavePulse * REACTOR_WAVE_THICKNESS_GROWTH),
     )
   }
 
@@ -2210,12 +2235,17 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
             if (mainElapsed < REACTOR_SCATTER_START) {
               reactorTransform.position
                 .copy(tile.direction)
-                .multiplyScalar(SHELL_RADIUS + wavePulse * 0.085)
+                .multiplyScalar(
+                  SHELL_RADIUS + wavePulse * REACTOR_WAVE_RADIAL_LIFT,
+                )
               reactorTransform.quaternion.copy(tile.orientation)
               reactorTransform.scale.set(
-                REACTOR_TILE_WIDTH * (1 + wavePulse * 0.18),
-                REACTOR_TILE_WIDTH * (1 + wavePulse * 0.18),
-                REACTOR_TILE_THICKNESS * (1 + wavePulse * 0.48),
+                REACTOR_TILE_WIDTH *
+                  (1 + wavePulse * REACTOR_WAVE_TANGENTIAL_GROWTH),
+                REACTOR_TILE_WIDTH *
+                  (1 + wavePulse * REACTOR_WAVE_TANGENTIAL_GROWTH),
+                REACTOR_TILE_THICKNESS *
+                  (1 + wavePulse * REACTOR_WAVE_THICKNESS_GROWTH),
               )
               reactorColor.lerp(WAVE_BLUE, wavePulse * 0.44)
             }
@@ -2428,9 +2458,12 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       )
     }
 
+    const activeId = activeCameraStory.activePoint.id
+    PROLOGUE_BLEND_TARGET.copy(activeCameraStory.target)
     camera.position.copy(activeCameraStory.position)
+
     camera.up.copy(UP)
-    camera.lookAt(activeCameraStory.target)
+    camera.lookAt(PROLOGUE_BLEND_TARGET)
     // The aperture, signal selection, and release paths read matrixWorld in
     // this same frame, before Three's render traversal updates the camera.
     camera.updateMatrixWorld(true)
@@ -2439,41 +2472,15 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     // the scene fog. Without this coupling, the wide assembly/orbit shots
     // would dim their subject merely because the camera moved backwards.
     if (scene.fog instanceof Fog) {
-      const storyDistance = camera.position.distanceTo(
-        activeCameraStory.target,
-      )
+      const storyDistance = camera.position.distanceTo(PROLOGUE_BLEND_TARGET)
       const fogShift = storyDistance - CAMERA_BASE_DISTANCE
       scene.fog.near = FOG_NEAR + fogShift
       scene.fog.far = FOG_FAR + fogShift
     }
 
-    const activeId = activeCameraStory.activePoint.id
     if (cameraShotId.current !== activeId) {
       document.body.dataset.cameraShot = activeId
       cameraShotId.current = activeId
-    }
-
-    // Prologue handoff: the story's first sample is a fixed far-left aim,
-    // the chase cam ends close behind the cast cube - blend between them
-    // over the first PROLOGUE_CAMERA_BLEND seconds of assembly time (the
-    // explode flash covers the swing) instead of cutting.
-    if (
-      prologueEndCaptured.current &&
-      assembly.time < PROLOGUE_CAMERA_BLEND
-    ) {
-      const blendT = smootherstep(assembly.time / PROLOGUE_CAMERA_BLEND)
-      PROLOGUE_BLEND_POSITION.copy(prologueBlendStart).lerp(
-        camera.position,
-        blendT,
-      )
-      camera.position.copy(PROLOGUE_BLEND_POSITION)
-      PROLOGUE_BLEND_TARGET.copy(prologueBlendTargetStart).lerp(
-        activeCameraStory.target,
-        blendT,
-      )
-      camera.up.copy(UP)
-      camera.lookAt(PROLOGUE_BLEND_TARGET)
-      camera.updateMatrixWorld(true)
     }
   }
 
@@ -2483,62 +2490,8 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       document.documentElement.dataset.heroCanvasReady = 'true'
     }
 
-    // Cold-open prologue: plays once before assembly starts counting (the
-    // early return below means assembly.update() is never reached while
-    // this is active, so it stays parked at time 0 - the far-away swarm
-    // start position - exactly where the prologue hands off). Positions
-    // from PrologueSequence are in the same local space as everything else
-    // under groupRef, so meshes just take them directly; the camera is a
-    // top-level object, so its position/target need the same
-    // position+scale conversion applyCameraStory uses elsewhere.
-    if (prologueEnabled && !prologue.complete) {
-      prologue.update(delta)
-      updateBlackHoleMaterial(blackHoleMaterial, clock.elapsedTime)
-
-      const nucleusFrame = nucleusFrameRef.current
-      if (nucleusFrame) nucleusFrame.scale.setScalar(0)
-
-      PROLOGUE_CAMERA_POSITION.copy(prologue.cameraPosition).multiplyScalar(
-        sceneScale,
-      )
-      PROLOGUE_CAMERA_POSITION.x += INITIAL_X
-      PROLOGUE_CAMERA_TARGET.copy(prologue.cameraTarget).multiplyScalar(
-        sceneScale,
-      )
-      PROLOGUE_CAMERA_TARGET.x += INITIAL_X
-      camera.position.copy(PROLOGUE_CAMERA_POSITION)
-      camera.up.copy(UP)
-      camera.lookAt(PROLOGUE_CAMERA_TARGET)
-      camera.updateMatrixWorld(true)
-
-      if (prologue.complete && !prologueEndCaptured.current) {
-        prologueEndCaptured.current = true
-        prologueBlendStart.copy(PROLOGUE_CAMERA_POSITION)
-        prologueBlendTargetStart.copy(PROLOGUE_CAMERA_TARGET)
-      }
-
-      const orbMesh = prologueOrbMeshRef.current
-      if (orbMesh) {
-        for (let index = 0; index < prologue.orbPositions.length; index += 1) {
-          prologueOrbTransform.position.copy(prologue.orbPositions[index])
-          prologueOrbTransform.scale.setScalar(
-            prologue.orbVisible[index] ? 0.4 : 0,
-          )
-          prologueOrbTransform.updateMatrix()
-          orbMesh.setMatrixAt(index, prologueOrbTransform.matrix)
-        }
-        orbMesh.instanceMatrix.needsUpdate = true
-      }
-
-      const heroMesh = prologueHeroMeshRef.current
-      if (heroMesh) {
-        heroMesh.visible = prologue.heroVisible
-        heroMesh.position.copy(prologue.heroPosition)
-        heroMesh.scale.setScalar(prologue.heroScale)
-      }
-      prologueHeroMaterial.emissiveIntensity = 0.15 + prologue.explodeFlash * 2.4
-
-      return
+    if (!previewMaterialBaseline) {
+      cubeletMaterial.emissive.copy(STRUCTURAL_EMISSIVE_COLOR)
     }
 
     // Isolated lookdev: skip the whole choreography (assembly never
@@ -2560,7 +2513,13 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     }
 
     const previousAssemblyTime = assembly.time
-    if (!previewAssemblyGlow && !previewCameraStory) assembly.update(delta)
+    // Dev pause freezes the single choreography clock: assembly.time drives
+    // spin (spinDelta becomes 0), the camera story, plasma, everything - so
+    // gating this one advance holds the whole scene on the current frame while
+    // material shimmer keeps ticking so it does not look dead.
+    if (!previewAssemblyGlow && !previewCameraStory && !pausedRef.current) {
+      assembly.update(delta)
+    }
 
     const assemblyGlowElapsed =
       assembly.time - (assembly.endTime - ASSEMBLY_GLOW_LEAD)
@@ -2617,6 +2576,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         conductivity,
         materialGlow,
       )
+      cubeletMaterial.emissive.copy(STRUCTURAL_EMISSIVE_COLOR)
     }
     nucleusMaterial.color.copy(cubeletMaterial.color)
     nucleusMaterial.metalness = cubeletMaterial.metalness
@@ -2656,6 +2616,25 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
 
     const group = groupRef.current
     if (!group || !assembly.complete) {
+      if (group) {
+        const assemblyProgress = Math.min(
+          1,
+          assembly.time / assembly.endTime,
+        )
+        const leadVector = desktopCameraViewport
+          ? DESKTOP_ASSEMBLY_LEAD_START
+          : portraitCompact
+            ? PORTRAIT_ASSEMBLY_LEAD_START
+            : null
+        const leadRemaining = leadVector
+          ? desktopAssemblyLeadRemaining(assemblyProgress)
+          : 0
+        group.position.set(
+          INITIAL_X + (leadVector ? leadVector[0] * leadRemaining : 0),
+          leadVector ? leadVector[1] * leadRemaining : 0,
+          leadVector ? leadVector[2] * leadRemaining : 0,
+        )
+      }
       applyCameraStory(camera, scene)
       syncInstances()
       return
@@ -2732,16 +2711,51 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         (1 - smootherstep(captureRaw - 0.7)) *
         CUBELET_ENGRAVING_CAPTURE_PEAK
 
-      const surface = Math.min(
-        1,
-        rollBeat + spinBeat + ignitionBeat + captureBeat,
+      const farewellElapsed =
+        spin.mainElapsed - CUBELET_ENGRAVING_FAREWELL_START
+      const farewellAttack = smootherstep(
+        farewellElapsed / CUBELET_ENGRAVING_FAREWELL_ATTACK,
       )
-      const energy = Math.min(
-        1,
-        rollContact * 0.9 +
-          waveEnvelope * 0.6 +
-          ignitionBeat * 0.85 +
-          captureBeat * 0.5,
+      const farewellRelease =
+        1 -
+        smootherstep(
+          (farewellElapsed -
+            CUBELET_ENGRAVING_FAREWELL_ATTACK -
+            CUBELET_ENGRAVING_FAREWELL_HOLD) /
+            CUBELET_ENGRAVING_FAREWELL_RELEASE,
+        )
+      const farewellBeat =
+        farewellAttack *
+        farewellRelease *
+        CUBELET_ENGRAVING_FAREWELL_PEAK
+      const engravingFade =
+        1 -
+        smootherstep(
+          (farewellElapsed -
+            CUBELET_ENGRAVING_FAREWELL_ATTACK -
+            CUBELET_ENGRAVING_FAREWELL_HOLD) /
+            CUBELET_ENGRAVING_FAREWELL_RELEASE,
+        )
+      updateReactorEngraving(cubeletMaterial, 0.82 * engravingFade)
+
+      const surface =
+        Math.min(
+          1,
+          rollBeat + spinBeat + ignitionBeat + captureBeat + farewellBeat,
+        ) * engravingFade
+      const energy =
+        Math.min(
+          1,
+          rollContact * 0.9 +
+            waveEnvelope * 0.6 +
+            ignitionBeat * 0.85 +
+            captureBeat * 0.5 +
+            farewellBeat,
+        ) * engravingFade
+
+      sampleReactorHue(REACTOR_HUE_SCRATCH, spin.mainElapsed).lerp(
+        CUBELET_ENGRAVING_FAREWELL_COLOR,
+        farewellBeat,
       )
 
       updateReactorCircuitSurface(
@@ -2750,7 +2764,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         elapsed,
         energy,
         0,
-        sampleReactorHue(REACTOR_HUE_SCRATCH, spin.mainElapsed),
+        REACTOR_HUE_SCRATCH,
       )
     }
 
@@ -2797,10 +2811,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const reactorSurfaceProgress = smootherstep(
       (spin.mainElapsed - REACTOR_TRANSFORM_START) / REACTOR_MORPH_DURATION,
     )
-    const reactorCircuitProgress = smootherstep(
-      (spin.mainElapsed - REACTOR_CIRCUIT_REVEAL_START) /
-        REACTOR_CIRCUIT_REVEAL_DURATION,
-    )
     if (previewMaterialBaseline) {
       reactorMaterial.metalness = 0.24 + reactorSurfaceProgress * 0.18
       reactorMaterial.roughness = 0.28 - reactorSurfaceProgress * 0.1
@@ -2820,11 +2830,11 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         reactorSurfaceProgress,
         clock.elapsedTime,
         reactorEnergy,
-        reactorCircuitProgress,
+        0,
       )
       updateReactorCircuitSurface(
         heroPlateMaterial,
-        1,
+        0,
         clock.elapsedTime,
         1 - reactorScatterFade * 0.72,
         selectedPlateIndex.current,
@@ -2865,16 +2875,19 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
         smoothstep(spin.mainElapsed / 0.72) *
         (1 - smoothstep((spin.mainElapsed - 10.05) / 1.05))
       let rotationElapsed = spin.mainElapsed
-      if (spin.mainElapsed > REACTOR_APERTURE_START) {
+      // Once capture has fully settled, hold the entire shell still while the
+      // textolite says goodbye. Rotation resumes only with the already-clean
+      // reactor system, so the material fade is a separate readable action.
+      if (spin.mainElapsed > ORBIT_END) {
         rotationElapsed =
           spin.mainElapsed < REACTOR_TRANSFORM_END
-            ? REACTOR_APERTURE_START
-            : REACTOR_APERTURE_START +
+            ? ORBIT_END
+            : ORBIT_END +
               (spin.mainElapsed - REACTOR_TRANSFORM_END)
       }
       if (spin.mainElapsed > REACTOR_WAVE_ONE_START) {
         const rotationAtBrake =
-          REACTOR_APERTURE_START +
+          ORBIT_END +
           (REACTOR_WAVE_ONE_START - REACTOR_TRANSFORM_END)
         const brakeProgress = Math.min(
           1,
@@ -2918,37 +2931,30 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     const expandProgress = smootherstep(
       (spin.mainElapsed - NUCLEUS_EXPAND_START) / NUCLEUS_EXPAND_DURATION,
     )
-    const coreProgress = smootherstep(
-      (spin.mainElapsed - PLASMA_CORE_START) / PLASMA_CORE_DURATION,
-    )
-    const warmProgress = smootherstep(
-      (spin.mainElapsed - PLASMA_WARM_START) / PLASMA_WARM_DURATION,
-    )
-    const rimProgress = smootherstep(
-      (spin.mainElapsed - PLASMA_RIM_START) / PLASMA_RIM_DURATION,
-    )
     const finalExpandProgress = smootherstep(
       (spin.mainElapsed - NUCLEUS_FINAL_EXPAND_START) /
         NUCLEUS_FINAL_EXPAND_DURATION,
     )
-    const plasmaOpacity = Math.max(coreProgress, warmProgress, rimProgress)
+    const {
+      coreProgress,
+      warmProgress,
+      rimProgress,
+      plasmaOpacity,
+      plasmaRadialScale,
+      plasmaProxyRadialScale,
+      plasmaProxyVerticalScale,
+      plasmaExpansion,
+    } = computePlasmaScale(spin.mainElapsed, finalExpandProgress)
     const initialNucleusScale =
       1 + (NUCLEUS_MAX_SCALE - 1) * expandProgress
     const finalNucleusScale =
       initialNucleusScale +
       (NUCLEUS_REACTOR_SCALE - initialNucleusScale) * finalExpandProgress
-    const plasmaRadialScale =
-      1 + (PLASMA_REACTOR_RADIAL_SCALE - 1) * finalExpandProgress
-    const plasmaProxyRadialScale =
-      1 +
-      (PLASMA_REACTOR_PROXY_RADIAL_SCALE - 1) * finalExpandProgress
-    const plasmaProxyVerticalScale =
-      1 +
-      (PLASMA_REACTOR_PROXY_VERTICAL_SCALE - 1) * finalExpandProgress
 
     const nucleusFrame = nucleusFrameRef.current
     if (nucleusFrame) {
       nucleusFrame.scale.setScalar(finalNucleusScale)
+      nucleusFrame.quaternion.copy(IDENTITY_ORIENTATION)
     }
     const plasma = plasmaRef.current
     plasmaWorldCenter.copy(group.position)
@@ -3073,39 +3079,110 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
     }
 
     // Final-idle flourish: once all moving plates have left and the scene has
-    // held still, three black-hole blocks unfold from the core into the
-    // ss_8386ci65x composition. The bounded ease reaches an exact rest state;
-    // there is no spring tail or perpetual transform wobble afterwards.
+    // held still, three black-hole blocks grow into view and levitate in the
+    // empty screen space around the plasma cloud - never touching it. They
+    // materialize in place (only scale animates in; no travel path that would
+    // cut through the plasma) and just bob gently and turn slowly. Visible on
+    // every viewport, portrait included - the reactor card is a fixed-height
+    // strip pinned to the bottom of the viewport and on short phones covers
+    // the plasma entirely, so portraitCompact uses its own placement set
+    // (BLACK_HOLE_SCREEN_*_COMPACT) well above the card instead of the
+    // desktop one (which is judged relative to the plasma, low in frame).
+    // Compact landscape keeps the desktop set - see the portraitCompact
+    // check below, which matches activeCameraStory's own gate.
+    //
+    // Placement is done in the camera's SCREEN plane, in WORLD space, so it is
+    // immune to the nucleus group's tilt/precession (which the blocks would
+    // otherwise inherit as children of the group, swinging them onto/behind
+    // the vertical plasma column). Undo the group's rotation once, build the
+    // camera basis, then place each block at plasmaWorldCenter + screen offset
+    // and convert that back into the group's local frame. Reduced motion still
+    // reveals them, just holds each still instead of bobbing/turning.
     const blackHoleMesh = blackHoleMeshRef.current
     if (blackHoleMesh) {
       const flourishElapsed = spin.mainElapsed - IDLE_CORE_FLOURISH_START
-      blackHoleMesh.visible = !compact && flourishElapsed >= 0
+      blackHoleMesh.visible = flourishElapsed >= 0
       if (blackHoleMesh.visible) {
+        // Screen-plane offsets are relative to whichever camera is actually
+        // active, so the array choice must match activeCameraStory's own
+        // gate (portraitCompact), not the broader `compact` flag - compact
+        // landscape still runs the desktop camera story (see
+        // activeCameraStory above), so it keeps the desktop placement even
+        // though sceneScale is compact there too.
+        const screenRight = portraitCompact
+          ? BLACK_HOLE_SCREEN_RIGHT_COMPACT
+          : BLACK_HOLE_SCREEN_RIGHT_DESKTOP
+        const screenUp = portraitCompact
+          ? BLACK_HOLE_SCREEN_UP_COMPACT
+          : BLACK_HOLE_SCREEN_UP_DESKTOP
+        const screenDepth = portraitCompact
+          ? BLACK_HOLE_SCREEN_DEPTH_COMPACT
+          : BLACK_HOLE_SCREEN_DEPTH_DESKTOP
+        BLACK_HOLE_INV_QUAT.copy(group.quaternion).invert()
+        // Screen basis: right = screen-right, up = screen-up, forward = into
+        // the scene (so -forward pulls a block toward the camera, keeping it
+        // in front of the plasma rather than hidden behind it).
+        camera.getWorldDirection(BLACK_HOLE_FORWARD)
+        BLACK_HOLE_RIGHT.crossVectors(BLACK_HOLE_FORWARD, UP).normalize()
+        BLACK_HOLE_UP.crossVectors(BLACK_HOLE_RIGHT, BLACK_HOLE_FORWARD)
+          .normalize()
+        const inverseSceneScale = 1 / sceneScale
         for (let index = 0; index < BLACK_HOLE_LOCAL_OFFSETS.length; index += 1) {
-          const rawProgress =
-            (flourishElapsed - index * IDLE_CORE_FLOURISH_STAGGER) /
-            IDLE_CORE_FLOURISH_DURATION
-          const progress = PREFERS_REDUCED_MOTION
+          const floatElapsed = Math.max(
+            0,
+            flourishElapsed - index * IDLE_CORE_FLOURISH_STAGGER,
+          )
+          const rawProgress = floatElapsed / IDLE_CORE_FLOURISH_DURATION
+          const reveal = PREFERS_REDUCED_MOTION
             ? rawProgress >= 0
               ? 1
               : 0
             : easeOutQuart(rawProgress)
-          const offset = BLACK_HOLE_LOCAL_OFFSETS[index]
-          const rotation = BLACK_HOLE_LOCAL_ROTATIONS[index]
-          blackHoleTransform.position.set(
-            offset[0] * progress,
-            offset[1] * progress,
-            offset[2] * progress,
+          const floatTime = PREFERS_REDUCED_MOTION ? 0 : floatElapsed
+          const bob =
+            BLACK_HOLE_FLOAT_BOB_AMOUNT[index] *
+            Math.sin(
+              floatTime * BLACK_HOLE_FLOAT_BOB_SPEED[index] +
+                BLACK_HOLE_FLOAT_BOB_PHASE[index],
+            )
+          // World offset from the plasma centre in the camera's screen plane,
+          // then rebased onto the group origin (plasmaWorldCenter sits a touch
+          // below group.position by the reactor drop).
+          BLACK_HOLE_WORLD_OFFSET.copy(plasmaWorldCenter).sub(group.position)
+          BLACK_HOLE_WORLD_OFFSET.addScaledVector(
+            BLACK_HOLE_RIGHT,
+            screenRight[index],
           )
-          blackHoleTransform.quaternion.setFromEuler(
+          BLACK_HOLE_WORLD_OFFSET.addScaledVector(
+            BLACK_HOLE_UP,
+            screenUp[index] + bob,
+          )
+          BLACK_HOLE_WORLD_OFFSET.addScaledVector(
+            BLACK_HOLE_FORWARD,
+            -screenDepth[index],
+          )
+          // Into the group's local frame (undo rotation + uniform sceneScale).
+          blackHoleTransform.position
+            .copy(BLACK_HOLE_WORLD_OFFSET)
+            .applyQuaternion(BLACK_HOLE_INV_QUAT)
+            .multiplyScalar(inverseSceneScale)
+          const spinRate = BLACK_HOLE_SPIN_SPEED[index]
+          const rotation = BLACK_HOLE_LOCAL_ROTATIONS[index]
+          // Desired world orientation = base tilt + own slow spin; expressed
+          // locally as inverse(group) * worldSpin so the group's tumble drops
+          // out and each block turns on its own axis in world space.
+          BLACK_HOLE_SPIN_QUAT.setFromEuler(
             BLACK_HOLE_EULER_SCRATCH.set(
-              rotation[0] * progress,
-              rotation[1] * progress,
-              rotation[2] * progress,
+              rotation[0] + spinRate[0] * floatTime,
+              rotation[1] + spinRate[1] * floatTime,
+              rotation[2] + spinRate[2] * floatTime,
             ),
           )
+          blackHoleTransform.quaternion
+            .copy(BLACK_HOLE_INV_QUAT)
+            .multiply(BLACK_HOLE_SPIN_QUAT)
           blackHoleTransform.scale.setScalar(
-            BLACK_HOLE_LOCAL_SCALES[index] * progress,
+            BLACK_HOLE_LOCAL_SCALES[index] * reveal,
           )
           blackHoleTransform.updateMatrix()
           blackHoleMesh.setMatrixAt(index, blackHoleTransform.matrix)
@@ -3124,7 +3201,7 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
       rimProgress,
       plasmaWorldCenter,
       plasmaWorldRadii,
-      finalExpandProgress,
+      plasmaExpansion,
       compact,
       discharge.streams,
       discharge.surfaces,
@@ -3224,28 +3301,6 @@ function AssemblyCube({ cardRef }: AssemblyCubeProps) {
           receiveShadow
         />
 
-        {prologueEnabled && (
-          <>
-            <instancedMesh
-              ref={prologueOrbMeshRef}
-              args={[undefined, undefined, 3]}
-              geometry={cubeletGeometry}
-              material={blackHoleMaterial}
-              frustumCulled={false}
-              castShadow
-              receiveShadow
-            />
-            <mesh
-              ref={prologueHeroMeshRef}
-              geometry={cubeletGeometry}
-              material={prologueHeroMaterial}
-              frustumCulled={false}
-              castShadow
-              receiveShadow
-              visible={false}
-            />
-          </>
-        )}
       </group>
 
       <mesh
@@ -3358,8 +3413,7 @@ function SceneControls() {
   const scriptedCameraStory =
     (!PREFERS_REDUCED_MOTION &&
       (portraitCompact || desktopCameraViewport)) ||
-    CAMERA_STORY_PREVIEW_REQUESTED ||
-    PROLOGUE_PREVIEW_ENABLED
+    CAMERA_STORY_PREVIEW_REQUESTED
 
   useLayoutEffect(() => {
     if (scriptedCameraStory) return
@@ -3596,10 +3650,10 @@ function barkShadowArc(mark: string, index: number): BarkShadow {
   const y2 = Number(parsed[4])
   const width = Math.abs(x2 - x1)
   const isBigEye = index % 13 === 4
-  const eyeBoost = isBigEye ? 1.6 : 1
+  const eyeBoost = isBigEye ? 2.6 : 1
   const padRatio = BARK_SHADOW_PAD_RATIOS[index % BARK_SHADOW_PAD_RATIOS.length] * eyeBoost
   const roundRatio =
-    BARK_SHADOW_ROUND_RATIOS[index % BARK_SHADOW_ROUND_RATIOS.length] * (isBigEye ? 1.25 : 1)
+    BARK_SHADOW_ROUND_RATIOS[index % BARK_SHADOW_ROUND_RATIOS.length] * (isBigEye ? 1.5 : 1)
   const drop = BARK_SHADOW_DROP[index % BARK_SHADOW_DROP.length]
   const pad = width * padRatio
   const sx = Math.min(x1, x2) - pad
@@ -3720,6 +3774,18 @@ export default function HeroScene({
 }) {
   const cardRef = useRef<HTMLElement | null>(null)
   const cardBodyRef = useRef<HTMLDivElement | null>(null)
+  // Dev-only transport for iterating on the animation while the camera work is
+  // in progress. `paused` freezes the choreography clock (AssemblyCube reads
+  // it); "restart" bumps `runId`, which is AssemblyCube's React key, so the
+  // whole scene subtree remounts from time 0 (fresh sims + refs + DOM reset
+  // via its mount effect). Both are stripped from production builds by the
+  // import.meta.env.DEV gate on the overlay below.
+  const [paused, setPaused] = useState(false)
+  const [runId, setRunId] = useState(0)
+  const restartScene = () => {
+    setPaused(false)
+    setRunId((id) => id + 1)
+  }
   const previewLightingBaseline = useMemo(
     () =>
       DEVELOPMENT_PREVIEW_ENABLED &&
@@ -3848,7 +3914,7 @@ export default function HeroScene({
     <>
       <div className="hero-scene" aria-hidden="true">
         <Canvas
-          camera={{ position: [4.8, 3.4, 7.2], fov: 43 }}
+          camera={{ position: [4.8, 3.4, 7.2], fov: CAMERA_FOV }}
           dpr={[1, 1.5]}
           frameloop={FREEZE_VIEWPORT_LAB_GRID ? 'demand' : 'always'}
           shadows
@@ -3896,10 +3962,63 @@ export default function HeroScene({
           ) : (
             <ReactorWarmSpotlight />
           )}
-          <AssemblyCube cardRef={cardRef} />
+          <AssemblyCube key={runId} cardRef={cardRef} paused={paused} />
           <SceneControls />
         </Canvas>
       </div>
+
+      {import.meta.env.DEV && (
+        <div
+          style={{
+            position: 'fixed',
+            left: 16,
+            bottom: 16,
+            zIndex: 9999,
+            display: 'flex',
+            gap: 8,
+            padding: 8,
+            borderRadius: 10,
+            background: 'rgba(5, 9, 7, 0.72)',
+            border: '1px solid rgba(24, 211, 131, 0.35)',
+            backdropFilter: 'blur(6px)',
+            fontFamily: 'monospace',
+            fontSize: 12,
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setPaused((value) => !value)}
+            style={{
+              cursor: 'pointer',
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: '1px solid rgba(24, 211, 131, 0.5)',
+              background: paused
+                ? 'rgba(24, 211, 131, 0.85)'
+                : 'transparent',
+              color: paused ? '#04140d' : '#18d383',
+              fontWeight: 600,
+            }}
+          >
+            {paused ? '▶ Play' : '⏸ Pause'}
+          </button>
+          <button
+            type="button"
+            onClick={restartScene}
+            style={{
+              cursor: 'pointer',
+              padding: '6px 12px',
+              borderRadius: 6,
+              border: '1px solid rgba(24, 211, 131, 0.5)',
+              background: 'transparent',
+              color: '#18d383',
+              fontWeight: 600,
+            }}
+          >
+            ↺ Restart
+          </button>
+        </div>
+      )}
 
       <article
         ref={cardRef}
@@ -4035,9 +4154,13 @@ export default function HeroScene({
                   // pattern. Duration and delay are both per-mark deterministic
                   // noise (no Math.random - stays SSR/hydration-stable); the
                   // delay is offset past this mark's own reveal so breathing
-                  // never fights the initial draw-on.
-                  '--bark-breathe-duration': `${7 + ssrStableNoise(index, 141) * 9}s`,
-                  '--bark-breathe-delay': `${1.7 + index * 0.03 + ssrStableNoise(index, 173) * 7}s`,
+                  // never fights the initial draw-on. Same salts as the mark
+                  // below (not its own) - a shadow with no visible mark on top
+                  // (or vice versa) reads as a stray smudge, not a bark detail,
+                  // so each pair must move in lockstep; the chaos is between
+                  // different marks, never within one mark's own pair.
+                  '--bark-breathe-duration': `${5 + ssrStableNoise(index, 41) * 6}s`,
+                  '--bark-breathe-delay': `${1.6 + index * 0.03 + ssrStableNoise(index, 73) * 7}s`,
                   fill: shadow.fill,
                   filter: `blur(${shadow.blur})`,
                 } as CSSProperties}
@@ -4052,7 +4175,7 @@ export default function HeroScene({
                 pathLength="1"
                 style={{
                   '--bark-delay': `${index * 0.03}s`,
-                  '--bark-breathe-duration': `${7 + ssrStableNoise(index, 41) * 9}s`,
+                  '--bark-breathe-duration': `${5 + ssrStableNoise(index, 41) * 6}s`,
                   '--bark-breathe-delay': `${1.6 + index * 0.03 + ssrStableNoise(index, 73) * 7}s`,
                 } as CSSProperties}
               />

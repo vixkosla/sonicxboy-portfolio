@@ -5,16 +5,21 @@
 The hero is a single evolving voxel system, not a sequence of unrelated effects.
 Its visual story is:
 
-1. distant particles crystallize into a 3x3x3 cube;
-2. the cube acquires mechanical momentum and rolls onto an edge/corner;
-3. the rigid lattice separates into orbital symmetry classes;
-4. orbital motion gradually yields to a spherical voxel shell;
-5. its nucleus becomes an emissive grid cage and ignites into a volumetric energy
+1. three blocky anomalies establish a close third-person chase;
+2. one conductive cube reveals the exact 3x3x3 Rubik-like lattice already inside
+   it, then its 26 outer cubelets disconnect and scatter;
+3. the default assembly shot rebuilds the same 3x3x3 cube in the same screen-space
+   framing; portrait receives the remote cubelets from the left, while desktop
+   receives them from beyond the right edge;
+4. the cube acquires mechanical momentum and rolls onto an edge/corner;
+5. the rigid lattice separates into orbital symmetry classes;
+6. orbital motion gradually yields to a spherical voxel shell;
+7. its nucleus becomes an emissive grid cage and ignites into a volumetric energy
    source;
-6. the shell morphs and divides into a dense reactor covering;
-7. blue ionization waves release the covering while one plate crosses from WebGL
+8. the shell morphs and divides into a dense reactor covering;
+9. blue ionization waves release the covering while one plate crosses from WebGL
    into interface;
-8. flying plates dematerialize into the cage's lattice language while the
+10. flying plates dematerialize into the cage's lattice language while the
    temporary grid cage disintegrates and the source expands into the volume
    left behind as an upright flame.
 
@@ -22,15 +27,146 @@ Mathematics must remain invisible. It provides collision constraints, continuity
 and repeatability, but the viewer should see momentum, attraction, and available
 space rather than perfect geometric construction steps.
 
+## Phase 0: rigid cube with a molten surface front
+
+**Currently unhooked from the live scene (2026-07-28)** - not enough capacity
+to finish it, per the user. `PrologueSequence.ts` still implements everything
+described below and is still directly seekable/testable on its own; it is
+just not imported or rendered from `HeroScene.tsx` right now, so the site
+starts directly at "the default assembly shot" (item 3 above). See
+`docs/deferred-features.md` for what exactly was unhooked and how to revive
+it.
+
+`PrologueSequence` opens on a tight trailing camera, not a distant establishing
+view. Three black-hole voxels pass the ordinary conductive cube, attention transfers
+to it, and the camera pushes through a close contact frame before settling on the
+exact lock angle used by the later completed assembly.
+
+The cube is the visual grammar of the entire story, not merely the final result.
+Its geometry and material therefore remain hard: neither the parent nor any child
+uses vertex waves, non-uniform stretch, or soft-body scaling. The parent outer
+extent is exactly the extent of the assembled 3x3x3 lattice. At `4.00s`, a separate
+narrow molten-metal contour touches the near upper corner and travels continuously
+across the three connected faces. Ahead of that contour the ordinary solid shell
+remains visible; behind it the shell is clipped away and the exact structural
+cubelet material and seams are exposed. The liquid is only the moving boundary,
+never the body of a cube.
+
+At `5.15s` the contour has cleared the object and the divided cube holds in the
+final lock camera. The 26 children occupy
+`MORPH_CENTER + LayeredAssembly.target`, so this first Rubik-like cube is the final
+assembly translated to the launch area, not a separate approximate layout. Each
+cubelet, its local orientation, the camera offset, the target offset, and therefore
+its screen-space projection match the later completed assembly.
+
+At `6.00s` the 26 rigid cubelets disconnect and spread along bowed trajectories to
+the original time-zero `LayeredAssembly` starts. Their travel remains deliberately
+long, but the duration is expressed through the path and camera rather than rubbery
+geometry; every local scale stays exactly cubic. At `8.00s` the camera begins its
+last `1.30s` move to the untouched default assembly-arrival shot while the central
+nucleus appears. At `9.30s` ownership swaps invisibly between two instances using
+the same positions and structural material. The normal camera story then owns
+assembly from its first frame: on portrait the remote cubelets enter from the left;
+on desktop the reverse-Z camera projects those same negative-X starts beyond the
+right edge. Both viewport tracks converge on their authored lock composition.
+
+The prologue follow rig measures every descendant in camera-right, camera-up, and
+depth. It solves the minimum perspective distance for the live vertical FOV, aspect
+ratio, composition offset, and each rigid cubelet's bounding extent while the
+divided cube travels outward. It deliberately releases ownership at the exact default
+arrival pose; it no longer replaces the authored assembly camera. All vectors are
+preallocated, and the sequence remains directly seekable with
+`?prologue-preview=<seconds>` for deterministic storyboard review.
+
+## Desktop camera story
+
+Wide desktop uses two assembly points and eleven motion points through the same
+allocation-free `MobileCameraStory` director as portrait. It does not use continuous
+background drift.
+
+The first view is deliberately almost empty: all 26 moving cubelets begin beyond the
+right viewport edge, and the solid seed enters from that same right-side line at its
+original screen height. The entire desktop assembly root receives the shared offset
+`[-34.71, 0, -9.53]`, aligned to the arrival camera's screen-right basis rather than
+to world up: the path is a long horizontal drive, never a diagonal reveal. A seventh-
+power remainder removes that offset by assembly progress `0.48`: the seed cuts
+through the frame edge around `0.13`, is fully visible around `0.16`, crosses more
+than 45% of the screen width during its initial burst, and then loses distance in
+every equal time interval while the other cubelets catch it. Moving the shared root
+preserves every relative trajectory, timing, and collision relationship; portrait
+receives no entrance offset.
+
+The camera holds the normal `43deg` FOV and makes one uninterrupted move from
+`arrival` to `lock`, adding a restrained leftward drift after the seed's fast
+horizontal entrance. The assembly clock is compressed uniformly rather than by
+changing one cubelet in isolation, so the arrivals keep their collision-authored
+order while reading as a decisive burst instead of a slow parade. The complete
+moving-cube bounds stay outside the left copy safe area throughout assembly.
+
+The edge-roll camera move lasts exactly `EDGE_ROLL_DURATION`; the following lift move
+lasts exactly `CORNER_LIFT_DURATION`. Consequently camera and object start and land
+together at both boundaries. When full spin begins, the reverse-flank offset
+`[-5, 5, -5]` resolves into an isometric view: three faces and the first separation
+gaps remain readable instead of being flattened against a perpendicular Z shot.
+
+From `orbit` onward, the camera returns toward positive Z along one monotonic arc
+instead of making unrelated cuts. The first orbital-disassembly shot is deliberately
+about `1.6x` larger than the former overview: extreme cubelets may cross the viewport
+edge so the system feels more expansive than the frame. Capture then recovers enough
+context for the shell and reactor points to continue the same arc. The camera and
+shell both hold still for the post-rotation engraving farewell; the next camera arc
+starts together with the clean-plate morph. During the later post-division hold the
+camera pulls back into a positive-flank isometry around the unchanged outer plate
+shell and inner nucleus grid. The existing handoff then moves directly to camera
+`[5.28, 4.42, 9.36]`, target `[0.6, 0, 0]`, arriving at motion time `18.875`.
+That single medium-close rig is held through plate release and final idle. There is
+no second dolly after the last plate disappears, so the remaining plasma, nucleus,
+three retained cubes, and rising strands never pass through a small intermediate
+state after the physical choreography has ended.
+
+### Final-idle flourish
+
+The three retained black-hole cubes begin only after the last released plate is gone
+and another `0.45s` quiet beat has passed; the camera is already fixed at its final
+handoff rig. Their positions are authored in that camera's screen plane, then
+transformed back into the tumbling nucleus group's local frame. This
+keeps the composition independent of residual group rotation: on desktop one
+cube sits at the plume's upper-left shoulder, one below the language switch,
+and one above the reactor card. They rotate independently and use restrained
+vertical bobbing; the lower cube has the smallest amplitude so it cannot cross
+into the card. The trio must remain a separated diagonal constellation in the
+open right field, never a cluster around the nucleus or an obstruction over
+the hero copy.
+
+Portrait uses its own screen-plane placement, well above the card rather than
+around the plasma: `.reactor-card` is a fixed-height strip pinned to the
+bottom of the viewport that on short/wide phones covers the plasma and core
+entirely, so a desktop-style placement judged relative to the plasma would
+often render invisible behind opaque DOM. The trio is visible on every
+viewport now; only the placement set differs (`BLACK_HOLE_SCREEN_*_COMPACT`
+vs. `_DESKTOP` in `HeroScene.tsx`, selected by `portraitCompact` specifically,
+since the offsets are relative to whichever camera is actually live and
+compact-landscape still runs the desktop camera track).
+
 ## Portrait-mobile camera story
 
 Portrait screens use a deterministic waypoint director from
 `src/lib/MobileCameraStory.ts`. It turns the same uninterrupted simulation into a
-sequence of authored views: nucleus, incoming swarm, cube lock, roll and balance,
-the three orbital symmetry classes, ignition, spherical capture, reactor surface,
-division, and the final panel handoff. C2 `smootherstep` interpolates the target and
+sequence of authored views: an off-screen swarm entrance and cube lock (ported
+from the desktop opening - see below), roll and balance, the three orbital
+symmetry classes, ignition, spherical capture, reactor surface, division, and
+the final panel handoff. C2 `smootherstep` interpolates the target and
 camera radius while the view direction follows the shortest spherical arc; shots
 hold between moves and allocate nothing in `useFrame`.
+
+The opening no longer holds on a close, still core before the swarm becomes
+visible. Like desktop, it is one continuous `arrival -> lock` move at a
+constant aim; the "empty frame, then a fast burst" read comes from
+`PORTRAIT_ASSEMBLY_LEAD_START` in `HeroScene.tsx`, which translates the whole
+assembly root along the portrait `arrival` camera's own screen-right axis and
+decays it out with the same `desktopAssemblyLeadRemaining` curve the desktop
+lead-in uses. `lock`'s offset is identical to the following `weight` motion
+point, so assembly hands off to motion with no camera jump.
 
 Each shot is chosen for what the object is physically doing at that beat rather than
 for keeping the whole object in frame: low, near-ground framing for the edge roll,
@@ -72,8 +208,11 @@ resolved only by the precomputed delays and durations in `SPACETIME_DATA`; path
 geometry does not react to other cubelets. The static center is handled by one broad
 control-point arc rather than a local correction.
 
-The schedule lasts `5.6008s`. A dense 600 FPS AABB check leaves at least `0.006`
-world units beyond the `0.5` cube side. At the runtime LUT resolution, the largest
+The original collision-authored schedule is uniformly time-scaled by `0.78`; the
+live schedule therefore lasts about `4.3686s`. Because every delay and duration uses
+the same factor, spacetime ordering and path geometry are unchanged. A dense 600 FPS
+AABB check still leaves at least `0.006` world units beyond the `0.5` cube side. At
+the runtime LUT resolution, the largest
 direction change between adjacent path samples fell from about `35.1deg` in the old
 piecewise path to about `3.29deg`.
 
@@ -162,6 +301,19 @@ self-spin profile.
 
 Departure lasts `2.05s`. Radius and class orientation use the same quintic envelope,
 so there is no `outward -> rotate -> insert` staging.
+
+The structural circuit engraving survives every moving orbit and capture. At
+`ORBIT_END = 10.825s` of main-spin time, relative capture, detached scale, group
+rotation, and the desktop camera all stop. After a `0.12s` still hold, the engraving
+receives one last mint-white surface sweep (`0.22s` attack, `0.12s` hold); engraving
+depth, conductor response, and energy emission then fade together over `0.55s` while
+the geometry remains frozen. A clean shell holds for another `0.14s`, then the
+reactor morph and its matching camera move begin together at `11.975s`. This makes
+the material farewell a separate action after rotation, never a texture dissolve
+during motion. The change is latched: the later 104 reactor plates and selected
+signal plate inherit the clean surface and never reveal the textolite weave,
+engraving, or gold conductor pattern again. Their shared shader remains attached
+only because its separate cell-lattice branch performs the final dematerialization.
 
 ### 5. Spiral capture
 
@@ -274,6 +426,28 @@ low-density blue-grey mist keeps the gaps volumetric instead of empty. The strea
 offsets are already separated inside the upper hemisphere, so visible lines grow
 out of different parts of the source before braiding and converging overhead.
 
+That rising machinery is gated by the shader's `uExpansion`, which only the
+much-later reactor blowout pushes to `1.0`. Ignition opens the same machinery
+early through its own envelope in `plasmaIgnitionScale.ts`:
+`PLASMA_PLUME_START` (0.8s after the warm phase begins) ramps over
+`PLASMA_PLUME_DURATION` up to `PLASMA_IGNITION_PLUME_MAX = 0.6`, and the scene
+feeds `max(finalExpandProgress, plumeProgress * 0.6)` to the volume as its
+expansion. The ignition proxy is already enlarged to `4.8x` radial / `11x`
+vertical, so once the warm layer exists the flame actually fills that vessel:
+the fireball grows its rising column and the up-left tendril claims the free
+upper screen instead of the plasma staying a compact ember beside the cubes.
+The cap of `0.6` keeps the later reactor blowout a visibly larger event, and
+the `max()` hand-off to `finalExpandProgress` is continuous.
+
+Above the bright body, three height dissolves keep the climb clean. The wide
+orange/red mantles carry density but almost no emission once tapered; the
+hollow ionization column shows two bright tangent walls around a dark
+interior. Left unfaded, all three read as one rigid sooty chimney with hard
+rails climbing to the frame edge. The unlit mantle, the shell's occlusion
+term, and the hollow blue shell itself therefore dissolve with height, so
+only the luminous strand filaments continue past the blue halo — the
+"hair-thin lines high above" the streams were designed to become.
+
 The plasma mesh keeps depth testing enabled and only disables depth writes. Opaque
 shell cubelets can therefore occlude the core correctly; it is visible through the
 real gaps instead of being composited over the whole assembly. A small warm point
@@ -310,13 +484,22 @@ The plates then divide like cells in two generations:
 - an `0.08s` punctuation separates morph from each division generation;
 - generation one: `26 -> 52` over `1.15s`;
 - generation two: `52 -> 104` over `1.30s`;
-- final tiles measure `0.27 x 0.27 x 0.03`.
+- final tiles measure `0.27 x 0.27 x 0.022`.
 
 In both generations direction separation starts at 3.5% and the sibling becomes a
 visible material seam from 6%. Its area then grows over 78% / 82% of the generation,
 so separation retains a small geometric lead without the former long interval in
 which one full plate travelled alone. The result reads as a parent shield opening
 into two sides and passing the same impulse into the second generation.
+
+After the second generation has formed, the system holds for `1.15s` without
+exchanging the spatial roles of its layers. All 104 plates remain on the outer
+`1.22` shell established by capture; the nucleus grid remains inside at `1.7x`.
+There is no inward plate contraction, global inversion twist, grid expansion, or
+counter-rotation. The desktop camera alone backs away into a positive-flank
+isometric overview, and the spectator waves start `0.18s` after that quiet hold.
+OBB audits cover all 104 plates both at rest and under the conservative maximum
+wave deformation; neither state has intersections.
 
 The core aperture continues across this mesh handoff. At the first morph frame the
 reactor orientation is still identity, then over `0.68s` the covering turns as one
@@ -347,7 +530,7 @@ first division, and completed covering.
 
 ### 8. Reactor release and interface handoff
 
-The completed 104-plate covering rotates undisturbed for `0.7s`. It then receives
+After the post-division overview, the completed 104-plate outer shell receives
 two short stadium waves. The first travels almost vertically around the sphere; the
 second crosses diagonally in the opposite direction. A wave is a real deformation,
 not just a tint: each plate lifts up to `0.085` along its radial normal, grows
@@ -419,11 +602,11 @@ reveal settle behind them. Red remains only the WebGL signal plate's temporary l
 state; the DOM card signal rail enters in gold and settles to a lighter gold after
 three pulses rather than becoming a permanent third accent.
 
-While the covering releases, the grid nucleus follows the old `1.7x -> 4.35x`
-expansion envelope only as a temporary demolition volume. Every face is already
-divided into a deterministic `4 x 4` grid; cells disappear at staggered thresholds
-while their lines briefly emit a blue breakup glow. The cage is fully gone before
-the large final view, so it never competes with the plasma as the main subject.
+Only once the covering releases does the inner grid expand from `1.7x` toward the
+temporary `4.35x` demolition volume. Every face is already divided into a
+deterministic `4 x 4` grid; cells disappear at staggered thresholds while their
+lines briefly emit a blue breakup glow. The cage is fully gone before the large
+final view, so it never competes with the plasma as the main subject.
 
 On desktop the plasma raises its ray-march budget continuously from 38 to 64 samples
 during this expansion; the compact/mobile tier stays at 32 samples with a
