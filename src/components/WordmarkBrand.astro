@@ -1,7 +1,9 @@
 ---
-// Horizontal SONIC X BOY wordmark in the same Tektur/X treatment as the
-// badge emblem: stretched letters, chamfered reactor frame, no mid rules.
+// Horizontal SONIC X BOY lockup — same Tektur X as BrandMark, but
+// inline: dim side words + giant stretched emerald X, chamfered plate,
+// no mid rules. Scales with parent font-size (same contract as BrandMark).
 import '@fontsource-variable/tektur'
+import '@fontsource-variable/jetbrains-mono'
 
 interface Props {
   href?: string
@@ -20,9 +22,9 @@ const {
   <span class="wordmark__frame">
     <span class="wordmark__plate">
       <span class="wordmark__text" aria-hidden="true">
-        <span class="wordmark__chunk">SONIC</span>
+        <span class="wordmark__chunk">Sonic</span>
         <span class="wordmark__x">X</span>
-        <span class="wordmark__chunk">BOY</span>
+        <span class="wordmark__chunk">Boy</span>
       </span>
       <span class="visually-hidden">SONIC X BOY</span>
     </span>
@@ -31,19 +33,20 @@ const {
 
 <style>
   .wordmark {
-    --cut: 0.42em;
+    --cut: 0.5em;
     position: relative;
     display: inline-block;
     line-height: 1;
     text-decoration: none;
-    color: inherit;
+    color: var(--ink, #e8f5ee);
+    text-transform: uppercase;
     pointer-events: auto;
-    filter: drop-shadow(0 0 0.85em rgba(24, 211, 131, 0.18));
+    filter: drop-shadow(0 0 0.9em rgba(24, 211, 131, 0.16));
     transition: filter 0.2s ease;
   }
 
   .wordmark:hover {
-    filter: drop-shadow(0 0 1.1em rgba(24, 211, 131, 0.42));
+    filter: drop-shadow(0 0 1.15em rgba(24, 211, 131, 0.42));
   }
 
   .wordmark__frame,
@@ -65,7 +68,7 @@ const {
     padding: 1.5px;
     background: linear-gradient(
       170deg,
-      rgba(125, 255, 199, 0.88),
+      rgba(125, 255, 199, 0.85),
       rgba(24, 211, 131, 0.66) 42%,
       rgba(10, 122, 76, 0.72)
     );
@@ -75,28 +78,42 @@ const {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.38em 0.72em 0.42em;
+    padding: 0.28em 0.95em 0.32em;
     background:
       repeating-linear-gradient(
         0deg,
         transparent 0,
-        transparent 0.34em,
-        rgba(24, 211, 131, 0.045) calc(0.34em + 1px)
+        transparent 0.36em,
+        rgba(24, 211, 131, 0.05) calc(0.36em + 1px)
       ),
       linear-gradient(165deg, rgba(9, 26, 19, 0.97), rgba(4, 11, 8, 0.99));
   }
 
   .wordmark__text {
     display: inline-flex;
-    align-items: baseline;
-    gap: 0.28em;
-    font-family: 'Tektur Variable', system-ui, sans-serif;
-    font-weight: 900;
-    font-size: 1.05em;
-    line-height: 0.86;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
+    align-items: center;
+    gap: 0.55em;
     white-space: nowrap;
+  }
+
+  /* Side words: same mono treatment as BrandMark Sonic / Boy lines */
+  .wordmark__chunk {
+    font-family: 'JetBrains Mono Variable', ui-monospace, monospace;
+    font-weight: 800;
+    font-size: 1.15em;
+    line-height: 1;
+    letter-spacing: 0.16em;
+    margin-right: -0.16em;
+    color: var(--ink, #e8f5ee);
+  }
+
+  /* Hero X — identical metrics to BrandMark */
+  .wordmark__x {
+    display: inline-block;
+    font-family: 'Tektur Variable', system-ui, sans-serif;
+    font-size: 4.35em;
+    font-weight: 900;
+    line-height: 0.78;
     transform: scaleX(1.24);
     transform-origin: center;
     background: linear-gradient(160deg, #7dffc7 8%, #18d383 46%, #0a7a4c 92%);
@@ -104,14 +121,8 @@ const {
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter:
-      drop-shadow(0 0 0.08em rgba(24, 211, 131, 0.55))
-      drop-shadow(0 0 0.28em rgba(24, 211, 131, 0.28));
-  }
-
-  .wordmark__x {
-    display: inline-block;
-    font-size: 1.08em;
-    line-height: 0.8;
+      drop-shadow(0 0 0.09em rgba(24, 211, 131, 0.55))
+      drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.3));
   }
 
   .visually-hidden {
