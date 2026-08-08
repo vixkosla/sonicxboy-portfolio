@@ -31,12 +31,12 @@ const {
 
 <style>
   .wordmark {
-    --cut: 0.06em;
+    --cut: 0.05em;
     /* Tight hug around the letters */
-    --inset: 0.14em;
+    --inset: 0.08em;
     /* Keep readable space between SONIC / X / BOY */
     --gap: 0.34em;
-    --rim: 5px;
+    --rim: 3px;
     /* Step along ~70° down-right (x ≈ 0.36 y) */
     --step: 0.13em;
     --sx: calc(var(--step) * 0.36);
@@ -48,7 +48,7 @@ const {
     color: inherit;
     text-transform: uppercase;
     pointer-events: auto;
-    transform: scaleX(1.24);
+    transform: scaleX(1.24) scaleY(1.18);
     transform-origin: center;
   }
 
