@@ -8,6 +8,7 @@ import '@fontsource-variable/jetbrains-mono'
 import { SITE, SOURCE_REPOSITORY, statsTranslations, type Lang } from '../i18n.ts'
 import { SITE_STATS } from '../data/siteStats.ts'
 import metrika from '../data/metrika.json'
+import WordmarkBrand from '../components/WordmarkBrand.astro'
 
 interface Props {
   lang: Lang
@@ -166,14 +167,11 @@ const channelTiles = [
       <a class="topbar__back" href={lang === 'ru' ? '/' : '/en/'}>
         {t.backLabel}
       </a>
-      <a
+      <WordmarkBrand
         class="topbar__logo"
         href={lang === 'ru' ? '/' : '/en/'}
-        aria-label={t.backLabel}
-        title={t.backLabel}
-      >
-        <img src="/logo-brand.png" alt="SONIC X BOY" />
-      </a>
+        label={t.backLabel}
+      />
       <nav class="lang" aria-label={t.ariaLang}>
         <a
           class:list={['lang__link', { 'is-active': lang === 'ru' }]}
@@ -534,20 +532,8 @@ const channelTiles = [
         color: var(--reactor-mint);
       }
 
-      .topbar__logo {
-        display: inline-block;
-        line-height: 0;
-        transition: filter 0.2s ease;
-      }
-
-      .topbar__logo img {
-        height: 46px;
-        width: auto;
-        display: block;
-      }
-
-      .topbar__logo:hover {
-        filter: drop-shadow(0 0 0.7rem rgba(24, 211, 131, 0.45));
+      .topbar :global(.topbar__logo) {
+        font-size: clamp(0.92rem, 1.7vw, 1.15rem);
       }
 
       .lang {
