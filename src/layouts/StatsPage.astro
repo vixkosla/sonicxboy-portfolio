@@ -8,7 +8,7 @@ import '@fontsource-variable/jetbrains-mono'
 import { SITE, SOURCE_REPOSITORY, statsTranslations, type Lang } from '../i18n.ts'
 import { SITE_STATS } from '../data/siteStats.ts'
 import metrika from '../data/metrika.json'
-import WordmarkBrand from '../components/WordmarkBrand.astro'
+import BrandMark from '../components/BrandMark.astro'
 
 interface Props {
   lang: Lang
@@ -167,11 +167,7 @@ const channelTiles = [
       <a class="topbar__back" href={lang === 'ru' ? '/' : '/en/'}>
         {t.backLabel}
       </a>
-      <WordmarkBrand
-        class="topbar__logo"
-        href={lang === 'ru' ? '/' : '/en/'}
-        label={t.backLabel}
-      />
+      <BrandMark />
       <nav class="lang" aria-label={t.ariaLang}>
         <a
           class:list={['lang__link', { 'is-active': lang === 'ru' }]}
@@ -532,9 +528,9 @@ const channelTiles = [
         color: var(--reactor-mint);
       }
 
-      /* Letter size = BrandMark X presence (≈50–70px), uniform lockup */
-      .topbar :global(.topbar__logo) {
-        font-size: clamp(2.15rem, 4vw, 3.05rem);
+      /* Vertical emblem — same lockup as home / og:image */
+      .topbar :global(.brand-mark) {
+        font-size: clamp(0.78rem, 1.35vw, 0.95rem);
       }
 
       .lang {
