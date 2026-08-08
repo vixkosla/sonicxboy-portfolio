@@ -1,7 +1,6 @@
 ---
-// Horizontal SONIC X BOY — every letter shares the BrandMark X treatment
-// (Tektur 900, stretch, emerald gradient + glow). Chamfered frame is
-// thicker and carries the same glow as the letters.
+// Horizontal SONIC X BOY — every letter shares the BrandMark X treatment.
+// Tight chamfers, thick rim, cast shadow ~70° down-right in reactor green.
 import '@fontsource-variable/tektur'
 
 interface Props {
@@ -32,7 +31,13 @@ const {
 
 <style>
   .wordmark {
-    --cut: 0.28em;
+    /* Narrow corner cuts — not wide bevels */
+    --cut: 0.09em;
+    --inset: 0.4em;
+    --rim: 5.5px;
+    /* 70° from horizontal → mostly down, slight right */
+    --sx: 0.28em;
+    --sy: 0.78em;
     position: relative;
     display: inline-block;
     line-height: 1;
@@ -40,14 +45,9 @@ const {
     color: inherit;
     text-transform: uppercase;
     pointer-events: auto;
-    transition: filter 0.2s ease;
-  }
-
-  .wordmark:hover .wordmark__frame {
-    filter:
-      drop-shadow(0 0 0.12em rgba(24, 211, 131, 0.75))
-      drop-shadow(0 0 0.45em rgba(24, 211, 131, 0.5))
-      drop-shadow(0 0 1.1em rgba(24, 211, 131, 0.32));
+    /* Stretch whole badge so inset stays equal on all sides */
+    transform: scaleX(1.24);
+    transform-origin: center;
   }
 
   .wordmark__frame,
@@ -64,27 +64,46 @@ const {
     );
   }
 
-  /* Thick emerald rim + same glow stack as the X letter */
   .wordmark__frame {
     display: inline-block;
-    padding: 3.5px;
+    padding: var(--rim);
     background: linear-gradient(
       170deg,
-      rgba(125, 255, 199, 0.95),
-      rgba(24, 211, 131, 0.82) 42%,
-      rgba(10, 122, 76, 0.88)
+      rgba(125, 255, 199, 0.98),
+      rgba(24, 211, 131, 0.88) 42%,
+      rgba(10, 122, 76, 0.92)
     );
+    /* Brand glow + directional cast ~70° down-right */
     filter:
-      drop-shadow(0 0 0.09em rgba(24, 211, 131, 0.55))
-      drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.3));
+      drop-shadow(0 0 0.08em rgba(24, 211, 131, 0.7))
+      drop-shadow(var(--sx) var(--sy) 0.22em rgba(24, 211, 131, 0.55))
+      drop-shadow(
+        calc(var(--sx) * 1.55) calc(var(--sy) * 1.55) 0.55em rgba(24, 211, 131, 0.38)
+      )
+      drop-shadow(
+        calc(var(--sx) * 2.2) calc(var(--sy) * 2.2) 1.05em rgba(24, 211, 131, 0.22)
+      );
     transition: filter 0.2s ease;
+  }
+
+  .wordmark:hover .wordmark__frame {
+    filter:
+      drop-shadow(0 0 0.12em rgba(24, 211, 131, 0.85))
+      drop-shadow(var(--sx) var(--sy) 0.28em rgba(24, 211, 131, 0.7))
+      drop-shadow(
+        calc(var(--sx) * 1.55) calc(var(--sy) * 1.55) 0.7em rgba(24, 211, 131, 0.48)
+      )
+      drop-shadow(
+        calc(var(--sx) * 2.2) calc(var(--sy) * 2.2) 1.25em rgba(24, 211, 131, 0.3)
+      );
   }
 
   .wordmark__plate {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 0.32em 0.7em 0.36em;
+    /* Same inset on all sides */
+    padding: var(--inset);
     background:
       repeating-linear-gradient(
         0deg,
@@ -95,26 +114,24 @@ const {
       linear-gradient(165deg, rgba(9, 26, 19, 0.97), rgba(4, 11, 8, 0.99));
   }
 
-  /* Uniform X-style letters across the whole lockup */
   .wordmark__text {
     display: inline-flex;
     align-items: baseline;
-    gap: 0.32em;
+    /* Letter gaps match the plate inset */
+    gap: var(--inset);
     font-family: 'Tektur Variable', system-ui, sans-serif;
     font-size: 1em;
     font-weight: 900;
     line-height: 0.86;
     letter-spacing: 0.02em;
     white-space: nowrap;
-    transform: scaleX(1.24);
-    transform-origin: center;
     background: linear-gradient(160deg, #7dffc7 8%, #18d383 46%, #0a7a4c 92%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     filter:
-      drop-shadow(0 0 0.09em rgba(24, 211, 131, 0.55))
-      drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.3));
+      drop-shadow(0 0 0.08em rgba(24, 211, 131, 0.55))
+      drop-shadow(var(--sx) var(--sy) 0.18em rgba(24, 211, 131, 0.35));
   }
 
   .visually-hidden {
