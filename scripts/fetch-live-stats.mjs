@@ -35,13 +35,14 @@ const metrika = async (path) => {
 }
 
 const daily = await metrika(
-  `/stat/v1/data/overview?counter=${COUNTER}` +
+  `/stat/v1/data?id=${COUNTER}` +
     `&metrics=ym:s:visits,ym:s:users,ym:s:pageviews` +
-    `&dimensions=ym:sv:date&date1=${date1}&date2=${today}&sort=ym:sv:date`,
+    `&dimensions=ym:s:visitDate&group=day` +
+    `&date1=${date1}&date2=${today}&sort=ym:s:visitDate`,
 )
 const sources = await metrika(
-  `/stat/v1/data/overview?counter=${COUNTER}` +
-    `&metrics=ym:s:visits&dimensions=ym:s:lastsignType` +
+  `/stat/v1/data?id=${COUNTER}` +
+    `&metrics=ym:s:visits&dimensions=ym:s:trafficSource` +
     `&date1=${date1}&date2=${today}&sort=-ym:s:visits&limit=6`,
 )
 
@@ -50,13 +51,13 @@ const payload = {
   available: true,
   capturedAt: today,
   counter: COUNTER,
-  daily: daily.rows.map((row) => ({
-    date: row.data,
+  daily: daily.data.map((row) => ({
+    date: row.dimensions?.[0]?.name ?? row.data,
     visits: round(row.metrics[0]),
     users: round(row.metrics[1]),
     pageviews: round(row.metrics[2]),
   })),
-  sources: sources.rows.map((row) => ({
+  sources: sources.data.map((row) => ({
     type: row.dimensions?.[0]?.name ?? row.data ?? 'other',
     visits: round(row.metrics[0]),
   })),

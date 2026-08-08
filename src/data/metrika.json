@@ -1,8 +1,48 @@
 {
-  "available": false,
-  "capturedAt": null,
+  "available": true,
+  "capturedAt": "2026-08-08",
   "counter": 111360686,
-  "daily": [],
-  "sources": [],
-  "totals": { "visits": 0, "users": 0, "pageviews": 0 }
+  "daily": [
+    {
+      "date": "2026-08-06",
+      "visits": 3,
+      "users": 3,
+      "pageviews": 5
+    },
+    {
+      "date": "2026-08-07",
+      "visits": 6,
+      "users": 6,
+      "pageviews": 11
+    },
+    {
+      "date": "2026-08-08",
+      "visits": 10,
+      "users": 10,
+      "pageviews": 12
+    }
+  ],
+  "sources": [
+    {
+      "type": "Direct traffic",
+      "visits": 11
+    },
+    {
+      "type": "Search engine traffic",
+      "visits": 5
+    },
+    {
+      "type": "Internal traffic",
+      "visits": 2
+    },
+    {
+      "type": "Social network traffic",
+      "visits": 1
+    }
+  ],
+  "totals": {
+    "visits": 19,
+    "users": 19,
+    "pageviews": 28
+  }
 }

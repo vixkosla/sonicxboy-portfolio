@@ -96,7 +96,7 @@ export const statsTranslations: Record<Lang, StatsPageCopy> = {
     channelsCwsUsers: 'пользователь Chrome-расширения',
     channelsUpworkReviews: 'отзыв на Upwork',
     pendingNote:
-      'Метрика и Search Console уже подключены к сайту. Добавьте OAuth-токены в сборку — и диаграммы трафика оживут на следующем деплое.',
+      'Метрика уже подключена. Search Console ждёт OAuth-токен Google в сборке — и диаграмма запросов оживёт на следующем деплое.',
     footerSource: 'MIT · исходный код сайта',
   },
   en: {
@@ -134,7 +134,7 @@ export const statsTranslations: Record<Lang, StatsPageCopy> = {
     channelsCwsUsers: 'Chrome extension user',
     channelsUpworkReviews: 'Upwork review',
     pendingNote:
-      'Metrika and Search Console are already wired into the site. Add OAuth tokens to the build and the traffic charts light up on the next deploy.',
+      'Metrika is already wired in. Search Console awaits the Google OAuth token — the queries chart lights up on the next deploy.',
     footerSource: 'MIT · website source code',
   },
 }

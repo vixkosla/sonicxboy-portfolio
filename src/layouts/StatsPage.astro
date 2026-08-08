@@ -97,6 +97,25 @@ const trafficSourcesTotal = Math.max(
   1,
   metrika.sources.reduce((sum, source) => sum + source.visits, 0),
 )
+const SOURCE_LABELS: Record<Lang, Record<string, string>> = {
+  ru: {
+    'Direct traffic': 'Прямые заходы',
+    'Search engine traffic': 'Поисковые системы',
+    'Referral traffic': 'Ссылки на сайтах',
+    'Social network traffic': 'Социальные сети',
+    'Internal traffic': 'Внутренние переходы',
+    'Ad traffic': 'Реклама',
+  },
+  en: {
+    'Direct traffic': 'Direct',
+    'Search engine traffic': 'Search engines',
+    'Referral traffic': 'Referrals',
+    'Social network traffic': 'Social networks',
+    'Internal traffic': 'Internal',
+    'Ad traffic': 'Ads',
+  },
+}
+const sourceLabel = (type: string) => SOURCE_LABELS[lang][type] ?? type
 
 const pendingList = trafficOn
   ? s.pendingTokens.filter((token) => token.id !== 'metrika')
@@ -392,7 +411,7 @@ const channelTiles = [
                     const pct = Math.round((source.visits / trafficSourcesTotal) * 100)
                     return (
                       <li class="sources__row">
-                        <span class="sources__label">{source.type}</span>
+                        <span class="sources__label">{sourceLabel(source.type)}</span>
                         <span class="sources__track" aria-hidden="true">
                           <span class="sources__fill" style={`width: ${pct}%`} />
                         </span>
