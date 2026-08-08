@@ -5,7 +5,6 @@
 import '@fontsource-variable/tektur'
 import '@fontsource-variable/onest'
 import '@fontsource-variable/jetbrains-mono'
-import BrandMark from '../components/BrandMark.astro'
 import { SITE, SOURCE_REPOSITORY, statsTranslations, type Lang } from '../i18n.ts'
 import { SITE_STATS } from '../data/siteStats.ts'
 import metrika from '../data/metrika.json'
@@ -167,7 +166,14 @@ const channelTiles = [
       <a class="topbar__back" href={lang === 'ru' ? '/' : '/en/'}>
         {t.backLabel}
       </a>
-      <BrandMark />
+      <a
+        class="topbar__logo"
+        href={lang === 'ru' ? '/' : '/en/'}
+        aria-label={t.backLabel}
+        title={t.backLabel}
+      >
+        <img src="/logo-brand.png" alt="SONIC X BOY" />
+      </a>
       <nav class="lang" aria-label={t.ariaLang}>
         <a
           class:list={['lang__link', { 'is-active': lang === 'ru' }]}
@@ -451,15 +457,6 @@ const channelTiles = [
       </section>
     </main>
 
-    <a
-      class="logo-back"
-      href={lang === 'ru' ? '/' : '/en/'}
-      aria-label={t.backLabel}
-      title={t.backLabel}
-    >
-      <img src="/logo-brand.png" alt="SONIC X BOY" />
-    </a>
-
     <footer class="foot">
       <a href={SOURCE_REPOSITORY} rel="noopener">{t.footerSource}</a>
     </footer>
@@ -537,8 +534,20 @@ const channelTiles = [
         color: var(--reactor-mint);
       }
 
-      .topbar :global(.brand-mark) {
-        font-size: 0.72rem;
+      .topbar__logo {
+        display: inline-block;
+        line-height: 0;
+        transition: filter 0.2s ease;
+      }
+
+      .topbar__logo img {
+        height: 46px;
+        width: auto;
+        display: block;
+      }
+
+      .topbar__logo:hover {
+        filter: drop-shadow(0 0 0.7rem rgba(24, 211, 131, 0.45));
       }
 
       .lang {
@@ -1089,35 +1098,6 @@ const channelTiles = [
       .pending__label {
         font-size: 0.8rem;
         color: var(--ink-dim);
-      }
-
-      /* ── Hollywood logo: click to go back ── */
-      .logo-back {
-        display: block;
-        max-width: 34rem;
-        width: 100%;
-        margin: 2.6rem auto 0;
-        border: 1px solid var(--panel-border);
-        border-radius: 2px;
-        background: var(--panel-bg);
-        padding: 0.6rem;
-        transition:
-          box-shadow 0.25s ease,
-          border-color 0.25s ease,
-          transform 0.25s ease;
-      }
-
-      .logo-back img {
-        display: block;
-        width: 100%;
-        height: auto;
-        border-radius: 1px;
-      }
-
-      .logo-back:hover {
-        border-color: var(--emerald-dim);
-        box-shadow: 0 0 2.2rem rgba(24, 211, 131, 0.28);
-        transform: translateY(-2px);
       }
 
       /* ── Footer ── */
