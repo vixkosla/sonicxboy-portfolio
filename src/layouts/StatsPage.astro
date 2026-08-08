@@ -8,6 +8,7 @@ import '@fontsource-variable/jetbrains-mono'
 import BrandMark from '../components/BrandMark.astro'
 import { SITE, SOURCE_REPOSITORY, statsTranslations, type Lang } from '../i18n.ts'
 import { SITE_STATS } from '../data/siteStats.ts'
+import metrika from '../data/metrika.json'
 
 interface Props {
   lang: Lang
@@ -74,6 +75,32 @@ const readinessNote = t.readinessNote
 const wireNote = t.weightWireNote
   .replace('{size}', fmtKb(gzipTotal))
   .replace('{unit}', t.weightUnit)
+
+// ── Metrika traffic charts ─────────────────────────────────────────────
+const trafficOn = Boolean(metrika.available) && metrika.daily.length > 0
+const maxDailyVisits = Math.max(1, ...metrika.daily.map((day) => day.visits))
+const TRAFFIC_W = 300
+const TRAFFIC_H = 84
+const trafficBars = metrika.daily.map((day, index) => {
+  const slot = TRAFFIC_W / Math.max(1, metrika.daily.length)
+  const barW = Math.max(4, slot - 6)
+  const barH = Math.max(2, (day.visits / maxDailyVisits) * (TRAFFIC_H - 16))
+  return {
+    ...day,
+    x: index * slot + (slot - barW) / 2,
+    y: TRAFFIC_H - barH,
+    w: barW,
+    h: barH,
+  }
+})
+const trafficSourcesTotal = Math.max(
+  1,
+  metrika.sources.reduce((sum, source) => sum + source.visits, 0),
+)
+
+const pendingList = trafficOn
+  ? s.pendingTokens.filter((token) => token.id !== 'metrika')
+  : s.pendingTokens
 
 const channelTiles = [
   {
@@ -311,12 +338,82 @@ const channelTiles = [
           </blockquote>
         </article>
 
+        <!-- ── Metrika traffic (lights up once the OAuth token lands) ── -->
+        {
+          trafficOn && (
+            <article class="panel panel--traffic">
+              <h2 class="panel__title">{t.panels.traffic}</h2>
+              <div class="tiles tiles--traffic">
+                <div class="tile">
+                  <span class="tile__value">{metrika.totals.visits}</span>
+                  <span class="tile__caption">{t.trafficVisits}</span>
+                </div>
+                <div class="tile">
+                  <span class="tile__value">{metrika.totals.users}</span>
+                  <span class="tile__caption">{t.trafficUsers}</span>
+                </div>
+                <div class="tile">
+                  <span class="tile__value">{metrika.totals.pageviews}</span>
+                  <span class="tile__caption">{t.trafficPageviews}</span>
+                </div>
+              </div>
+              <h3 class="panel__sub">{t.trafficByDay}</h3>
+              <svg
+                class="traffic-bars"
+                viewBox={`0 0 ${TRAFFIC_W} ${TRAFFIC_H}`}
+                role="img"
+                aria-label={t.trafficByDay}
+              >
+                {
+                  trafficBars.map((bar) => (
+                    <rect
+                      x={bar.x}
+                      y={bar.y}
+                      width={bar.w}
+                      height={bar.h}
+                      rx="1"
+                      fill="url(#traffic-grad)"
+                    >
+                      <title>{`${bar.date}: ${bar.visits}`}</title>
+                    </rect>
+                  ))
+                }
+                <defs>
+                  <linearGradient id="traffic-grad" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0" stop-color="#0e8f5a" />
+                    <stop offset="1" stop-color="#6cf3b3" />
+                  </linearGradient>
+                </defs>
+              </svg>
+              <h3 class="panel__sub">{t.trafficSources}</h3>
+              <ul class="sources">
+                {
+                  metrika.sources.map((source) => {
+                    const pct = Math.round((source.visits / trafficSourcesTotal) * 100)
+                    return (
+                      <li class="sources__row">
+                        <span class="sources__label">{source.type}</span>
+                        <span class="sources__track" aria-hidden="true">
+                          <span class="sources__fill" style={`width: ${pct}%`} />
+                        </span>
+                        <span class="sources__value">
+                          {source.visits} · {pct}%
+                        </span>
+                      </li>
+                    )
+                  })
+                }
+              </ul>
+            </article>
+          )
+        }
+
         <!-- ── Awaiting tokens ── -->
         <article class="panel panel--pending">
           <h2 class="panel__title">{t.panels.pending}</h2>
           <ul class="pending">
             {
-              s.pendingTokens.map((token) => (
+              pendingList.map((token) => (
                 <li class="pending__slot">
                   <span class="pending__bars" aria-hidden="true">
                     <i style="height: 34%" />
@@ -854,6 +951,80 @@ const channelTiles = [
         font-style: italic;
         line-height: 1.5;
         color: var(--ink-dim);
+      }
+
+      /* ── Metrika traffic ── */
+      .tiles--traffic {
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .panel__sub {
+        margin: 1rem 0 0.5rem;
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
+
+      .traffic-bars {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .sources {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.45rem;
+      }
+
+      .sources__row {
+        display: grid;
+        grid-template-columns: 7rem 1fr auto;
+        align-items: center;
+        gap: 0.6rem;
+      }
+
+      .sources__label {
+        font-size: 0.72rem;
+        color: var(--ink);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .sources__track {
+        height: 4px;
+        background: rgba(24, 211, 131, 0.1);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+
+      .sources__fill {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #0e8f5a, var(--reactor-mint));
+      }
+
+      .sources__value {
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        color: var(--ink-dim);
+        white-space: nowrap;
+      }
+
+      @media (max-width: 720px) {
+        .tiles--traffic {
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .sources__row {
+          grid-template-columns: 1fr;
+          row-gap: 0.25rem;
+        }
       }
 
       /* ── Pending tokens ── */

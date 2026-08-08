@@ -39,7 +39,13 @@ export interface StatsPageCopy {
     milestones: string
     channels: string
     pending: string
+    traffic: string
   }
+  trafficByDay: string
+  trafficSources: string
+  trafficVisits: string
+  trafficUsers: string
+  trafficPageviews: string
   readinessNote: string
   checksPassed: string
   weightWireNote: string
@@ -72,7 +78,13 @@ export const statsTranslations: Record<Lang, StatsPageCopy> = {
       milestones: 'Вехи запуска',
       channels: 'Каналы дистрибуции',
       pending: 'Ожидает токенов',
+      traffic: 'Трафик — Яндекс.Метрика',
     },
+    trafficByDay: 'Визиты по дням',
+    trafficSources: 'Источники визитов',
+    trafficVisits: 'визиты',
+    trafficUsers: 'посетители',
+    trafficPageviews: 'просмотры',
     readinessNote: 'пройдено {passed} из {total} проверок',
     checksPassed: 'пройдено',
     weightWireNote: '{size} {unit} по сети (gzip)',
@@ -104,7 +116,13 @@ export const statsTranslations: Record<Lang, StatsPageCopy> = {
       milestones: 'Launch milestones',
       channels: 'Distribution channels',
       pending: 'Awaiting tokens',
+      traffic: 'Traffic — Yandex Metrika',
     },
+    trafficByDay: 'Visits by day',
+    trafficSources: 'Visit sources',
+    trafficVisits: 'visits',
+    trafficUsers: 'users',
+    trafficPageviews: 'pageviews',
     readinessNote: '{passed} of {total} checks passed',
     checksPassed: 'passed',
     weightWireNote: '{size} {unit} over the wire (gzip)',
