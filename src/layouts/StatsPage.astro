@@ -1,0 +1,944 @@
+---
+// Launch-telemetry dashboard: the publication snapshot of sonicxboy.dev
+// rendered as instrument panels in the reactor visual language. Pure SVG +
+// CSS bars — no chart runtime, so the page stays a static document.
+import '@fontsource-variable/tektur'
+import '@fontsource-variable/onest'
+import '@fontsource-variable/jetbrains-mono'
+import BrandMark from '../components/BrandMark.astro'
+import { SITE, SOURCE_REPOSITORY, statsTranslations, type Lang } from '../i18n.ts'
+import { SITE_STATS } from '../data/siteStats.ts'
+
+interface Props {
+  lang: Lang
+}
+
+const { lang } = Astro.props
+const t = statsTranslations[lang]
+const s = SITE_STATS
+const canonical = lang === 'ru' ? `${SITE}/stats/` : `${SITE}/en/stats/`
+const altHref = lang === 'ru' ? `${SITE}/en/stats/` : `${SITE}/stats/`
+const pick = (text: { ru: string; en: string }) => text[lang]
+
+// ── Readiness gauge ────────────────────────────────────────────────────
+const checksTotal = s.checks.length
+const checksPassed = s.checks.filter((check) => check.ok).length
+const readiness = Math.round((checksPassed / checksTotal) * 100)
+const GAUGE_PATH = 'M 16 104 A 84 84 0 0 1 184 104'
+
+// ── Weight donut ───────────────────────────────────────────────────────
+const SLICE_COLORS: Record<string, string> = {
+  js: '#18d383',
+  html: '#6cf3b3',
+  css: '#0e8f5a',
+}
+const weightTotal = s.weight.reduce((sum, slice) => sum + slice.bytes, 0)
+const gzipTotal = s.weight.reduce((sum, slice) => sum + slice.gzipBytes, 0)
+let donutAcc = 0
+const donutSlices = s.weight.map((slice) => {
+  const pct = (slice.bytes / weightTotal) * 100
+  const segment = { ...slice, pct, offset: donutAcc, color: SLICE_COLORS[slice.id] }
+  donutAcc += pct
+  return segment
+})
+
+// ── Speed bars ─────────────────────────────────────────────────────────
+const speedRows = [
+  {
+    label: 'TTFB',
+    valueMs: s.speed.ttfbMs,
+    budgetMs: s.speed.budgets.ttfbMs,
+  },
+  {
+    label: lang === 'ru' ? 'HTML полностью' : 'Full HTML load',
+    valueMs: s.speed.fullLoadMs,
+    budgetMs: s.speed.budgets.fullLoadMs,
+  },
+]
+
+const fmtKb = (bytes: number) =>
+  Math.round(bytes / 1024).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US')
+const fmtSec = (ms: number) => `${(ms / 1000).toFixed(2)} s`
+const fmtDate = (iso: string) => iso
+
+const repoAgeDays = Math.round(
+  (new Date(s.capturedAt).getTime() - new Date(s.channels.github.createdAt).getTime()) /
+    86_400_000,
+)
+
+const capturedDate = fmtDate(s.capturedAt)
+const subtitle = t.subtitle.replace('{date}', capturedDate)
+const readinessNote = t.readinessNote
+  .replace('{passed}', String(checksPassed))
+  .replace('{total}', String(checksTotal))
+const wireNote = t.weightWireNote
+  .replace('{size}', fmtKb(gzipTotal))
+  .replace('{unit}', t.weightUnit)
+
+const channelTiles = [
+  {
+    value: `${s.indexing.pagesIndexed}/${s.indexing.pagesPublished}`,
+    caption: t.channelsIndexed,
+  },
+  {
+    value: String(repoAgeDays),
+    caption: t.channelsGithubAge,
+  },
+  {
+    value: String(s.channels.chromeWebStore.users),
+    caption: t.channelsCwsUsers,
+  },
+  {
+    value: String(s.channels.upwork.reviews),
+    caption: t.channelsUpworkReviews,
+  },
+]
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{t.title}</title>
+    <meta name="description" content={t.description} />
+    <link rel="canonical" href={canonical} />
+    <link rel="alternate" hreflang={lang} href={canonical} />
+    <link
+      rel="alternate"
+      hreflang={lang === 'ru' ? 'en' : 'ru'}
+      href={altHref}
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={t.title} />
+    <meta property="og:description" content={t.description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={`${SITE}/og.png`} />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="topbar__back" href={lang === 'ru' ? '/' : '/en/'}>
+        {t.backLabel}
+      </a>
+      <BrandMark />
+      <nav class="lang" aria-label={t.ariaLang}>
+        <a
+          class:list={['lang__link', { 'is-active': lang === 'ru' }]}
+          href="/stats/"
+          aria-current={lang === 'ru' ? 'page' : undefined}>RU</a
+        >
+        <span class="lang__sep" aria-hidden="true">/</span>
+        <a
+          class:list={['lang__link', { 'is-active': lang === 'en' }]}
+          href="/en/stats/"
+          aria-current={lang === 'en' ? 'page' : undefined}>EN</a
+        >
+      </nav>
+    </header>
+
+    <main>
+      <p class="eyebrow">{t.eyebrow}</p>
+      <h1>
+        <span class="headline__solid">LAUNCH</span>
+        <span class="headline__outline">TELEMETRY</span>
+      </h1>
+      <p class="subtitle">{subtitle}</p>
+
+      <section class="grid" aria-label={t.eyebrow}>
+        <!-- ── Readiness gauge ── -->
+        <article class="panel panel--gauge">
+          <h2 class="panel__title">{t.panels.readiness}</h2>
+          <svg class="gauge" viewBox="0 0 200 122" role="img" aria-label={`${readiness}% — ${readinessNote}`}>
+            <defs>
+              <linearGradient id="gauge-grad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0" stop-color="#0e8f5a" />
+                <stop offset="1" stop-color="#6cf3b3" />
+              </linearGradient>
+            </defs>
+            <path class="gauge__track" d={GAUGE_PATH} />
+            <path
+              class="gauge__value"
+              d={GAUGE_PATH}
+              pathLength="100"
+              stroke-dasharray={`${readiness} ${100 - readiness}`}
+            />
+            <text class="gauge__number" x="100" y="92" text-anchor="middle"
+              >{readiness}%</text
+            >
+            <text class="gauge__note" x="100" y="112" text-anchor="middle"
+              >{readinessNote}</text
+            >
+          </svg>
+        </article>
+
+        <!-- ── Publishing checklist ── -->
+        <article class="panel panel--checks">
+          <h2 class="panel__title">{t.panels.checks}</h2>
+          <ul class="checks">
+            {
+              s.checks.map((check) => (
+                <li class="check">
+                  <span class="check__mark" aria-hidden="true">
+                    {check.ok ? '✓' : '×'}
+                  </span>
+                  <span class="check__body">
+                    <span class="check__label">
+                      {pick(check.label)}
+                      <span class="check__detail">{pick(check.detail)}</span>
+                    </span>
+                    <span class="check__bar" aria-hidden="true">
+                      <span
+                        class="check__bar-fill"
+                        style={`width: ${check.ok ? 100 : 0}%`}
+                      />
+                    </span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </article>
+
+        <!-- ── First-screen weight ── -->
+        <article class="panel panel--weight">
+          <h2 class="panel__title">{t.panels.weight}</h2>
+          <div class="weight">
+            <svg class="donut" viewBox="0 0 42 42" role="img" aria-label={`${fmtKb(weightTotal)} ${t.weightUnit}`}>
+              <circle class="donut__track" cx="21" cy="21" r="15.915" />
+              {
+                donutSlices.map((slice) => (
+                  <circle
+                    class="donut__slice"
+                    cx="21"
+                    cy="21"
+                    r="15.915"
+                    pathLength="100"
+                    stroke={slice.color}
+                    stroke-dasharray={`${slice.pct} ${100 - slice.pct}`}
+                    stroke-dashoffset={25 - slice.offset}
+                  />
+                ))
+              }
+              <text class="donut__total" x="21" y="20.4" text-anchor="middle">
+                {fmtKb(weightTotal)}
+              </text>
+              <text class="donut__unit" x="21" y="25.6" text-anchor="middle">
+                {t.weightUnit}
+              </text>
+            </svg>
+            <ul class="legend">
+              {
+                donutSlices.map((slice) => (
+                  <li class="legend__row">
+                    <span
+                      class="legend__chip"
+                      style={`background: ${slice.color}`}
+                      aria-hidden="true"
+                    />
+                    <span class="legend__label">{pick(slice.label)}</span>
+                    <span class="legend__value">
+                      {fmtKb(slice.bytes)} {t.weightUnit} ·
+                      {Math.round(slice.pct)}%
+                    </span>
+                  </li>
+                ))
+              }
+            </ul>
+          </div>
+          <p class="panel__note">{wireNote}</p>
+        </article>
+
+        <!-- ── Response speed ── -->
+        <article class="panel panel--speed">
+          <h2 class="panel__title">{t.panels.speed}</h2>
+          {
+            speedRows.map((row) => {
+              const pct = Math.min(100, (row.valueMs / row.budgetMs) * 100)
+              return (
+                <div class="speed-row">
+                  <span class="speed-row__label">{row.label}</span>
+                  <span class="speed-row__track" aria-hidden="true">
+                    <span class="speed-row__fill" style={`width: ${pct}%`} />
+                  </span>
+                  <span class="speed-row__value">
+                    {fmtSec(row.valueMs)} / {fmtSec(row.budgetMs)}{' '}
+                    <span class="speed-row__budget">{t.speedBudget}</span>
+                  </span>
+                </div>
+              )
+            })
+          }
+          <p class="panel__note">
+            {s.hosting.provider} · {s.hosting.edge} · {s.hosting.protocol} ·
+            cache {s.hosting.cache}
+          </p>
+        </article>
+
+        <!-- ── Milestones ── -->
+        <article class="panel panel--milestones">
+          <h2 class="panel__title">{t.panels.milestones}</h2>
+          <ol class="timeline">
+            {
+              s.milestones.map((milestone) => (
+                <li class="timeline__row">
+                  <time class="timeline__date" datetime={milestone.date}>
+                    {fmtDate(milestone.date)}
+                  </time>
+                  <span class="timeline__node" aria-hidden="true" />
+                  <span class="timeline__label">{pick(milestone.label)}</span>
+                </li>
+              ))
+            }
+          </ol>
+        </article>
+
+        <!-- ── Distribution channels ── -->
+        <article class="panel panel--channels">
+          <h2 class="panel__title">{t.panels.channels}</h2>
+          <div class="tiles">
+            {
+              channelTiles.map((tile) => (
+                <div class="tile">
+                  <span class="tile__value">{tile.value}</span>
+                  <span class="tile__caption">{tile.caption}</span>
+                </div>
+              ))
+            }
+          </div>
+          <blockquote class="quote">
+            “{s.channels.upwork.quote}”
+          </blockquote>
+        </article>
+
+        <!-- ── Awaiting tokens ── -->
+        <article class="panel panel--pending">
+          <h2 class="panel__title">{t.panels.pending}</h2>
+          <ul class="pending">
+            {
+              s.pendingTokens.map((token) => (
+                <li class="pending__slot">
+                  <span class="pending__bars" aria-hidden="true">
+                    <i style="height: 34%" />
+                    <i style="height: 58%" />
+                    <i style="height: 46%" />
+                    <i style="height: 72%" />
+                    <i style="height: 62%" />
+                  </span>
+                  <span class="pending__label">{pick(token.label)}</span>
+                </li>
+              ))
+            }
+          </ul>
+          <p class="panel__note">{t.pendingNote}</p>
+        </article>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <a href={SOURCE_REPOSITORY} rel="noopener">{t.footerSource}</a>
+    </footer>
+
+    <style>
+      :global(*),
+      :global(*::before),
+      :global(*::after) {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      :root {
+        --ink: #e8f5ee;
+        --ink-dim: rgba(218, 238, 229, 0.72);
+        --reactor: #18d383;
+        --reactor-mint: #6cf3b3;
+        --emerald: var(--reactor);
+        --emerald-dim: rgba(24, 211, 131, 0.32);
+        --bg: #050907;
+        --panel-bg: rgba(24, 211, 131, 0.045);
+        --panel-border: rgba(24, 211, 131, 0.18);
+        --font-display: 'Tektur Variable', system-ui, sans-serif;
+        --font-body: 'Onest Variable', system-ui, sans-serif;
+        --font-mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular,
+          Menlo, monospace;
+      }
+
+      html,
+      body {
+        background: var(--bg);
+        color: var(--ink);
+        font-family: var(--font-body);
+      }
+
+      body {
+        min-height: 100vh;
+        background:
+          radial-gradient(
+            60rem 30rem at 85% -8rem,
+            rgba(24, 211, 131, 0.07),
+            transparent 70%
+          ),
+          radial-gradient(
+            46rem 26rem at -10% 110%,
+            rgba(14, 143, 90, 0.06),
+            transparent 70%
+          ),
+          var(--bg);
+        padding: clamp(1rem, 3vw, 2.4rem);
+      }
+
+      /* ── Top bar ── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        max-width: 76rem;
+        margin: 0 auto 2.6rem;
+      }
+
+      .topbar__back {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      .topbar__back:hover {
+        color: var(--reactor-mint);
+      }
+
+      .topbar :global(.brand-mark) {
+        font-size: 0.72rem;
+      }
+
+      .lang {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+
+      .lang__link {
+        font-family: var(--font-mono);
+        font-size: 0.72rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+        text-decoration: none;
+        padding: 0.2rem 0.35rem;
+        transition: color 0.2s ease;
+      }
+
+      .lang__link:hover {
+        color: var(--reactor-mint);
+      }
+
+      .lang__link.is-active {
+        color: var(--emerald);
+      }
+
+      .lang__sep {
+        color: rgba(218, 238, 229, 0.32);
+      }
+
+      /* ── Headline ── */
+      main {
+        max-width: 76rem;
+        margin: 0 auto;
+      }
+
+      .eyebrow {
+        font-family: var(--font-mono);
+        font-size: 0.74rem;
+        letter-spacing: 0.14em;
+        color: var(--emerald);
+        opacity: 0.86;
+      }
+
+      h1 {
+        font-family: var(--font-display);
+        font-size: clamp(2.4rem, 6vw, 4.6rem);
+        font-weight: 700;
+        line-height: 1.02;
+        letter-spacing: 0.01em;
+        margin-top: 0.5rem;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .headline__outline {
+        color: transparent;
+        -webkit-text-stroke: 1px rgba(108, 243, 179, 0.55);
+      }
+
+      .subtitle {
+        margin-top: 0.9rem;
+        max-width: 44rem;
+        color: var(--ink-dim);
+        font-size: 0.98rem;
+        line-height: 1.55;
+      }
+
+      /* ── Panel grid ── */
+      .grid {
+        margin-top: 2.4rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+      }
+
+      .panel {
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 2px;
+        padding: 1.2rem 1.2rem 1.3rem;
+        animation: panel-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+      }
+
+      .panel:nth-child(1) { animation-delay: 0.04s; }
+      .panel:nth-child(2) { animation-delay: 0.1s; }
+      .panel:nth-child(3) { animation-delay: 0.16s; }
+      .panel:nth-child(4) { animation-delay: 0.22s; }
+      .panel:nth-child(5) { animation-delay: 0.28s; }
+      .panel:nth-child(6) { animation-delay: 0.34s; }
+      .panel:nth-child(7) { animation-delay: 0.4s; }
+
+      @keyframes panel-in {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .panel {
+          animation: none;
+        }
+      }
+
+      .panel__title {
+        font-family: var(--font-mono);
+        font-size: 0.68rem;
+        font-weight: 500;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--emerald);
+        margin-bottom: 1rem;
+      }
+
+      .panel__note {
+        margin-top: 0.9rem;
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.05em;
+        color: var(--ink-dim);
+      }
+
+      /* ── Gauge ── */
+      .panel--gauge {
+        grid-column: span 1;
+      }
+
+      .gauge {
+        width: 100%;
+        height: auto;
+        display: block;
+      }
+
+      .gauge__track,
+      .gauge__value {
+        fill: none;
+        stroke-width: 10;
+      }
+
+      .gauge__track {
+        stroke: rgba(24, 211, 131, 0.12);
+      }
+
+      .gauge__value {
+        stroke: url(#gauge-grad);
+        stroke-linecap: round;
+      }
+
+      .gauge__number {
+        font-family: var(--font-display);
+        font-size: 34px;
+        font-weight: 700;
+        fill: var(--ink);
+      }
+
+      .gauge__note {
+        font-family: var(--font-mono);
+        font-size: 8.5px;
+        letter-spacing: 0.06em;
+        fill: var(--ink-dim);
+      }
+
+      /* ── Checklist ── */
+      .panel--checks {
+        grid-row: span 2;
+      }
+
+      .checks {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+
+      .check {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+      }
+
+      .check__mark {
+        flex: none;
+        width: 1.15rem;
+        text-align: center;
+        font-family: var(--font-mono);
+        font-size: 0.78rem;
+        color: var(--emerald);
+      }
+
+      .check__body {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .check__label {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6rem;
+        font-size: 0.82rem;
+        color: var(--ink);
+      }
+
+      .check__detail {
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        letter-spacing: 0.04em;
+        color: var(--ink-dim);
+        text-align: right;
+      }
+
+      .check__bar {
+        display: block;
+        margin-top: 0.3rem;
+        height: 2px;
+        background: rgba(24, 211, 131, 0.1);
+        overflow: hidden;
+      }
+
+      .check__bar-fill {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #0e8f5a, var(--reactor-mint));
+      }
+
+      /* ── Weight donut ── */
+      .weight {
+        display: flex;
+        align-items: center;
+        gap: 1.1rem;
+      }
+
+      .donut {
+        flex: none;
+        width: 8.4rem;
+        height: 8.4rem;
+      }
+
+      .donut__track {
+        fill: none;
+        stroke: rgba(24, 211, 131, 0.1);
+        stroke-width: 5;
+      }
+
+      .donut__slice {
+        fill: none;
+        stroke-width: 5;
+        transition: stroke-width 0.2s ease;
+      }
+
+      .donut__total {
+        font-family: var(--font-display);
+        font-size: 8.2px;
+        font-weight: 700;
+        fill: var(--ink);
+      }
+
+      .donut__unit {
+        font-family: var(--font-mono);
+        font-size: 3.6px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        fill: var(--ink-dim);
+      }
+
+      .legend {
+        list-style: none;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.65rem;
+        min-width: 0;
+      }
+
+      .legend__row {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 0.5rem;
+        align-items: baseline;
+      }
+
+      .legend__chip {
+        grid-row: span 2;
+        width: 0.62rem;
+        height: 0.62rem;
+        border-radius: 1px;
+        align-self: center;
+      }
+
+      .legend__label {
+        font-size: 0.78rem;
+        color: var(--ink);
+      }
+
+      .legend__value {
+        grid-column: 2;
+        font-family: var(--font-mono);
+        font-size: 0.62rem;
+        color: var(--ink-dim);
+      }
+
+      /* ── Speed bars ── */
+      .panel--speed {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .speed-row {
+        display: grid;
+        grid-template-columns: 7.2rem 1fr auto;
+        align-items: center;
+        gap: 0.7rem;
+        padding: 0.55rem 0;
+      }
+
+      .speed-row + .speed-row {
+        border-top: 1px solid rgba(24, 211, 131, 0.1);
+      }
+
+      .speed-row__label {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
+
+      .speed-row__track {
+        height: 6px;
+        background: rgba(24, 211, 131, 0.1);
+        border-radius: 1px;
+        overflow: hidden;
+      }
+
+      .speed-row__fill {
+        display: block;
+        height: 100%;
+        background: linear-gradient(90deg, #0e8f5a, var(--reactor-mint));
+      }
+
+      .speed-row__value {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        color: var(--ink);
+        white-space: nowrap;
+      }
+
+      .speed-row__budget {
+        color: var(--ink-dim);
+      }
+
+      /* ── Milestones ── */
+      .timeline {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .timeline__row {
+        display: grid;
+        grid-template-columns: 6.2rem 1rem 1fr;
+        align-items: baseline;
+        gap: 0.6rem;
+        padding: 0.5rem 0;
+      }
+
+      .timeline__row + .timeline__row {
+        border-top: 1px dashed rgba(24, 211, 131, 0.12);
+      }
+
+      .timeline__date {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        color: var(--emerald);
+        white-space: nowrap;
+      }
+
+      .timeline__node {
+        position: relative;
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 50%;
+        background: var(--emerald);
+        box-shadow: 0 0 0.7rem rgba(24, 211, 131, 0.55);
+        align-self: center;
+        justify-self: center;
+      }
+
+      .timeline__label {
+        font-size: 0.8rem;
+        line-height: 1.4;
+        color: var(--ink);
+      }
+
+      /* ── Channels ── */
+      .tiles {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.7rem;
+      }
+
+      .tile {
+        border: 1px solid rgba(24, 211, 131, 0.14);
+        background: rgba(24, 211, 131, 0.05);
+        border-radius: 2px;
+        padding: 0.75rem 0.8rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .tile__value {
+        font-family: var(--font-display);
+        font-size: 1.7rem;
+        font-weight: 700;
+        color: var(--reactor-mint);
+        line-height: 1;
+      }
+
+      .tile__caption {
+        font-family: var(--font-mono);
+        font-size: 0.6rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+      }
+
+      .quote {
+        margin-top: 0.9rem;
+        padding: 0.7rem 0.85rem;
+        border-left: 2px solid var(--emerald-dim);
+        font-size: 0.78rem;
+        font-style: italic;
+        line-height: 1.5;
+        color: var(--ink-dim);
+      }
+
+      /* ── Pending tokens ── */
+      .pending {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.7rem;
+      }
+
+      .pending__slot {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        border: 1px dashed rgba(24, 211, 131, 0.3);
+        border-radius: 2px;
+        padding: 0.7rem 0.85rem;
+      }
+
+      .pending__bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 3px;
+        height: 1.7rem;
+        flex: none;
+      }
+
+      .pending__bars i {
+        width: 5px;
+        background: rgba(24, 211, 131, 0.22);
+        border-radius: 1px;
+      }
+
+      .pending__label {
+        font-size: 0.8rem;
+        color: var(--ink-dim);
+      }
+
+      /* ── Footer ── */
+      .foot {
+        max-width: 76rem;
+        margin: 2.4rem auto 0.6rem;
+      }
+
+      .foot a {
+        font-family: var(--font-mono);
+        font-size: 0.66rem;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--ink-dim);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      .foot a:hover {
+        color: var(--reactor-mint);
+      }
+
+      @media (max-width: 720px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .panel--checks {
+          grid-row: auto;
+        }
+
+        .speed-row {
+          grid-template-columns: 1fr;
+          row-gap: 0.35rem;
+        }
+
+        .speed-row__value {
+          white-space: normal;
+        }
+
+        .timeline__row {
+          grid-template-columns: 5.4rem 0.8rem 1fr;
+        }
+
+        .weight {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+      }
+    </style>
+  </body>
+</html>

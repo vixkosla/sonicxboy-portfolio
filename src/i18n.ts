@@ -24,6 +24,103 @@ export interface PageCopy {
   card: HeroCardCopy
 }
 
+export interface StatsPageCopy {
+  title: string
+  description: string
+  eyebrow: string
+  subtitle: string
+  ariaLang: string
+  backLabel: string
+  panels: {
+    readiness: string
+    checks: string
+    weight: string
+    speed: string
+    milestones: string
+    channels: string
+    pending: string
+  }
+  readinessNote: string
+  checksPassed: string
+  weightWireNote: string
+  weightUnit: string
+  speedBudget: string
+  channelsIndexed: string
+  channelsGithubAge: string
+  channelsGithubStars: string
+  channelsCwsUsers: string
+  channelsUpworkReviews: string
+  pendingNote: string
+  footerSource: string
+}
+
+export const statsTranslations: Record<Lang, StatsPageCopy> = {
+  ru: {
+    title: 'Телеметрия публикации — SonicXBoy',
+    description:
+      'Снимок публикации sonicxboy.dev: готовность к индексации, вес и скорость первого экрана, каналы дистрибуции.',
+    eyebrow: '// телеметрия публикации',
+    subtitle:
+      'Что поисковики и площадки уже знают о sonicxboy.dev — срез от {date}.',
+    ariaLang: 'Язык страницы',
+    backLabel: '← sonicxboy.dev',
+    panels: {
+      readiness: 'Готовность к публикации',
+      checks: 'Чек-лист публикации',
+      weight: 'Вес первого экрана',
+      speed: 'Скорость ответа',
+      milestones: 'Вехи запуска',
+      channels: 'Каналы дистрибуции',
+      pending: 'Ожидает токенов',
+    },
+    readinessNote: 'пройдено {passed} из {total} проверок',
+    checksPassed: 'пройдено',
+    weightWireNote: '{size} {unit} по сети (gzip)',
+    weightUnit: 'КБ',
+    speedBudget: 'бюджет',
+    channelsIndexed: 'страницы в индексе',
+    channelsGithubAge: 'дней в open source',
+    channelsGithubStars: 'звёзд на GitHub',
+    channelsCwsUsers: 'пользователь Chrome-расширения',
+    channelsUpworkReviews: 'отзыв на Upwork',
+    pendingNote:
+      'Метрика и Search Console уже подключены к сайту. Добавьте OAuth-токены в сборку — и диаграммы трафика оживут на следующем деплое.',
+    footerSource: 'MIT · исходный код сайта',
+  },
+  en: {
+    title: 'Launch Telemetry — SonicXBoy',
+    description:
+      'A snapshot of sonicxboy.dev going live: index readiness, first-screen weight and speed, distribution channels.',
+    eyebrow: '// launch telemetry',
+    subtitle:
+      'What search engines and platforms already know about sonicxboy.dev — captured {date}.',
+    ariaLang: 'Page language',
+    backLabel: '← sonicxboy.dev',
+    panels: {
+      readiness: 'Launch readiness',
+      checks: 'Publishing checklist',
+      weight: 'First-screen weight',
+      speed: 'Response speed',
+      milestones: 'Launch milestones',
+      channels: 'Distribution channels',
+      pending: 'Awaiting tokens',
+    },
+    readinessNote: '{passed} of {total} checks passed',
+    checksPassed: 'passed',
+    weightWireNote: '{size} {unit} over the wire (gzip)',
+    weightUnit: 'KB',
+    speedBudget: 'budget',
+    channelsIndexed: 'pages indexed',
+    channelsGithubAge: 'days in open source',
+    channelsGithubStars: 'GitHub stars',
+    channelsCwsUsers: 'Chrome extension user',
+    channelsUpworkReviews: 'Upwork review',
+    pendingNote:
+      'Metrika and Search Console are already wired into the site. Add OAuth tokens to the build and the traffic charts light up on the next deploy.',
+    footerSource: 'MIT · website source code',
+  },
+}
+
 export const translations: Record<Lang, PageCopy> = {
   ru: {
     title: 'SonicXBoy — Three.js / WebGL разработчик и браузерные продукты',

@@ -184,6 +184,7 @@ const sourceSchema = {
       content="PqXULXOPJrG8HdD3yogWsLKE7xYEWlbW1nXP1hMhipM"
     />
     <meta name="msvalidate.01" content="EC10990AB922CD2F4920D5DED06D5124" />
+    <meta name="yandex-verification" content="416368e683e20513" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link
       rel="alternate"
@@ -225,6 +226,50 @@ const sourceSchema = {
         }
       }
     </script>
+    <script is:inline>
+      ;(function (m, e, t, r, i, k, a) {
+        m[i] =
+          m[i] ||
+          function () {
+            ;(m[i].a = m[i].a || []).push(arguments)
+          }
+        m[i].l = 1 * new Date()
+        for (var j = 0; j < document.scripts.length; j++) {
+          if (document.scripts[j].src === r) {
+            return
+          }
+        }
+        ;(k = e.createElement(t)),
+          (a = e.getElementsByTagName(t)[0]),
+          (k.async = 1),
+          (k.src = r),
+          a.parentNode.insertBefore(k, a)
+      })(
+        window,
+        document,
+        'script',
+        'https://mc.yandex.ru/metrika/tag.js?id=111360686',
+        'ym',
+      )
+
+      ym(111360686, 'init', {
+        ssr: true,
+        webvisor: true,
+        clickmap: true,
+        ecommerce: 'dataLayer',
+        accurateTrackBounce: true,
+        trackLinks: true,
+      })
+    </script>
+    <noscript
+      ><div
+        ><img
+          src="https://mc.yandex.ru/watch/111360686"
+          style="position:absolute; left:-9999px;"
+          alt=""
+        /></div
+      ></noscript
+    >
     <style>
       /* :global — the reactor card is React-rendered (no astro-cid),
          a scoped reset never reaches it. */
@@ -2809,6 +2854,12 @@ const sourceSchema = {
         class:list={['lang__link', { 'is-active': lang === 'en' }]}
         href="/en/"
         aria-current={lang === 'en' ? 'page' : undefined}>EN</a
+      >
+      <span class="lang__sep" aria-hidden="true">/</span>
+      <a
+        class="lang__link lang__link--stats"
+        href={lang === 'ru' ? '/stats/' : '/en/stats/'}
+        >STATS</a
       >
     </nav>
 
