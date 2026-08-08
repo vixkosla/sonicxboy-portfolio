@@ -1,6 +1,6 @@
 ---
-// Horizontal SONIC X BOY — every letter shares the BrandMark X treatment.
-// Tight chamfers, thick rim, cast shadow ~70° down-right in reactor green.
+// Horizontal SONIC X BOY — uniform Tektur lockup, thick rim, cascade of
+// solid salad-green cast shadows stepped ~70° down-right.
 import '@fontsource-variable/tektur'
 
 interface Props {
@@ -31,13 +31,13 @@ const {
 
 <style>
   .wordmark {
-    /* Narrow corner cuts — not wide bevels */
-    --cut: 0.09em;
-    --inset: 0.4em;
-    --rim: 5.5px;
-    /* 70° from horizontal → mostly down, slight right */
-    --sx: 0.28em;
-    --sy: 0.78em;
+    --cut: 0.08em;
+    --inset: 0.38em;
+    --rim: 5px;
+    /* Step along ~70° down-right (x ≈ 0.36 y) */
+    --step: 0.13em;
+    --sx: calc(var(--step) * 0.36);
+    --sy: var(--step);
     position: relative;
     display: inline-block;
     line-height: 1;
@@ -45,7 +45,6 @@ const {
     color: inherit;
     text-transform: uppercase;
     pointer-events: auto;
-    /* Stretch whole badge so inset stays equal on all sides */
     transform: scaleX(1.24);
     transform-origin: center;
   }
@@ -67,42 +66,47 @@ const {
   .wordmark__frame {
     display: inline-block;
     padding: var(--rim);
-    background: linear-gradient(
-      170deg,
-      rgba(125, 255, 199, 0.98),
-      rgba(24, 211, 131, 0.88) 42%,
-      rgba(10, 122, 76, 0.92)
-    );
-    /* Brand glow + directional cast ~70° down-right */
-    filter:
-      drop-shadow(0 0 0.08em rgba(24, 211, 131, 0.7))
-      drop-shadow(var(--sx) var(--sy) 0.22em rgba(24, 211, 131, 0.55))
-      drop-shadow(
-        calc(var(--sx) * 1.55) calc(var(--sy) * 1.55) 0.55em rgba(24, 211, 131, 0.38)
-      )
-      drop-shadow(
-        calc(var(--sx) * 2.2) calc(var(--sy) * 2.2) 1.05em rgba(24, 211, 131, 0.22)
+    /* Broken / stepped salad rim — solid segments, not dashes */
+    background:
+      repeating-linear-gradient(
+        115deg,
+        #9dffd4 0 5px,
+        #6cf3b3 5px 7px,
+        #18d383 7px 13px,
+        #0fb872 13px 15px,
+        #0a7a4c 15px 20px
       );
+    /* Soft halo + solid echo ladder down-right */
+    filter:
+      drop-shadow(0 0 0.06em rgba(125, 255, 199, 0.65))
+      drop-shadow(calc(var(--sx) * 1) calc(var(--sy) * 1) 0 rgba(157, 255, 212, 0.95))
+      drop-shadow(calc(var(--sx) * 2) calc(var(--sy) * 2) 0 rgba(108, 243, 179, 0.88))
+      drop-shadow(calc(var(--sx) * 3) calc(var(--sy) * 3) 0 rgba(24, 211, 131, 0.78))
+      drop-shadow(calc(var(--sx) * 4) calc(var(--sy) * 4) 0 rgba(15, 184, 114, 0.66))
+      drop-shadow(calc(var(--sx) * 5) calc(var(--sy) * 5) 0 rgba(10, 122, 76, 0.52))
+      drop-shadow(calc(var(--sx) * 6) calc(var(--sy) * 6) 0 rgba(8, 95, 58, 0.38))
+      drop-shadow(calc(var(--sx) * 7) calc(var(--sy) * 7) 0 rgba(6, 70, 42, 0.24))
+      drop-shadow(calc(var(--sx) * 8) calc(var(--sy) * 8) 0.35em rgba(24, 211, 131, 0.18));
     transition: filter 0.2s ease;
   }
 
   .wordmark:hover .wordmark__frame {
     filter:
-      drop-shadow(0 0 0.12em rgba(24, 211, 131, 0.85))
-      drop-shadow(var(--sx) var(--sy) 0.28em rgba(24, 211, 131, 0.7))
-      drop-shadow(
-        calc(var(--sx) * 1.55) calc(var(--sy) * 1.55) 0.7em rgba(24, 211, 131, 0.48)
-      )
-      drop-shadow(
-        calc(var(--sx) * 2.2) calc(var(--sy) * 2.2) 1.25em rgba(24, 211, 131, 0.3)
-      );
+      drop-shadow(0 0 0.1em rgba(125, 255, 199, 0.85))
+      drop-shadow(calc(var(--sx) * 1) calc(var(--sy) * 1) 0 rgba(157, 255, 212, 1))
+      drop-shadow(calc(var(--sx) * 2) calc(var(--sy) * 2) 0 rgba(108, 243, 179, 0.95))
+      drop-shadow(calc(var(--sx) * 3) calc(var(--sy) * 3) 0 rgba(24, 211, 131, 0.88))
+      drop-shadow(calc(var(--sx) * 4) calc(var(--sy) * 4) 0 rgba(15, 184, 114, 0.76))
+      drop-shadow(calc(var(--sx) * 5) calc(var(--sy) * 5) 0 rgba(10, 122, 76, 0.62))
+      drop-shadow(calc(var(--sx) * 6) calc(var(--sy) * 6) 0 rgba(8, 95, 58, 0.48))
+      drop-shadow(calc(var(--sx) * 7) calc(var(--sy) * 7) 0 rgba(6, 70, 42, 0.32))
+      drop-shadow(calc(var(--sx) * 8) calc(var(--sy) * 8) 0.45em rgba(24, 211, 131, 0.28));
   }
 
   .wordmark__plate {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    /* Same inset on all sides */
     padding: var(--inset);
     background:
       repeating-linear-gradient(
@@ -117,7 +121,6 @@ const {
   .wordmark__text {
     display: inline-flex;
     align-items: baseline;
-    /* Letter gaps match the plate inset */
     gap: var(--inset);
     font-family: 'Tektur Variable', system-ui, sans-serif;
     font-size: 1em;
@@ -129,9 +132,13 @@ const {
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    /* Same solid ladder on the letters */
     filter:
-      drop-shadow(0 0 0.08em rgba(24, 211, 131, 0.55))
-      drop-shadow(var(--sx) var(--sy) 0.18em rgba(24, 211, 131, 0.35));
+      drop-shadow(0 0 0.05em rgba(125, 255, 199, 0.55))
+      drop-shadow(calc(var(--sx) * 1) calc(var(--sy) * 1) 0 rgba(157, 255, 212, 0.9))
+      drop-shadow(calc(var(--sx) * 2) calc(var(--sy) * 2) 0 rgba(108, 243, 179, 0.75))
+      drop-shadow(calc(var(--sx) * 3) calc(var(--sy) * 3) 0 rgba(24, 211, 131, 0.55))
+      drop-shadow(calc(var(--sx) * 4) calc(var(--sy) * 4) 0 rgba(10, 122, 76, 0.35));
   }
 
   .visually-hidden {
