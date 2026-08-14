@@ -1,0 +1,97 @@
+---
+const title = 'Horus — безопасный маршрут через ваш VPS';
+const description =
+  'Horus от sonicxboy.dev: Linux-приложение для маршрута через собственный VPS и Proton с зашифрованными профилями.';
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href="https://sonicxboy.dev/horus/" />
+  </head>
+  <body>
+    <header>
+      <a href="/" class="brand">SONICXBOY.DEV</a>
+      <nav><a href="https://github.com/vixkosla/horus">Исходный код</a></nav>
+    </header>
+    <main>
+      <p class="eyebrow">LINUX · VPS · PROTON · OPEN SOURCE</p>
+      <h1>Horus</h1>
+      <p class="lead">
+        Наблюдайте и управляйте маршрутом от Linux-компьютера через собственный
+        VPS к выходу Proton. Данные авторизации остаются на сервере.
+      </p>
+      <div class="actions">
+        <a class="primary" href="https://vixkosla.github.io/horus/">Установить Horus 0.2.0</a>
+        <a href="https://github.com/vixkosla/horus/releases/tag/v0.2.0">GitHub Release</a>
+      </div>
+
+      <section>
+        <h2>Установка Ubuntu 24.04</h2>
+        <pre><code>curl -fsSL https://vixkosla.github.io/horus/apt/horus-archive-keyring.gpg \
+  | sudo tee /usr/share/keyrings/horus-archive-keyring.gpg &gt;/dev/null
+curl -fsSL https://vixkosla.github.io/horus/apt/horus.sources \
+  | sudo tee /etc/apt/sources.list.d/horus.sources &gt;/dev/null
+sudo apt update
+sudo apt install horus</code></pre>
+      </section>
+
+      <section class="grid">
+        <article>
+          <h2>Профиль для друга</h2>
+          <p>
+            Каждый профиль зашифрован для конкретного получателя и содержит
+            отдельный отзываемый SSH-ключ только для построения туннеля.
+          </p>
+        </article>
+        <article>
+          <h2>Без пароля Proton</h2>
+          <p>
+            Логин, пароль и сессия Proton не экспортируются. Получатель не
+            получает root-доступ или управление сервером.
+          </p>
+        </article>
+      </section>
+    </main>
+    <footer>
+      Создано <a href="https://sonicxboy.dev">sonicxboy.dev</a> ·
+      <a href="https://github.com/vixkosla/horus">MIT source</a>
+    </footer>
+  </body>
+</html>
+
+<style>
+  :global(*) { box-sizing: border-box; }
+  :global(body) {
+    margin: 0;
+    color: #13251d;
+    background: #f2f5ef;
+    font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  }
+  header, main, footer { width: min(1080px, calc(100% - 40px)); margin-inline: auto; }
+  header { min-height: 84px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  a { color: inherit; text-underline-offset: 4px; }
+  .brand, .eyebrow { letter-spacing: .12em; font: 700 .78rem/1.4 ui-monospace, monospace; }
+  main { padding: clamp(56px, 10vw, 120px) 0 80px; }
+  h1 { margin: 0; font-size: clamp(5rem, 18vw, 13rem); line-height: .8; letter-spacing: -.08em; }
+  .lead { max-width: 760px; margin: 46px 0 0; font-size: clamp(1.35rem, 3vw, 2.35rem); line-height: 1.25; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 36px 0 90px; }
+  .actions a { padding: 14px 20px; border: 1px solid #789184; border-radius: 999px; text-decoration: none; }
+  .actions .primary { color: #eff8f1; background: #173c2c; border-color: #173c2c; }
+  section { margin-top: 56px; }
+  h2 { font-size: 1.25rem; }
+  pre { padding: 22px; overflow: auto; border-radius: 16px; color: #e9f5ec; background: #14241d; }
+  code { font: .88rem/1.65 ui-monospace, monospace; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+  article { padding: 28px; border: 1px solid #bdc9c1; border-radius: 18px; }
+  article p { color: #40564a; line-height: 1.65; }
+  footer { padding: 40px 0; border-top: 1px solid #bdc9c1; color: #52665b; }
+  @media (max-width: 680px) {
+    header { align-items: flex-start; padding-top: 24px; flex-direction: column; }
+    .grid { grid-template-columns: 1fr; }
+  }
+</style>
