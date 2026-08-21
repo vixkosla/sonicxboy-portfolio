@@ -26,12 +26,12 @@ const description =
         VPS к выходу Proton. Данные авторизации остаются на сервере.
       </p>
       <div class="actions">
-        <a class="primary" href="https://vixkosla.github.io/horus/">Установить Horus 0.2.0</a>
-        <a href="https://github.com/vixkosla/horus/releases/tag/v0.2.0">GitHub Release</a>
+        <a class="primary" href="https://vixkosla.github.io/horus/">Установить Horus 0.3.0</a>
+        <a href="https://github.com/vixkosla/horus/releases/tag/v0.3.0">GitHub Release</a>
       </div>
 
       <section>
-        <h2>Установка Ubuntu 24.04</h2>
+        <h2>Ubuntu 24.04</h2>
         <pre><code>curl -fsSL https://vixkosla.github.io/horus/apt/horus-archive-keyring.gpg \
   | sudo tee /usr/share/keyrings/horus-archive-keyring.gpg &gt;/dev/null
 curl -fsSL https://vixkosla.github.io/horus/apt/horus.sources \
@@ -40,12 +40,19 @@ sudo apt update
 sudo apt install horus</code></pre>
       </section>
 
+      <section>
+        <h2>Arch Linux</h2>
+        <pre><code>curl -fL -o horus-0.3.0-1-x86_64.pkg.tar.zst \
+  https://github.com/vixkosla/horus/releases/download/v0.3.0/horus-0.3.0-1-x86_64.pkg.tar.zst
+sudo pacman -U ./horus-0.3.0-1-x86_64.pkg.tar.zst</code></pre>
+      </section>
+
       <section class="grid">
         <article>
           <h2>Профиль для друга</h2>
           <p>
-            Каждый профиль зашифрован для конкретного получателя и содержит
-            отдельный отзываемый SSH-ключ только для построения туннеля.
+            Каждый профиль зашифрован для конкретного получателя, содержит
+            отдельный отзываемый SSH-ключ и свой Proton-выход на общем VPS.
           </p>
         </article>
         <article>
