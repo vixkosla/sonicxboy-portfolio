@@ -1,7 +1,10 @@
 ---
-const title = 'Horus — безопасный маршрут через ваш VPS';
+const title = 'Horus 0.3.0 — свой VPS, свой Proton, отдельные выходы для друзей';
 const description =
-  'Horus от sonicxboy.dev: Linux-приложение для маршрута через собственный VPS и Proton с зашифрованными профилями.';
+  'Horus проводит интернет Linux-компьютера через ваш VPS к Proton. Друзья получают свой отзываемый профиль и выбирают страну выхода независимо. Пароль Proton на сервере.';
+const version = '0.3.0';
+const deb = `horus_${version}_amd64.deb`;
+const pkg = `horus-${version}-1-x86_64.pkg.tar.zst`;
 ---
 
 <!doctype html>
@@ -16,63 +19,165 @@ const description =
   <body>
     <header>
       <a href="/" class="brand">SONICXBOY.DEV</a>
-      <nav><a href="https://github.com/vixkosla/horus">Исходный код</a></nav>
+      <nav>
+        <a href="#install">Установка</a>
+        <a href="#share">Друзья</a>
+        <a href="https://github.com/vixkosla/horus">Исходный код</a>
+      </nav>
     </header>
     <main>
-      <p class="eyebrow">LINUX · VPS · PROTON · OPEN SOURCE</p>
+      <p class="eyebrow">LINUX · VPS · PROTON · {version}</p>
       <h1>Horus</h1>
       <p class="lead">
-        Наблюдайте и управляйте маршрутом от Linux-компьютера через собственный
-        VPS к выходу Proton. Данные авторизации остаются на сервере.
+        Интернет этого компьютера идёт не напрямую в Proton, а через
+        {' '}<em>ваш</em> VPS. Proton остаётся залогинен на сервере. Друг не
+        получает пароль, root и не двигает ваш выход — у него свой.
       </p>
       <div class="actions">
-        <a class="primary" href="https://vixkosla.github.io/horus/">Установить Horus 0.3.0</a>
-        <a href="https://github.com/vixkosla/horus/releases/tag/v0.3.0">GitHub Release</a>
+        <a class="primary" href="#install">Установить {version}</a>
+        <a href={`https://github.com/vixkosla/horus/releases/tag/v${version}`}>GitHub Release</a>
       </div>
 
-      <section>
-        <h2>Ubuntu 24.04</h2>
+      <ol class="toc">
+        <li><a href="#how">Как устроен маршрут</a></li>
+        <li><a href="#roles">Владелец и друг</a></li>
+        <li><a href="#install">Установка</a></li>
+        <li><a href="#owner">Первый запуск владельца</a></li>
+        <li><a href="#share">Как передать доступ другу</a></li>
+        <li><a href="#limits">Что не входит</a></li>
+      </ol>
+
+      <section id="how">
+        <h2>Как устроен маршрут</h2>
+        <p class="prose">
+          Horus — Linux-приложение. Оно не «VPN из магазина». На сервере
+          крутится Proton, на компьютере — туннель до этого сервера.
+        </p>
+        <div class="path" aria-label="Маршрут пакета">
+          <span>компьютер</span>
+          <i>SSH</i>
+          <span>ваш VPS</span>
+          <i>WireGuard</i>
+          <span>Proton</span>
+          <i>выход</i>
+          <span>интернет</span>
+        </div>
+        <p class="prose">
+          С 0.3.0 на одном VPS может сидеть несколько людей одновременно.
+          Общий только сервер. Выход Proton у каждого свой: друг выбирает
+          страну в Horus, ваш <code>proton0</code> при этом не переключается.
+        </p>
+      </section>
+
+      <section id="roles" class="grid">
+        <article>
+          <p class="kicker">Владелец</p>
+          <h2>Сервер и Proton — ваши</h2>
+          <p>
+            Ставите Horus, указываете <code>user@host</code> и SSH-ключ,
+            один раз гоняете <code>horus-vps-sharing</code>. Proton логинится
+            только на VPS. Дальше раздаёте зашифрованные профили, а не
+            пароль.
+          </p>
+        </article>
+        <article>
+          <p class="kicker">Друг</p>
+          <h2>Только туннель</h2>
+          <p>
+            Ставит Horus, присылает «Код получения», импортирует
+            {' '}<code>.horus.age</code>. Видит страны и подключается. Нет root,
+            нет сессии Proton, нет управления сервером. Доступ отзывается
+            по UUID, остальные живы.
+          </p>
+        </article>
+      </section>
+
+      <section id="install">
+        <h2>Установка</h2>
+        <p class="prose">
+          Нужен 64-bit PC: <strong>Ubuntu 24.04</strong> или
+          {' '}<strong>Arch Linux</strong>. Windows, macOS и телефон — нет.
+          Snap Store тоже нет.
+        </p>
+
+        <h3>Ubuntu 24.04 AMD64</h3>
         <pre><code>curl -fsSL https://vixkosla.github.io/horus/apt/horus-archive-keyring.gpg \
   | sudo tee /usr/share/keyrings/horus-archive-keyring.gpg &gt;/dev/null
 curl -fsSL https://vixkosla.github.io/horus/apt/horus.sources \
   | sudo tee /etc/apt/sources.list.d/horus.sources &gt;/dev/null
 sudo apt update
-sudo apt install horus</code></pre>
+sudo apt install horus
+horus</code></pre>
+        <p class="note">
+          Запасной файл:
+          {' '}<a href={`https://github.com/vixkosla/horus/releases/download/v${version}/${deb}`}>{deb}</a>
+          {' '}и <code>sudo apt install ./horus_0.3.0_amd64.deb</code>.
+        </p>
+
+        <h3>Arch Linux x86_64</h3>
+        <p class="prose">
+          <code>apt</code> и <code>.deb</code> на Arch не ставятся. Пакет
+          ставится через <code>pacman</code>:
+        </p>
+        <pre><code>sudo pacman -U https://github.com/vixkosla/horus/releases/download/v{version}/{pkg}
+horus</code></pre>
       </section>
 
-      <section>
-        <h2>Arch Linux</h2>
-        <pre><code>curl -fL -o horus-0.3.0-1-x86_64.pkg.tar.zst \
-  https://github.com/vixkosla/horus/releases/download/v0.3.0/horus-0.3.0-1-x86_64.pkg.tar.zst
-sudo pacman -U ./horus-0.3.0-1-x86_64.pkg.tar.zst</code></pre>
+      <section id="owner">
+        <h2>Первый запуск владельца</h2>
+        <ol class="steps">
+          <li>Откройте Horus → <strong>Настройки</strong>. Сохраните <code>user@host</code> и ключ. Проверьте вход.</li>
+          <li>На VPS Proton должен быть уже залогинен, как раньше.</li>
+          <li>
+            После установки 0.3.0 один раз выполните
+            {' '}<code>horus-vps-sharing</code>. Без этого друзья снова поедут в
+            ваш общий <code>proton0</code>.
+          </li>
+          <li>Подключите маршрут у себя и убедитесь, что выходной IP — Proton, не домашний.</li>
+        </ol>
       </section>
 
-      <section class="grid">
-        <article>
-          <h2>Профиль для друга</h2>
-          <p>
-            Каждый профиль зашифрован для конкретного получателя, содержит
-            отдельный отзываемый SSH-ключ и свой Proton-выход на общем VPS.
-          </p>
-        </article>
-        <article>
-          <h2>Без пароля Proton</h2>
-          <p>
-            Логин, пароль и сессия Proton не экспортируются. Получатель не
-            получает root-доступ или управление сервером.
-          </p>
-        </article>
+      <section id="share">
+        <h2>Как передать доступ другу</h2>
+        <p class="prose">
+          Не отправляйте SSH root-ключ и не отправляйте пароль Proton.
+          Шлётся только файл профиля, зашифрованный на компьютер друга.
+        </p>
+        <ol class="steps">
+          <li>Друг ставит Horus (Ubuntu или Arch, см. выше) и открывает <strong>Код получения</strong>.</li>
+          <li>Присылает вам этот код (<code>age1…</code>).</li>
+          <li>Вы: <strong>Профиль для друга</strong> → название, код → сохраняете <code>.horus.age</code>.</li>
+          <li>Отправляете только этот файл.</li>
+          <li>Друг: <strong>Импорт профиля</strong>. Дальше сам выбирает страну Proton и жмёт подключить.</li>
+        </ol>
+        <p class="prose">
+          Отозвать одного, не трогая остальных:
+        </p>
+        <pre><code>ssh user@your-vps \
+  sudo /usr/local/libexec/horus/horus-profile-provision revoke PROFILE_UUID</code></pre>
+      </section>
+
+      <section id="limits">
+        <h2>Что не входит</h2>
+        <ul class="plain">
+          <li>Это не публичный VPN-сервис. Нужен свой VPS и своя подписка Proton.</li>
+          <li>Друг не получает отдельный аккаунт Proton — сертификат выпускается с вашего серверного входа.</li>
+          <li>Одновременных выходов столько, сколько позволяет Proton на аккаунте (обычно до десятка устройств).</li>
+          <li>Если Proton на VPS разлогинен, новые страны другу не выписать, пока сессия не вернётся.</li>
+        </ul>
       </section>
     </main>
     <footer>
       Создано <a href="https://sonicxboy.dev">sonicxboy.dev</a> ·
-      <a href="https://github.com/vixkosla/horus">MIT source</a>
+      {' '}<a href="https://github.com/vixkosla/horus">MIT source</a> ·
+      <a href={`https://github.com/vixkosla/horus/releases/tag/v${version}`}>v{version}</a>
     </footer>
   </body>
 </html>
 
 <style>
   :global(*) { box-sizing: border-box; }
+  :global(html) { scroll-behavior: smooth; }
   :global(body) {
     margin: 0;
     color: #13251d;
@@ -81,24 +186,68 @@ sudo pacman -U ./horus-0.3.0-1-x86_64.pkg.tar.zst</code></pre>
   }
   header, main, footer { width: min(1080px, calc(100% - 40px)); margin-inline: auto; }
   header { min-height: 84px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+  nav { display: flex; flex-wrap: wrap; gap: 18px; }
   a { color: inherit; text-underline-offset: 4px; }
-  .brand, .eyebrow { letter-spacing: .12em; font: 700 .78rem/1.4 ui-monospace, monospace; }
+  .brand, .eyebrow, .kicker {
+    letter-spacing: .12em;
+    font: 700 .78rem/1.4 ui-monospace, monospace;
+  }
   main { padding: clamp(56px, 10vw, 120px) 0 80px; }
   h1 { margin: 0; font-size: clamp(5rem, 18vw, 13rem); line-height: .8; letter-spacing: -.08em; }
   .lead { max-width: 760px; margin: 46px 0 0; font-size: clamp(1.35rem, 3vw, 2.35rem); line-height: 1.25; }
-  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 36px 0 90px; }
+  .lead em { font-style: normal; box-shadow: inset 0 -0.12em #c6e2cf; }
+  .actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 36px 0 48px; }
   .actions a { padding: 14px 20px; border: 1px solid #789184; border-radius: 999px; text-decoration: none; }
   .actions .primary { color: #eff8f1; background: #173c2c; border-color: #173c2c; }
-  section { margin-top: 56px; }
-  h2 { font-size: 1.25rem; }
-  pre { padding: 22px; overflow: auto; border-radius: 16px; color: #e9f5ec; background: #14241d; }
-  code { font: .88rem/1.65 ui-monospace, monospace; }
+  .toc {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px 28px;
+    margin: 0 0 72px;
+    padding: 0;
+    list-style: none;
+    color: #40564a;
+  }
+  .toc a { text-decoration: none; border-bottom: 1px solid #b7c6bc; }
+  section { margin-top: 72px; scroll-margin-top: 24px; }
+  h2 { font-size: 1.35rem; margin: 0 0 14px; }
+  h3 { font-size: 1.02rem; margin: 28px 0 10px; letter-spacing: .04em; }
+  .prose, .note, .steps, .plain { max-width: 68ch; color: #31463c; line-height: 1.7; }
+  .path {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    margin: 22px 0 18px;
+    font: 700 .82rem/1.2 ui-monospace, monospace;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .path span {
+    padding: 10px 12px;
+    border: 1px solid #173c2c;
+    background: #e7f3ea;
+  }
+  .path i { font-style: normal; color: #5b7367; font-weight: 500; }
   .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
   article { padding: 28px; border: 1px solid #bdc9c1; border-radius: 18px; }
+  article h2 { margin-top: 8px; }
   article p { color: #40564a; line-height: 1.65; }
+  .kicker { color: #5b7367; margin: 0; }
+  pre { padding: 22px; overflow: auto; border-radius: 16px; color: #e9f5ec; background: #14241d; }
+  code { font: .88rem/1.65 ui-monospace, monospace; }
+  p code, li code { font-size: .86em; padding: .1em .35em; background: #e4eee6; border-radius: 4px; }
+  pre code { padding: 0; background: none; }
+  .note { font-size: .95rem; }
+  .steps, .plain { padding-left: 1.2em; }
+  .steps li, .plain li { margin: 0 0 10px; }
   footer { padding: 40px 0; border-top: 1px solid #bdc9c1; color: #52665b; }
   @media (max-width: 680px) {
     header { align-items: flex-start; padding-top: 24px; flex-direction: column; }
-    .grid { grid-template-columns: 1fr; }
+    .grid, .toc { grid-template-columns: 1fr; }
+    h1 { font-size: clamp(3.4rem, 22vw, 6rem); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(html) { scroll-behavior: auto; }
   }
 </style>

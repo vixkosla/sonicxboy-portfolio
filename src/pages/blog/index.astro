@@ -1,0 +1,435 @@
+---
+import BlogShell from '../../layouts/BlogShell.astro'
+import { SITE } from '../../i18n.ts'
+
+const canonical = `${SITE}/blog/`
+const title = 'Блог SonicXBoy — инженерные разборы работы с ИИ'
+const description =
+  'Разборы разработки реальных продуктов: постановка задач ИИ-моделям, корректировки, архитектурные решения, ошибки и проверка результата.'
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'Blog',
+  name: 'SonicXBoy Journal',
+  url: canonical,
+  description,
+  inLanguage: 'ru',
+  author: {
+    '@type': 'Person',
+    name: 'SonicXBoy',
+    url: SITE,
+  },
+}
+---
+
+<BlogShell {title} {description} {canonical}>
+  <script type="application/ld+json" set:html={JSON.stringify(schema)} />
+  <main id="content" class="blog-index">
+    <section class="blog-intro">
+      <div>
+        <p class="journal-kicker">SonicXBoy Journal / инженерная практика</p>
+        <h1 class="journal-title">Не «сделано ИИ». Сделано через диалог.</h1>
+      </div>
+      <p class="journal-lead">
+        Публикую не итоговый текст из генератора, а рабочий процесс: какие задачи
+        ставились моделям, где они ошибались, как менялось направление и чем
+        подтверждался результат.
+      </p>
+    </section>
+
+    <div class="journal-rule"></div>
+
+    <section aria-labelledby="latest-title">
+      <div class="section-line">
+        <h2 id="latest-title">Первый разбор</h2>
+        <span>EDITORIAL ASSEMBLY</span>
+      </div>
+
+      <div class="draft-story">
+        <div class="draft-story__signal" aria-hidden="true">
+          <span>001</span>
+          <i></i>
+        </div>
+        <div>
+          <p class="feature-story__meta">Материал закрыт на редакционную сборку</p>
+          <h2>Первый разбор готовится к публикации</h2>
+          <p>
+            Проверяю фактуру, структуру и первичные материалы. Открою текст,
+            когда он будет готов отвечать за каждое техническое утверждение.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <section class="editorial-code" aria-labelledby="principles-title">
+      <div class="section-line">
+        <h2 id="principles-title">Принципы журнала</h2>
+        <span>READING SYSTEM</span>
+      </div>
+      <div class="principles">
+        <article>
+          <b>01</b>
+          <h3>Первичные материалы</h3>
+          <p>Фрагменты диалогов, команды, схемы и проверяемые артефакты вместо пересказа.</p>
+        </article>
+        <article>
+          <b>02</b>
+          <h3>Редакторская работа</h3>
+          <p>Логи очищены от секретов и повторов, но причинно-следственная связь сохранена.</p>
+        </article>
+        <article>
+          <b>03</b>
+          <h3>Ответственность автора</h3>
+          <p>Модель предлагает действия. Архитектуру, критерии и выпуск продукта определяет человек.</p>
+        </article>
+      </div>
+    </section>
+
+    <footer class="blog-footer">
+      <span>© 2026 sonicxboy.dev</span>
+      <a href="/horus/">Horus</a>
+    </footer>
+  </main>
+</BlogShell>
+
+<style>
+  .blog-index {
+    width: min(90rem, 100%);
+    margin: 0 auto;
+    padding: clamp(4rem, 9vw, 9rem) clamp(1.25rem, 5vw, 5rem) 3rem;
+  }
+
+  .blog-intro {
+    display: grid;
+    grid-template-columns: minmax(0, 1.5fr) minmax(18rem, 0.72fr);
+    gap: clamp(2rem, 7vw, 8rem);
+    align-items: end;
+  }
+
+  .section-line {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .section-line h2 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 640;
+    letter-spacing: -0.01em;
+  }
+
+  .section-line span {
+    color: var(--ink-faint);
+    font: 0.64rem/1.2 var(--mono);
+    letter-spacing: 0.1em;
+  }
+
+  .draft-story {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.62fr) minmax(20rem, 1.38fr);
+    min-height: 24rem;
+    align-items: center;
+    overflow: hidden;
+    background: var(--paper-bright);
+    border: 1px solid var(--line-strong);
+    box-shadow: 0 1.5rem 5rem rgba(25, 37, 31, 0.07);
+  }
+
+  .draft-story > div:last-child {
+    max-width: 43rem;
+    padding: clamp(2rem, 5vw, 5rem);
+  }
+
+  .draft-story h2 {
+    max-width: 16ch;
+    margin: 0;
+    font-size: clamp(2rem, 4vw, 4.3rem);
+    font-weight: 610;
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+  }
+
+  .draft-story p:not(.feature-story__meta) {
+    max-width: 47ch;
+    margin: 1.7rem 0 0;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+
+  .draft-story__signal {
+    position: relative;
+    display: grid;
+    min-height: 24rem;
+    place-items: center;
+    overflow: hidden;
+    color: var(--green-soft);
+    background:
+      linear-gradient(rgba(108, 243, 179, 0.07) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(108, 243, 179, 0.07) 1px, transparent 1px),
+      radial-gradient(circle, rgba(24, 211, 131, 0.2), transparent 42%),
+      #07110c;
+    background-size: 2.4rem 2.4rem, 2.4rem 2.4rem, auto, auto;
+    font: 700 clamp(4rem, 9vw, 8rem)/1 var(--display);
+    letter-spacing: -0.08em;
+  }
+
+  .draft-story__signal::after {
+    position: absolute;
+    inset: 1.1rem;
+    border: 1px solid rgba(108, 243, 179, 0.22);
+    content: '';
+  }
+
+  .draft-story__signal i {
+    position: absolute;
+    width: 58%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green-soft), transparent);
+    box-shadow: 0 0 1rem rgba(108, 243, 179, 0.45);
+    animation: draft-scan 3.6s ease-in-out infinite;
+  }
+
+  .feature-story {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.94fr) minmax(22rem, 1.06fr);
+    min-height: 31rem;
+    overflow: hidden;
+    color: inherit;
+    background: var(--paper-bright);
+    border: 1px solid var(--line-strong);
+    text-decoration: none;
+    box-shadow: 0 1.5rem 5rem rgba(25, 37, 31, 0.07);
+    transition: transform 220ms ease, box-shadow 220ms ease;
+  }
+
+  @keyframes draft-scan {
+    0%,
+    100% {
+      transform: translateY(-5rem);
+      opacity: 0.3;
+    }
+
+    50% {
+      transform: translateY(5rem);
+      opacity: 1;
+    }
+  }
+
+  .feature-story:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 2rem 6rem rgba(25, 37, 31, 0.13);
+  }
+
+  .feature-story__visual {
+    position: relative;
+    display: grid;
+    place-items: center;
+    min-height: 26rem;
+    margin: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 42%, rgba(24, 211, 131, 0.22), transparent 30%),
+      linear-gradient(145deg, #07110c, #13281e);
+  }
+
+  .feature-story__visual::after {
+    content: '';
+    position: absolute;
+    inset: 1.1rem;
+    border: 1px solid rgba(108, 243, 179, 0.22);
+    pointer-events: none;
+  }
+
+  .feature-story__visual img {
+    width: min(72%, 23rem);
+    height: auto;
+    filter: drop-shadow(0 1.5rem 2.8rem rgba(0, 0, 0, 0.4));
+    transition: transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .feature-story:hover .feature-story__visual img {
+    transform: scale(1.035);
+  }
+
+  .feature-story__visual figcaption {
+    position: absolute;
+    right: 1.6rem;
+    bottom: 1.5rem;
+    left: 1.6rem;
+    color: rgba(221, 239, 229, 0.62);
+    font: 0.59rem/1.2 var(--mono);
+    letter-spacing: 0.1em;
+  }
+
+  .feature-story__copy {
+    display: flex;
+    flex-direction: column;
+    padding: clamp(2rem, 5vw, 5rem);
+  }
+
+  .feature-story__meta {
+    margin: 0 0 1.4rem;
+    color: var(--green);
+    font: 650 0.66rem/1.2 var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .feature-story__copy h2 {
+    max-width: 13ch;
+    margin: 0 0 1.4rem;
+    font-size: clamp(2rem, 4vw, 4.1rem);
+    font-weight: 580;
+    line-height: 1.02;
+    letter-spacing: -0.055em;
+    text-wrap: balance;
+  }
+
+  .feature-story__copy > p:not(.feature-story__meta) {
+    max-width: 48ch;
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 1rem;
+    line-height: 1.68;
+  }
+
+  .feature-story__copy ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 1.6rem 0 2rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .feature-story__copy li {
+    padding: 0.42rem 0.62rem;
+    color: #315247;
+    background: rgba(8, 116, 76, 0.06);
+    border: 1px solid rgba(8, 116, 76, 0.15);
+    font: 0.66rem/1.2 var(--mono);
+  }
+
+  .feature-story__open {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+    font: 650 0.72rem/1.2 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .feature-story__open b {
+    color: var(--green);
+    font-size: 1.2rem;
+  }
+
+  .editorial-code {
+    margin-top: clamp(5rem, 10vw, 9rem);
+  }
+
+  .principles {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-top: 1px solid var(--line-strong);
+  }
+
+  .principles article {
+    padding: 1.7rem clamp(1rem, 2.4vw, 2.3rem) 2.4rem 0;
+    border-right: 1px solid var(--line);
+  }
+
+  .principles article + article {
+    padding-left: clamp(1rem, 2.4vw, 2.3rem);
+  }
+
+  .principles article:last-child {
+    border-right: 0;
+  }
+
+  .principles b {
+    color: var(--green);
+    font: 650 0.66rem/1 var(--mono);
+  }
+
+  .principles h3 {
+    margin: 2.5rem 0 0.8rem;
+    font-size: 1.06rem;
+  }
+
+  .principles p {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.92rem;
+    line-height: 1.65;
+  }
+
+  .blog-footer {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 7rem;
+    padding-top: 1.4rem;
+    color: var(--ink-faint);
+    border-top: 1px solid var(--line);
+    font: 0.66rem/1.4 var(--mono);
+  }
+
+  .blog-footer a {
+    color: var(--green);
+  }
+
+  @media (max-width: 800px) {
+    .blog-index {
+      padding-top: 4.5rem;
+    }
+
+    .blog-intro {
+      grid-template-columns: 1fr;
+      gap: 1.6rem;
+    }
+
+    .draft-story {
+      grid-template-columns: 1fr;
+    }
+
+    .draft-story__signal {
+      min-height: min(64vw, 20rem);
+    }
+
+    .feature-story {
+      grid-template-columns: 1fr;
+    }
+
+    .feature-story__visual {
+      min-height: min(92vw, 27rem);
+    }
+
+    .feature-story__copy {
+      min-height: 27rem;
+    }
+
+    .principles {
+      grid-template-columns: 1fr;
+    }
+
+    .principles article,
+    .principles article + article {
+      padding: 1.4rem 0 1.8rem;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .draft-story__signal i {
+      animation: none;
+    }
+  }
+</style>
