@@ -1,6 +1,6 @@
 # Деплой и инфраструктура
 
-Обновлено: 2026-07-19
+Обновлено: 2026-09-28
 
 ## Продакшен
 
@@ -10,7 +10,9 @@
   `www.sonicxboy.dev`; для активации у регистратора должны стоять
   nameservers `ns1.vercel-dns.com` / `ns2.vercel-dns.com`.
 - **Резервный URL:** https://sonicxboy.vercel.app (работает всегда)
-- **Платформа:** Vercel (статический Astro-билд, адаптер не нужен)
+- **Платформа:** Vercel. Главная и остальные страницы статические;
+  `/stats/` и `/en/stats/` используют серверный `@astrojs/vercel` для живой аналитики.
+  Переменные окружения и подключение Google описаны в `docs/stats-pipeline.md`.
 - **Проект:** `sonicxboy` в аккаунте `askerovtamerlan` (team `askerovtamerlans-projects`)
 - Локальная привязка — каталог `.vercel/` (в .gitignore)
 - Канонический адрес зашит константой `SITE` в `src/i18n.ts`

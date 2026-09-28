@@ -10,12 +10,18 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "stats:refresh": "node scripts/refresh-stats.mjs",
+    "stats:metrika": "node scripts/fetch-live-stats.mjs",
+    "stats:google": "node scripts/fetch-google-stats.mjs",
+    "stats:google:import": "node scripts/import-search-console-export.mjs",
+    "stats:auth": "node scripts/oauth-catch-server.mjs",
     "test": "node --test tests/*.test.mjs",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/react": "^6.0.1",
     "@astrojs/sitemap": "^3.7.3",
+    "@astrojs/vercel": "11.0.11",
     "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@fontsource-variable/onest": "^5.2.11",
     "@fontsource-variable/tektur": "^5.2.7",

@@ -1,0 +1,126 @@
+---
+// Stats masthead lockup: one cinematic sonicxboy.dev title contained by a
+// single angular reactor frame. No detached icon or secondary title line.
+import '@fontsource-variable/tektur'
+
+interface Props {
+  href: string
+  label: string
+  class?: string
+}
+
+const { href, label, class: className } = Astro.props
+---
+
+<a
+  class:list={['stats-lockup', className]}
+  href={href}
+  aria-label={label}
+  title={label}
+>
+  <span class="stats-lockup__frame" aria-hidden="true">
+    <span class="stats-lockup__plate">
+      <span class="stats-lockup__title">SonicXBoy.dev</span>
+    </span>
+  </span>
+</a>
+
+<style>
+  .stats-lockup {
+    --lockup-cut: 0.42em;
+    display: inline-block;
+    color: var(--ink, #e8f5ee);
+    line-height: 1;
+    text-decoration: none;
+    text-transform: uppercase;
+    filter: drop-shadow(0 0 0.9em rgba(24, 211, 131, 0.14));
+    transform-origin: center;
+    transition:
+      filter 180ms ease,
+      transform 180ms ease;
+  }
+
+  .stats-lockup:hover {
+    filter:
+      drop-shadow(0 0 0.6em rgba(24, 211, 131, 0.26))
+      drop-shadow(0 0 1.4em rgba(24, 211, 131, 0.14));
+    transform: translateY(-1px);
+  }
+
+  .stats-lockup:focus-visible {
+    outline: 1px solid rgba(125, 255, 199, 0.9);
+    outline-offset: 0.38em;
+  }
+
+  .stats-lockup__frame,
+  .stats-lockup__plate {
+    clip-path: polygon(
+      var(--lockup-cut) 0,
+      calc(100% - var(--lockup-cut)) 0,
+      100% var(--lockup-cut),
+      100% calc(100% - var(--lockup-cut)),
+      calc(100% - var(--lockup-cut)) 100%,
+      var(--lockup-cut) 100%,
+      0 calc(100% - var(--lockup-cut)),
+      0 var(--lockup-cut)
+    );
+  }
+
+  .stats-lockup__frame {
+    display: inline-block;
+    padding: 2px;
+    background: #18d383;
+  }
+
+  .stats-lockup__plate {
+    display: block;
+    padding: 0.62em 0.86em 0.68em;
+    overflow: hidden;
+    background:
+      radial-gradient(
+        110% 180% at 50% 0%,
+        rgba(24, 211, 131, 0.12),
+        transparent 58%
+      ),
+      repeating-linear-gradient(
+        0deg,
+        transparent 0,
+        transparent 0.34em,
+        rgba(24, 211, 131, 0.055) calc(0.34em + 1px)
+      ),
+      linear-gradient(165deg, rgba(9, 26, 19, 0.98), rgba(4, 11, 8, 1));
+  }
+
+  .stats-lockup__title {
+    display: block;
+    font-family: 'Tektur Variable', system-ui, sans-serif;
+    font-size: 1.72em;
+    font-weight: 900;
+    line-height: 0.86;
+    letter-spacing: 0.035em;
+    white-space: nowrap;
+    background: linear-gradient(
+      155deg,
+      #e8f5ee 5%,
+      #7dffc7 34%,
+      #18d383 68%,
+      #0a7a4c 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter:
+      drop-shadow(0 0 0.07em rgba(125, 255, 199, 0.48))
+      drop-shadow(0 0 0.3em rgba(24, 211, 131, 0.24));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .stats-lockup {
+      transition: none;
+    }
+
+    .stats-lockup:hover {
+      transform: none;
+    }
+  }
+</style>

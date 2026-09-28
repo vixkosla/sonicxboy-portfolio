@@ -1,48 +1,263 @@
 {
   "available": true,
-  "capturedAt": "2026-08-08",
+  "scope": "portfolio-home-pages",
+  "refreshedAt": "2026-09-28T06:42:31.024Z",
+  "capturedAt": "2026-09-27",
   "counter": 111360686,
+  "period": {
+    "today": "2026-09-28",
+    "startDate": "2026-08-31",
+    "endDate": "2026-09-27",
+    "timeZone": "Europe/Moscow"
+  },
+  "trackingStartedAt": "2026-08-06",
+  "windowDays": 28,
+  "requestedWindowDays": 28,
+  "totals": {
+    "visits": 93,
+    "users": 79,
+    "pageviews": 142
+  },
+  "contacts": {
+    "visits": 3,
+    "conversionRate": 0.03225806451612903
+  },
+  "today": {
+    "date": "2026-09-28",
+    "visits": 0,
+    "users": 0,
+    "contacts": 0,
+    "partial": true
+  },
   "daily": [
     {
-      "date": "2026-08-06",
-      "visits": 3,
-      "users": 3,
-      "pageviews": 5
-    },
-    {
-      "date": "2026-08-07",
-      "visits": 6,
-      "users": 6,
+      "date": "2026-08-31",
+      "visits": 4,
+      "users": 4,
       "pageviews": 11
     },
     {
-      "date": "2026-08-08",
-      "visits": 10,
+      "date": "2026-09-01",
+      "visits": 4,
+      "users": 4,
+      "pageviews": 10
+    },
+    {
+      "date": "2026-09-02",
+      "visits": 16,
       "users": 10,
-      "pageviews": 12
+      "pageviews": 34
+    },
+    {
+      "date": "2026-09-03",
+      "visits": 13,
+      "users": 10,
+      "pageviews": 15
+    },
+    {
+      "date": "2026-09-04",
+      "visits": 1,
+      "users": 1,
+      "pageviews": 2
+    },
+    {
+      "date": "2026-09-05",
+      "visits": 2,
+      "users": 2,
+      "pageviews": 3
+    },
+    {
+      "date": "2026-09-06",
+      "visits": 3,
+      "users": 3,
+      "pageviews": 4
+    },
+    {
+      "date": "2026-09-07",
+      "visits": 7,
+      "users": 7,
+      "pageviews": 8
+    },
+    {
+      "date": "2026-09-08",
+      "visits": 3,
+      "users": 3,
+      "pageviews": 4
+    },
+    {
+      "date": "2026-09-09",
+      "visits": 1,
+      "users": 1,
+      "pageviews": 1
+    },
+    {
+      "date": "2026-09-10",
+      "visits": 0,
+      "users": 0,
+      "pageviews": 0
+    },
+    {
+      "date": "2026-09-11",
+      "visits": 4,
+      "users": 4,
+      "pageviews": 8
+    },
+    {
+      "date": "2026-09-12",
+      "visits": 1,
+      "users": 1,
+      "pageviews": 2
+    },
+    {
+      "date": "2026-09-13",
+      "visits": 5,
+      "users": 5,
+      "pageviews": 6
+    },
+    {
+      "date": "2026-09-14",
+      "visits": 2,
+      "users": 2,
+      "pageviews": 3
+    },
+    {
+      "date": "2026-09-15",
+      "visits": 0,
+      "users": 0,
+      "pageviews": 0
+    },
+    {
+      "date": "2026-09-16",
+      "visits": 5,
+      "users": 5,
+      "pageviews": 6
+    },
+    {
+      "date": "2026-09-17",
+      "visits": 1,
+      "users": 1,
+      "pageviews": 1
+    },
+    {
+      "date": "2026-09-18",
+      "visits": 2,
+      "users": 2,
+      "pageviews": 2
+    },
+    {
+      "date": "2026-09-19",
+      "visits": 1,
+      "users": 1,
+      "pageviews": 3
+    },
+    {
+      "date": "2026-09-20",
+      "visits": 2,
+      "users": 2,
+      "pageviews": 2
+    },
+    {
+      "date": "2026-09-21",
+      "visits": 3,
+      "users": 3,
+      "pageviews": 3
+    },
+    {
+      "date": "2026-09-22",
+      "visits": 2,
+      "users": 2,
+      "pageviews": 2
+    },
+    {
+      "date": "2026-09-23",
+      "visits": 1,
+      "users": 1,
+      "pageviews": 1
+    },
+    {
+      "date": "2026-09-24",
+      "visits": 2,
+      "users": 2,
+      "pageviews": 3
+    },
+    {
+      "date": "2026-09-25",
+      "visits": 3,
+      "users": 3,
+      "pageviews": 3
+    },
+    {
+      "date": "2026-09-26",
+      "visits": 5,
+      "users": 5,
+      "pageviews": 5
+    },
+    {
+      "date": "2026-09-27",
+      "visits": 0,
+      "users": 0,
+      "pageviews": 0
     }
   ],
   "sources": [
     {
+      "id": "direct",
       "type": "Direct traffic",
-      "visits": 11
+      "visits": 79
     },
     {
-      "type": "Search engine traffic",
-      "visits": 5
+      "id": "referral",
+      "type": "Link traffic",
+      "visits": 9
     },
     {
-      "type": "Internal traffic",
-      "visits": 2
-    },
-    {
+      "id": "social",
       "type": "Social network traffic",
+      "visits": 3
+    },
+    {
+      "id": "internal",
+      "type": "Internal traffic",
+      "visits": 1
+    },
+    {
+      "id": "unknown",
+      "type": "Unknown",
       "visits": 1
     }
   ],
-  "totals": {
-    "visits": 19,
-    "users": 19,
-    "pageviews": 28
-  }
+  "referrers": [
+    {
+      "host": "discourse.threejs.org",
+      "visits": 4
+    },
+    {
+      "host": "away.vk.ru",
+      "visits": 3
+    },
+    {
+      "host": "chatgpt.com",
+      "visits": 3
+    },
+    {
+      "host": "github.com",
+      "visits": 1
+    },
+    {
+      "host": "youdo.com",
+      "visits": 1
+    }
+  ],
+  "devices": [
+    {
+      "id": "desktop",
+      "type": "PC",
+      "visits": 67
+    },
+    {
+      "id": "mobile",
+      "type": "Smartphones",
+      "visits": 26
+    }
+  ]
 }
