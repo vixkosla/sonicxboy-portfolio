@@ -17,6 +17,9 @@ interface Props {
 const { lang } = Astro.props
 const t = translations[lang]
 const canonical = lang === 'ru' ? `${SITE}/` : `${SITE}/en/`
+const resumeFilename = `Tamerlan-Askerov-CV-${lang.toUpperCase()}.pdf`
+const resumeHref = `/resume/${resumeFilename}`
+const emailHref = `mailto:hello@sonicxboy.dev?subject=${encodeURIComponent(lang === 'ru' ? 'Проект для SonicXBoy' : 'Project inquiry for SonicXBoy')}`
 
 // ── Air-support cylinders, generated once at build time ──────────────
 // Nine approved nested ellipses, each extruded upward into a continuous
@@ -1979,8 +1982,150 @@ const sourceSchema = {
         color: var(--ink-dim);
       }
 
+      .hero-actions {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        align-self: flex-start;
+        flex-wrap: wrap;
+        gap: 0.68rem;
+        margin-top: 1.2rem;
+      }
+
+      .resume-download {
+        position: relative;
+        z-index: 2;
+        display: inline-flex;
+        align-items: center;
+        align-self: flex-start;
+        gap: 0.72rem;
+        margin-top: 0;
+        padding: 0.55rem 0.78rem 0.55rem 0.55rem;
+        border: 1px solid rgba(24, 211, 131, 0.54);
+        border-radius: 3px;
+        background: linear-gradient(115deg, rgba(10, 54, 35, 0.88), rgba(5, 17, 12, 0.9));
+        box-shadow: inset 0 0 0 1px rgba(122, 255, 186, 0.07), 0 8px 30px rgba(0, 0, 0, 0.17);
+        color: var(--ink);
+        font: 600 0.7rem/1.15 var(--font-mono);
+        letter-spacing: 0.085em;
+        text-decoration: none;
+        text-transform: uppercase;
+        white-space: nowrap;
+        pointer-events: auto;
+        transition: border-color 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+      }
+
+      .resume-download:hover,
+      .resume-download:focus-visible {
+        border-color: rgba(95, 255, 171, 0.94);
+        box-shadow: inset 0 0 0 1px rgba(122, 255, 186, 0.13), 0 0 22px rgba(24, 211, 131, 0.16);
+        transform: translateY(-2px);
+      }
+
+      .resume-download__icon {
+        display: block;
+        width: 1.65rem;
+        height: 1.65rem;
+        padding: 0.23rem;
+        border: 1px solid rgba(95, 255, 171, 0.48);
+        background: rgba(24, 211, 131, 0.14);
+        color: #71f3b6;
+        flex: 0 0 auto;
+      }
+
+      .resume-download__arrow {
+        transition: transform 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+
+      .resume-download:hover .resume-download__arrow,
+      .resume-download:focus-visible .resume-download__arrow {
+        transform: translateY(2px);
+      }
+
+      .resume-download__format {
+        padding-left: 0.7rem;
+        border-left: 1px solid rgba(95, 255, 171, 0.28);
+        color: var(--emerald);
+        font-size: 0.6rem;
+        letter-spacing: 0.05em;
+      }
+
+      .email-contact {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 2.75rem;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid rgba(95, 255, 171, 0.38);
+        border-radius: 3px;
+        background: rgba(5, 17, 12, 0.72);
+        color: var(--emerald);
+        font: 600 0.7rem/1.15 var(--font-mono);
+        letter-spacing: 0.06em;
+        text-decoration: none;
+        text-transform: uppercase;
+        white-space: nowrap;
+        pointer-events: auto;
+        transition: border-color 220ms ease, background 220ms ease;
+      }
+
+      .email-contact:hover,
+      .email-contact:focus-visible {
+        border-color: #71f3b6;
+        background: rgba(24, 211, 131, 0.14);
+      }
+
+      .email-contact svg {
+        width: 1.1rem;
+        height: 1.1rem;
+        flex: 0 0 auto;
+      }
+
+      :global(.animation-transport) {
+        position: fixed;
+        z-index: 90;
+        bottom: calc(var(--safe-bottom) + 1rem);
+        left: calc(var(--safe-left) + 1rem);
+        display: flex;
+        gap: 0.45rem;
+        padding: 0.45rem;
+        border: 1px solid rgba(24, 211, 131, 0.35);
+        border-radius: 5px;
+        background: rgba(5, 9, 7, 0.82);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.26);
+        backdrop-filter: blur(8px);
+      }
+
+      :global(.animation-transport__button) {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.36rem;
+        min-height: 2.15rem;
+        padding: 0.35rem 0.65rem;
+        border: 1px solid rgba(24, 211, 131, 0.5);
+        border-radius: 3px;
+        background: rgba(11, 42, 28, 0.55);
+        color: var(--emerald);
+        font: 600 0.69rem/1 var(--font-mono);
+        cursor: pointer;
+        transition: border-color 180ms ease, background 180ms ease;
+      }
+
+      :global(.animation-transport__button:hover),
+      :global(.animation-transport__button:focus-visible) {
+        border-color: #71f3b6;
+        background: rgba(24, 211, 131, 0.2);
+      }
+
+      :global(.animation-transport__button[aria-pressed='true']) {
+        background: var(--emerald);
+        color: #04140d;
+      }
+
       .tech-stack {
-        margin-top: 1.9rem;
+        margin-top: 1.1rem;
         display: flex;
         gap: 0.55rem;
         flex-wrap: wrap;
@@ -2346,7 +2491,7 @@ const sourceSchema = {
           min-height: 100svh;
           justify-content: flex-start;
           padding:
-            calc(var(--safe-top) + 7.6rem)
+            calc(var(--safe-top) + 8.9rem)
             calc(var(--safe-right) + 1.25rem)
             calc(var(--safe-bottom) + 0.9rem)
             calc(var(--safe-left) + 1.25rem);
@@ -2384,6 +2529,37 @@ const sourceSchema = {
           max-width: 100%;
           font-size: 0.95rem;
           line-height: 1.5;
+        }
+
+        .hero-actions {
+          position: fixed;
+          top: calc(var(--safe-top) + 3.25rem);
+          right: calc(var(--safe-right) + 1.25rem);
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.38rem;
+          margin-top: 0;
+        }
+
+        .resume-download {
+          position: relative;
+          top: auto;
+          right: auto;
+          padding: 0.4rem 0.58rem 0.4rem 0.4rem;
+          font-size: 0.63rem;
+        }
+
+        .resume-download__icon {
+          width: 1.45rem;
+          height: 1.45rem;
+        }
+
+        :global(.animation-transport) {
+          display: none;
+        }
+
+        .email-contact {
+          display: none;
         }
 
         .tech-stack {
@@ -2638,6 +2814,13 @@ const sourceSchema = {
           height: 2.35rem;
           font-size: 0.61rem;
         }
+      }
+
+      @media (max-width: 360px) {
+        .resume-download__format {
+          display: none;
+        }
+
       }
 
       /* On short portrait phones the title-derived card offset leaves too
@@ -2904,6 +3087,35 @@ const sourceSchema = {
       </h1>
 
       <p class="subtitle">{t.subtitle}</p>
+
+      <div class="hero-actions">
+      <a
+        class="resume-download"
+        href={resumeHref}
+        download={resumeFilename}
+        type="application/pdf"
+        aria-label={t.resumeAria}
+        data-resume-download
+      >
+        <svg class="resume-download__icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M5 2.75h9.5L19 7.25v14H5z" stroke="currentColor" stroke-width="1.5" />
+          <path d="M14.5 2.75v4.5H19" stroke="currentColor" stroke-width="1.5" />
+          <g class="resume-download__arrow" stroke="currentColor" stroke-width="1.7" stroke-linecap="square">
+            <path d="M12 9.5v7" />
+            <path d="m9.2 13.8 2.8 2.8 2.8-2.8" />
+          </g>
+        </svg>
+        <span>{t.resumeLabel}</span>
+        <span class="resume-download__format">PDF</span>
+      </a>
+      <a class="email-contact" href={emailHref} aria-label={t.emailAria} data-email-contact>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M3.5 5.5h17v13h-17z" stroke="currentColor" stroke-width="1.5" />
+          <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.5" />
+        </svg>
+        <span>{t.emailLabel}</span>
+      </a>
+      </div>
 
       <div class="tech-stack">
         <span class="tech-badge">Three.js</span>

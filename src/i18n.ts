@@ -11,6 +11,10 @@ export interface HeroCardCopy {
   cta: string
   ariaNav: string
   sourceLabel: string
+  controlsLabel: string
+  pauseLabel: string
+  playLabel: string
+  restartLabel: string
 }
 
 export interface PageCopy {
@@ -20,6 +24,10 @@ export interface PageCopy {
   jsonLdDescription: string
   eyebrow: string
   subtitle: string
+  resumeLabel: string
+  resumeAria: string
+  emailLabel: string
+  emailAria: string
   ariaLang: string
   card: HeroCardCopy
 }
@@ -151,6 +159,10 @@ export const translations: Record<Lang, PageCopy> = {
     eyebrow: '// интерактивные системы для веба',
     subtitle:
       'Соединяю движение, визуальный язык и инженерию — от WebGL-сцен до полезных браузерных продуктов.',
+    resumeLabel: 'Скачать резюме',
+    resumeAria: 'Скачать резюме Тамерлана Аскерова на русском языке в PDF',
+    emailLabel: 'Написать по email',
+    emailAria: 'Открыть письмо на hello@sonicxboy.dev',
     ariaLang: 'Язык сайта',
     card: {
       h2: 'Движение, вкус и системы, которые работают',
@@ -160,6 +172,10 @@ export const translations: Record<Lang, PageCopy> = {
       cta: 'Написать в Telegram',
       ariaNav: 'Соцсети и контакты',
       sourceLabel: 'Исходный код сайта на GitHub',
+      controlsLabel: 'Управление анимацией',
+      pauseLabel: 'Пауза',
+      playLabel: 'Продолжить',
+      restartLabel: 'Сначала',
     },
   },
   en: {
@@ -173,6 +189,10 @@ export const translations: Record<Lang, PageCopy> = {
     eyebrow: '// interactive systems for the web',
     subtitle:
       'I combine movement, visual direction and engineering — from WebGL scenes to useful browser products.',
+    resumeLabel: 'Download resume',
+    resumeAria: 'Download Tamerlan Askerov resume in English as PDF',
+    emailLabel: 'Email me',
+    emailAria: 'Compose an email to hello@sonicxboy.dev',
     ariaLang: 'Site language',
     card: {
       h2: 'Movement, taste and systems that work',
@@ -182,6 +202,10 @@ export const translations: Record<Lang, PageCopy> = {
       cta: 'Message me on Telegram',
       ariaNav: 'Social links and contacts',
       sourceLabel: 'Website source code on GitHub',
+      controlsLabel: 'Animation controls',
+      pauseLabel: 'Pause',
+      playLabel: 'Play',
+      restartLabel: 'Restart',
     },
   },
 }

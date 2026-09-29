@@ -149,8 +149,10 @@ const metrics = traffic ? [
         <div class="section-heading"><h2 id="search-title">{t('Видимость в Google', 'Visibility on Google')}</h2><span class="provider">SEARCH CONSOLE</span></div>
         {google ? (
           <>
-            {dashboard.google.status === 'stale' && <p class="notice" role="status">{t('Обновление Google временно недоступно. Показан сохранённый отчёт.', 'Google could not be refreshed. A saved report is shown.')}</p>}
-            <p class="freshness">{date(google.period.startDate)} — {date(google.period.endDate)}{' · '}{t('получено ', 'fetched ')}<time datetime={google.refreshedAt}>{timestamp(google.refreshedAt)}</time></p>
+            {google.source === 'manual-export'
+              ? <p class="notice" role="status">{t('Данные Google из ручной выгрузки Search Console. Автоматическое обновление пока не подключено.', 'Google data comes from a manual Search Console export. Automatic refresh is not connected yet.')}</p>
+              : dashboard.google.status === 'stale' && <p class="notice" role="status">{t('Обновление Google временно недоступно. Показан сохранённый отчёт.', 'Google could not be refreshed. A saved report is shown.')}</p>}
+            <p class="freshness">{date(google.period.startDate)} — {date(google.period.endDate)}{' · '}{google.source === 'manual-export' ? t('импортировано ', 'imported ') : t('получено ', 'fetched ')}<time datetime={google.refreshedAt}>{timestamp(google.refreshedAt)}</time></p>
             <div class="metrics">
               <div class="metric"><span class="metric-label">{t('Показы', 'Impressions')}</span><strong>{number(google.totals.impressions)}</strong><span class="metric-note">{t('появления в результатах поиска', 'appearances in search results')}</span></div>
               <div class="metric"><span class="metric-label">{t('Клики', 'Clicks')}</span><strong>{number(google.totals.clicks)}</strong><span class="metric-note">{t('переходы из Google', 'visits from Google search')}</span></div>
@@ -164,7 +166,7 @@ const metrics = traffic ? [
                 <thead><tr><th scope="col">{t('Запрос', 'Query')}</th><th scope="col">{t('Показы', 'Impressions')}</th><th scope="col">{t('Клики', 'Clicks')}</th><th scope="col">{t('Позиция', 'Position')}</th></tr></thead>
                 <tbody>{google.queries.map((row: { query: string; impressions: number; clicks: number; position: number | null }) => <tr><th scope="row">{row.query}</th><td>{number(row.impressions)}</td><td>{number(row.clicks)}</td><td>{position(row.position)}</td></tr>)}</tbody>
               </table></div> : <p class="empty">{t('Google пока не вернул запросы за этот период. Некоторые редкие запросы он скрывает.', 'Google has not returned queries for this period. Some low-volume queries are withheld.')}</p>}
-              {google.pages.length > 0 && <p class="landing-pages">{t('Страницы из поиска: ', 'Search landing pages: ')}{google.pages.map((row: { path: string; clicks: number }) => <span><code>{row.path}</code> — {number(row.clicks)} {t('кликов', 'clicks')}</span>)}</p>}
+              {google.pages.length > 0 && <p class="landing-pages">{t('Страницы в результатах: ', 'Pages in search results: ')}{google.pages.map((row: { path: string; impressions: number; clicks: number }) => <span><code>{row.path}</code> — {t('показы: ', 'impressions: ')}{number(row.impressions)}{' · '}{t('клики: ', 'clicks: ')}{number(row.clicks)}</span>)}</p>}
             </div>
           </>
         ) : (
@@ -177,7 +179,7 @@ const metrics = traffic ? [
           </div>
         )}
       </section>
-      <p class="method">{t('Отчёт учитывает русскую и английскую главные страницы портфолио. Основной период — 28 полных дней, сегодняшний день показан отдельно. Данные запрашиваются при открытии страницы; кэш — до 5 минут.', 'This report covers the Russian and English portfolio home pages. The main period contains 28 complete days; today is shown separately. Opening the page checks the data, with a cache of up to 5 minutes.')}</p>
+      <p class="method">{t('Отчёт учитывает русскую и английскую главные страницы портфолио. Основной период — 28 полных дней, сегодняшний день показан отдельно. Метрика проверяется при открытии страницы; данные Google обновляются автоматически только после подключения API.', 'This report covers the Russian and English portfolio home pages. The main period contains 28 complete days; today is shown separately. Metrica is checked when the page opens; Google data refreshes automatically only after its API is connected.')}</p>
     </main>
     <footer><a href={lang === 'ru' ? '/' : '/en/'}>{t('← Вернуться к портфолио', '← Back to the portfolio')}</a><a href={SOURCE_REPOSITORY}>{t('Исходный код', 'Source code')}</a></footer>
   </body>

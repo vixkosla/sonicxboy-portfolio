@@ -986,10 +986,8 @@ function setCubicBezier(
 
 interface AssemblyCubeProps {
   cardRef: RefObject<HTMLElement | null>
-  // Dev-only pause: when true the choreography clock stops advancing (see the
-  // gated assembly.update in useFrame). Restart is handled by remounting this
-  // component with a fresh React key from HeroScene, so no reset logic lives
-  // here. Defaults false / no-op in production, where nothing sets it.
+  // The public pause control freezes the choreography clock. Restart remounts
+  // this component with a fresh React key, resetting its simulations and DOM.
   paused?: boolean
 }
 
@@ -2513,7 +2511,7 @@ function AssemblyCube({ cardRef, paused = false }: AssemblyCubeProps) {
     }
 
     const previousAssemblyTime = assembly.time
-    // Dev pause freezes the single choreography clock: assembly.time drives
+    // Pause freezes the single choreography clock: assembly.time drives
     // spin (spinDelta becomes 0), the camera story, plasma, everything - so
     // gating this one advance holds the whole scene on the current frame while
     // material shimmer keeps ticking so it does not look dead.
@@ -3540,6 +3538,10 @@ export interface HeroCardCopy {
   cta: string
   ariaNav: string
   sourceLabel: string
+  controlsLabel: string
+  pauseLabel: string
+  playLabel: string
+  restartLabel: string
 }
 
 const DEFAULT_CARD_COPY: HeroCardCopy = {
@@ -3550,6 +3552,10 @@ const DEFAULT_CARD_COPY: HeroCardCopy = {
   cta: 'Написать в Telegram',
   ariaNav: 'Соцсети и контакты',
   sourceLabel: 'Исходный код сайта на GitHub',
+  controlsLabel: 'Управление анимацией',
+  pauseLabel: 'Пауза',
+  playLabel: 'Продолжить',
+  restartLabel: 'Сначала',
 }
 
 const CARD_CIRCUIT_PATHS = [
@@ -3774,14 +3780,19 @@ export default function HeroScene({
 }) {
   const cardRef = useRef<HTMLElement | null>(null)
   const cardBodyRef = useRef<HTMLDivElement | null>(null)
-  // Dev-only transport for iterating on the animation while the camera work is
-  // in progress. `paused` freezes the choreography clock (AssemblyCube reads
-  // it); "restart" bumps `runId`, which is AssemblyCube's React key, so the
-  // whole scene subtree remounts from time 0 (fresh sims + refs + DOM reset
-  // via its mount effect). Both are stripped from production builds by the
-  // import.meta.env.DEV gate on the overlay below.
+  // Public transport: pause freezes the choreography clock; restart bumps
+  // AssemblyCube's key to begin a fresh run from time 0.
   const [paused, setPaused] = useState(false)
   const [runId, setRunId] = useState(0)
+  useEffect(() => {
+    const mobile = window.matchMedia('(max-width: 720px)')
+    const resumeIfMobile = () => {
+      if (mobile.matches) setPaused(false)
+    }
+    resumeIfMobile()
+    mobile.addEventListener('change', resumeIfMobile)
+    return () => mobile.removeEventListener('change', resumeIfMobile)
+  }, [])
   const restartScene = () => {
     setPaused(false)
     setRunId((id) => id + 1)
@@ -3967,58 +3978,36 @@ export default function HeroScene({
         </Canvas>
       </div>
 
-      {import.meta.env.DEV && (
-        <div
-          style={{
-            position: 'fixed',
-            left: 16,
-            bottom: 16,
-            zIndex: 9999,
-            display: 'flex',
-            gap: 8,
-            padding: 8,
-            borderRadius: 10,
-            background: 'rgba(5, 9, 7, 0.72)',
-            border: '1px solid rgba(24, 211, 131, 0.35)',
-            backdropFilter: 'blur(6px)',
-            fontFamily: 'monospace',
-            fontSize: 12,
-          }}
+      <div
+        className="animation-transport"
+        data-animation-controls
+        role="group"
+        aria-label={copy.controlsLabel}
+      >
+        <button
+          className="animation-transport__button"
+          type="button"
+          data-animation-pause
+          onClick={() => setPaused((value) => !value)}
+          aria-label={paused ? copy.playLabel : copy.pauseLabel}
+          title={paused ? copy.playLabel : copy.pauseLabel}
+          aria-pressed={paused}
         >
-          <button
-            type="button"
-            onClick={() => setPaused((value) => !value)}
-            style={{
-              cursor: 'pointer',
-              padding: '6px 12px',
-              borderRadius: 6,
-              border: '1px solid rgba(24, 211, 131, 0.5)',
-              background: paused
-                ? 'rgba(24, 211, 131, 0.85)'
-                : 'transparent',
-              color: paused ? '#04140d' : '#18d383',
-              fontWeight: 600,
-            }}
-          >
-            {paused ? '▶ Play' : '⏸ Pause'}
-          </button>
-          <button
-            type="button"
-            onClick={restartScene}
-            style={{
-              cursor: 'pointer',
-              padding: '6px 12px',
-              borderRadius: 6,
-              border: '1px solid rgba(24, 211, 131, 0.5)',
-              background: 'transparent',
-              color: '#18d383',
-              fontWeight: 600,
-            }}
-          >
-            ↺ Restart
-          </button>
-        </div>
-      )}
+          <span aria-hidden="true">{paused ? '▶' : '⏸'}</span>
+          <span className="animation-transport__label">{paused ? copy.playLabel : copy.pauseLabel}</span>
+        </button>
+        <button
+          className="animation-transport__button"
+          type="button"
+          data-animation-restart
+          onClick={restartScene}
+          aria-label={copy.restartLabel}
+          title={copy.restartLabel}
+        >
+          <span aria-hidden="true">↺</span>
+          <span className="animation-transport__label">{copy.restartLabel}</span>
+        </button>
+      </div>
 
       <article
         ref={cardRef}
