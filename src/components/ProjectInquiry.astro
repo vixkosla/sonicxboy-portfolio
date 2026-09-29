@@ -1,0 +1,305 @@
+---
+import type { Lang } from '../i18n.ts'
+
+interface Props {
+  lang: Lang
+}
+
+const { lang } = Astro.props
+const copy = {
+  ru: {
+    trigger: 'Обсудить проект',
+    title: 'Расскажите о задаче',
+    intro: 'Пары строк достаточно, чтобы начать разговор. Обязательны только задача и контакт для ответа.',
+    kind: 'Что нужно?',
+    kinds: {
+      other: 'Пока не знаю / другое',
+      scene: '3D-сцена / WebGL',
+      product: 'Веб-продукт / расширение',
+      performance: 'Оптимизация / консультация',
+    },
+    message: 'Что хотите сделать? *',
+    messageHint: 'Можно описать идею своими словами — техническое задание не требуется.',
+    messagePlaceholder: 'Например: нужна интерактивная сцена для главной страницы…',
+    contact: 'Как с вами связаться? *',
+    contactPlaceholder: 'Email или @telegram',
+    contactHint: 'Укажите email или имя в Telegram: @username',
+    extras: 'Есть ссылка, сроки или бюджет?',
+    link: 'Ссылка на проект или материалы',
+    context: 'Сроки и бюджет, если уже известны',
+    privacy: 'Контакт нужен только для ответа на эту заявку.',
+    submit: 'Отправить заявку',
+    sending: 'Отправляю…',
+    success: 'Заявка отправлена. Отвечу на указанный контакт.',
+    error: 'Не удалось отправить. Попробуйте ещё раз или',
+    unavailable: 'Отправка с сайта пока не подключена. Вы можете',
+    emailLink: 'написать мне по email.',
+    close: 'Закрыть',
+  },
+  en: {
+    trigger: 'Discuss a project',
+    title: 'Tell me about your project',
+    intro: 'A few lines are enough to start. Only your idea and a way to reply are required.',
+    kind: 'What do you need?',
+    kinds: {
+      other: 'Not sure yet / something else',
+      scene: '3D scene / WebGL',
+      product: 'Web product / extension',
+      performance: 'Optimization / consulting',
+    },
+    message: 'What would you like to build? *',
+    messageHint: 'Describe the idea in your own words — no technical brief needed.',
+    messagePlaceholder: 'For example: an interactive scene for our homepage…',
+    contact: 'Where can I reply? *',
+    contactPlaceholder: 'Email or @telegram',
+    contactHint: 'Enter an email address or Telegram name: @username',
+    extras: 'Have a link, timeline or budget?',
+    link: 'Project or reference link',
+    context: 'Timeline and budget, if known',
+    privacy: 'I’ll use your contact only to reply to this inquiry.',
+    submit: 'Send inquiry',
+    sending: 'Sending…',
+    success: 'Your inquiry was sent. I’ll reply using the contact you provided.',
+    error: 'Could not send your inquiry. Please try again or',
+    unavailable: 'Email delivery is not connected yet. You can',
+    emailLink: 'email me directly.',
+    close: 'Close',
+  },
+}[lang]
+---
+
+<div
+  class="project-inquiry"
+  data-project-inquiry
+  data-sending={copy.sending}
+  data-success={copy.success}
+  data-error={copy.error}
+  data-unavailable={copy.unavailable}
+  data-email-link={copy.emailLink}
+>
+  <button class="project-inquiry__trigger" type="button" data-inquiry-open>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4.5 18.5 18 5m-9 0h9v9" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" />
+    </svg>
+    <span>{copy.trigger}</span>
+  </button>
+
+  <dialog class="project-inquiry__dialog" aria-labelledby="inquiry-title" data-inquiry-dialog>
+    <div class="project-inquiry__header">
+      <div>
+        <p class="project-inquiry__eyebrow">// SONIC X BOY · CONTACT</p>
+        <h2 id="inquiry-title">{copy.title}</h2>
+        <p class="project-inquiry__intro">{copy.intro}</p>
+      </div>
+      <button class="project-inquiry__close" type="button" aria-label={copy.close} data-inquiry-close>×</button>
+    </div>
+
+    <form class="project-inquiry__form" data-inquiry-form>
+      <label for="inquiry-kind">{copy.kind}</label>
+      <select id="inquiry-kind" name="kind">
+        <option value="other">{copy.kinds.other}</option>
+        <option value="scene">{copy.kinds.scene}</option>
+        <option value="product">{copy.kinds.product}</option>
+        <option value="performance">{copy.kinds.performance}</option>
+      </select>
+
+      <label for="inquiry-message">{copy.message}</label>
+      <p class="project-inquiry__hint" id="inquiry-message-hint">{copy.messageHint}</p>
+      <textarea
+        id="inquiry-message"
+        name="message"
+        placeholder={copy.messagePlaceholder}
+        aria-describedby="inquiry-message-hint"
+        minlength="10"
+        maxlength="1800"
+        rows="4"
+        required
+      ></textarea>
+
+      <label for="inquiry-contact">{copy.contact}</label>
+      <input
+        id="inquiry-contact"
+        name="contact"
+        type="text"
+        placeholder={copy.contactPlaceholder}
+        autocomplete="email"
+        pattern="(?:[^\s@,&lt;&gt;]+@[^\s@,&lt;&gt;]+\.[^\s@,&lt;&gt;]+|(?:@|https?://t\.me/)[A-Za-z0-9_]{5,32})"
+        title={copy.contactHint}
+        maxlength="160"
+        required
+      />
+
+      <details class="project-inquiry__extras">
+        <summary>{copy.extras}</summary>
+        <label for="inquiry-link">{copy.link}</label>
+        <input id="inquiry-link" name="link" type="text" inputmode="url" maxlength="300" placeholder="https://" />
+        <label for="inquiry-context">{copy.context}</label>
+        <input id="inquiry-context" name="context" type="text" maxlength="240" />
+      </details>
+
+      <label class="project-inquiry__trap" aria-hidden="true">
+        Website
+        <input name="company_site" type="text" tabindex="-1" autocomplete="off" />
+      </label>
+      <input name="lang" type="hidden" value={lang} />
+
+      <div class="project-inquiry__footer">
+        <p>{copy.privacy}</p>
+        <button class="project-inquiry__submit" type="submit" data-inquiry-submit>{copy.submit} <span aria-hidden="true">↗</span></button>
+      </div>
+      <p class="project-inquiry__status" role="status" aria-live="polite" data-inquiry-status></p>
+    </form>
+  </dialog>
+</div>
+
+<script>
+  const root = document.querySelector<HTMLElement>('[data-project-inquiry]')
+  const trigger = root?.querySelector<HTMLButtonElement>('[data-inquiry-open]')
+  const dialog = root?.querySelector<HTMLDialogElement>('[data-inquiry-dialog]')
+  const closeButton = root?.querySelector<HTMLButtonElement>('[data-inquiry-close]')
+  const form = root?.querySelector<HTMLFormElement>('[data-inquiry-form]')
+  const submit = root?.querySelector<HTMLButtonElement>('[data-inquiry-submit]')
+  const status = root?.querySelector<HTMLElement>('[data-inquiry-status]')
+
+  if (root && trigger && dialog && closeButton && form && submit && status) {
+    const showSendError = (message: string) => {
+      const link = document.createElement('a')
+      link.href = 'mailto:hello@sonicxboy.dev'
+      link.textContent = root.dataset.emailLink ?? 'email'
+      status.replaceChildren(document.createTextNode(`${message} `), link)
+      status.dataset.state = 'error'
+    }
+
+    trigger.addEventListener('click', () => {
+      status.textContent = ''
+      status.removeAttribute('data-state')
+      dialog.showModal()
+      window.requestAnimationFrame(() => form.querySelector<HTMLTextAreaElement>('[name="message"]')?.focus())
+    })
+
+    closeButton.addEventListener('click', () => dialog.close())
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog) dialog.close()
+    })
+    dialog.addEventListener('close', () => {
+      trigger.focus()
+    })
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault()
+      if (!form.reportValidity()) return
+      const payload = Object.fromEntries(new FormData(form).entries())
+      payload.submissionId = crypto.randomUUID()
+      submit.disabled = true
+      status.textContent = root.dataset.sending ?? ''
+      status.dataset.state = 'sending'
+      try {
+        const result = await fetch('/api/inquiry', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(payload),
+        })
+        if (!result.ok) {
+          if (result.status === 503) {
+            showSendError(root.dataset.unavailable ?? '')
+            return
+          }
+          throw new Error('delivery_failed')
+        }
+        status.textContent = root.dataset.success ?? ''
+        status.dataset.state = 'success'
+        form.reset()
+      } catch {
+        showSendError(root.dataset.error ?? '')
+      } finally {
+        submit.disabled = false
+      }
+    })
+  }
+</script>
+
+<style>
+  .project-inquiry { position: relative; z-index: 2; pointer-events: auto; }
+  .project-inquiry__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.58rem;
+    min-height: 2.32rem;
+    padding: 0.55rem 0.82rem;
+    border: 1px solid rgba(90, 244, 169, 0.73);
+    border-radius: 3px;
+    background: #19d384;
+    color: #052014;
+    box-shadow: 0 0 18px rgba(24, 211, 131, 0.15);
+    font: 700 0.7rem/1.15 var(--font-mono);
+    letter-spacing: 0.065em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+  }
+  .project-inquiry__trigger:hover,
+  .project-inquiry__trigger:focus-visible {
+    transform: translateY(-2px);
+    background: #6cf3b0;
+    box-shadow: 0 0 28px rgba(24, 211, 131, 0.29);
+  }
+  .project-inquiry__trigger svg { width: 1.1rem; height: 1.1rem; }
+  .project-inquiry__dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    width: min(34rem, calc(100vw - 2rem));
+    max-height: calc(100dvh - 2rem);
+    padding: 1.55rem;
+    overflow-y: auto;
+    border: 1px solid rgba(79, 226, 151, 0.68);
+    border-radius: 6px;
+    background: linear-gradient(145deg, #091b13, #06110c 66%, #04100b);
+    box-shadow: 0 28px 90px rgba(0, 0, 0, 0.65), inset 0 0 0 1px rgba(119, 255, 183, 0.08);
+    color: #e8fff3;
+  }
+  .project-inquiry__dialog::backdrop { background: rgba(0, 5, 3, 0.78); backdrop-filter: blur(7px); }
+  .project-inquiry__header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
+  .project-inquiry__eyebrow { margin: 0 0 0.7rem; color: #39e5a1; font: 600 0.62rem/1.4 var(--font-mono); letter-spacing: 0.12em; }
+  .project-inquiry__header h2 { margin: 0; font: 700 clamp(1.45rem, 4vw, 2rem)/1.12 var(--font-display); }
+  .project-inquiry__intro { max-width: 43ch; margin: 0.65rem 0 1.25rem; color: #accab9; font: 400 0.9rem/1.55 var(--font-body); }
+  .project-inquiry__close { flex: 0 0 auto; width: 2rem; height: 2rem; border: 1px solid rgba(89, 226, 152, 0.35); border-radius: 3px; background: rgba(24, 211, 131, 0.07); color: #a7efc8; font: 400 1.6rem/1 var(--font-body); cursor: pointer; }
+  .project-inquiry__close:hover, .project-inquiry__close:focus-visible { border-color: #71f3b6; }
+  .project-inquiry__form { display: grid; gap: 0.52rem; }
+  .project-inquiry__form label { color: #e1f8eb; font: 600 0.72rem/1.35 var(--font-mono); letter-spacing: 0.025em; }
+  .project-inquiry__form input, .project-inquiry__form select, .project-inquiry__form textarea {
+    width: 100%;
+    min-height: 2.55rem;
+    padding: 0.67rem 0.75rem;
+    border: 1px solid rgba(90, 179, 129, 0.55);
+    border-radius: 3px;
+    background: rgba(0, 9, 5, 0.84);
+    color: #f3fff7;
+    font: 400 0.88rem/1.45 var(--font-body);
+  }
+  .project-inquiry__form textarea { min-height: 6.8rem; resize: vertical; }
+  .project-inquiry__form input:focus-visible, .project-inquiry__form select:focus-visible, .project-inquiry__form textarea:focus-visible { outline: 2px solid #39e5a1; outline-offset: 2px; }
+  .project-inquiry__form input::placeholder, .project-inquiry__form textarea::placeholder { color: #789685; }
+  .project-inquiry__hint { margin: -0.3rem 0 0; color: #8dad9a; font: 400 0.76rem/1.4 var(--font-body); }
+  .project-inquiry__extras { margin-top: 0.3rem; border-top: 1px solid rgba(90, 179, 129, 0.27); }
+  .project-inquiry__extras summary { padding: 0.75rem 0 0.3rem; color: #65e6a5; font: 600 0.73rem/1.4 var(--font-mono); cursor: pointer; }
+  .project-inquiry__extras[open] { display: grid; gap: 0.52rem; }
+  .project-inquiry__trap { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+  .project-inquiry__footer { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin-top: 0.7rem; }
+  .project-inquiry__footer p { max-width: 17rem; margin: 0; color: #8dad9a; font: 400 0.7rem/1.45 var(--font-body); }
+  .project-inquiry__submit { flex: 0 0 auto; min-height: 2.55rem; padding: 0.55rem 0.8rem; border: 1px solid #53eca3; border-radius: 3px; background: #19d384; color: #042015; font: 700 0.69rem/1.2 var(--font-mono); text-transform: uppercase; cursor: pointer; }
+  .project-inquiry__submit:hover, .project-inquiry__submit:focus-visible { background: #71f3b6; }
+  .project-inquiry__submit:disabled { opacity: 0.58; cursor: wait; }
+  .project-inquiry__status { min-height: 1.3rem; margin: 0.3rem 0 0; color: #a6ecd0; font: 400 0.75rem/1.4 var(--font-body); }
+  .project-inquiry__status[data-state='error'] { color: #ffb49d; }
+  .project-inquiry__status :global(a) { color: #77efb1; text-decoration: underline; text-underline-offset: 2px; }
+  @media (max-width: 720px) {
+    .project-inquiry { display: none; }
+    .project-inquiry__trigger { min-height: 2.38rem; padding: 0.4rem 0.58rem; font-size: 0.63rem; }
+    .project-inquiry__trigger svg { width: 0.95rem; height: 0.95rem; }
+    .project-inquiry__dialog { width: min(34rem, calc(100vw - 1rem)); max-height: calc(100dvh - 1rem); padding: 1.15rem; }
+    .project-inquiry__footer { align-items: stretch; flex-direction: column; }
+    .project-inquiry__submit { width: 100%; }
+  }
+</style>

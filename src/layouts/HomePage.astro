@@ -8,6 +8,7 @@ import '@fontsource-variable/onest'
 import '@fontsource-variable/jetbrains-mono'
 import BrandMark from '../components/BrandMark.astro'
 import HeroScene from '../components/HeroScene.tsx'
+import ProjectInquiry from '../components/ProjectInquiry.astro'
 import { SITE, SOURCE_REPOSITORY, translations, type Lang } from '../i18n.ts'
 
 interface Props {
@@ -19,7 +20,6 @@ const t = translations[lang]
 const canonical = lang === 'ru' ? `${SITE}/` : `${SITE}/en/`
 const resumeFilename = `Tamerlan-Askerov-CV-${lang.toUpperCase()}.pdf`
 const resumeHref = `/resume/${resumeFilename}`
-const emailHref = `mailto:hello@sonicxboy.dev?subject=${encodeURIComponent(lang === 'ru' ? 'Проект для SonicXBoy' : 'Project inquiry for SonicXBoy')}`
 
 // ── Air-support cylinders, generated once at build time ──────────────
 // Nine approved nested ellipses, each extruded upward into a continuous
@@ -3108,13 +3108,7 @@ const sourceSchema = {
         <span>{t.resumeLabel}</span>
         <span class="resume-download__format">PDF</span>
       </a>
-      <a class="email-contact" href={emailHref} aria-label={t.emailAria} data-email-contact>
-        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path d="M3.5 5.5h17v13h-17z" stroke="currentColor" stroke-width="1.5" />
-          <path d="m4.5 7 7.5 6 7.5-6" stroke="currentColor" stroke-width="1.5" />
-        </svg>
-        <span>{t.emailLabel}</span>
-      </a>
+      <ProjectInquiry lang={lang} />
       </div>
 
       <div class="tech-stack">
