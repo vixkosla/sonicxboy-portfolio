@@ -1,0 +1,31 @@
+{
+  "available": true,
+  "scope": "portfolio-home-pages",
+  "source": "api",
+  "refreshedAt": "2026-09-30T12:26:02.564Z",
+  "siteUrl": "https://sonicxboy.dev/",
+  "pages": [
+    {
+      "path": "/",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "robotsTxtState": "ALLOWED",
+      "indexingState": "INDEXING_ALLOWED",
+      "pageFetchState": "SUCCESSFUL",
+      "lastCrawlTime": "2026-09-13T12:52:05Z",
+      "googleCanonical": "https://sonicxboy.dev/",
+      "userCanonical": "https://sonicxboy.dev/"
+    },
+    {
+      "path": "/en/",
+      "verdict": "PASS",
+      "coverageState": "Submitted and indexed",
+      "robotsTxtState": "ALLOWED",
+      "indexingState": "INDEXING_ALLOWED",
+      "pageFetchState": "SUCCESSFUL",
+      "lastCrawlTime": "2026-09-28T15:46:12Z",
+      "googleCanonical": "https://sonicxboy.dev/en/",
+      "userCanonical": "https://sonicxboy.dev/en/"
+    }
+  ]
+}

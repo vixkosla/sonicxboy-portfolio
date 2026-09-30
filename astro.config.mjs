@@ -11,7 +11,12 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
-      filter: (page) => !page.endsWith('/viewports/') && !page.endsWith('/stats/'),
+      filter: (page) =>
+        !page.endsWith('/viewports/') &&
+        !page.endsWith('/stats/') &&
+        !page.endsWith('/en/stats/') &&
+        !page.endsWith('/stats/privacy/') &&
+        !page.endsWith('/horus/'),
     }),
   ],
 });

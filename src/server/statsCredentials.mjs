@@ -20,7 +20,7 @@ export function loadStatsCredentials() {
       clientSecret: process.env.GOOGLE_CLIENT_SECRET || google.client_secret,
       refreshToken: process.env.GOOGLE_REFRESH_TOKEN || tokens.google?.refreshToken,
       accessToken: process.env.GOOGLE_ACCESS_TOKEN || (Number(tokens.google?.expiresAt) > Date.now() + 60_000 ? tokens.google.accessToken : undefined),
-      siteUrl: process.env.GSC_SITE_URL || 'sc-domain:sonicxboy.dev',
+      siteUrl: process.env.GSC_SITE_URL || 'https://sonicxboy.dev/',
     },
   }
 }

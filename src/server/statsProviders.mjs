@@ -77,7 +77,7 @@ export async function collectMetrika({ token, now = new Date(), fetchImpl = fetc
 }
 
 export async function collectGoogle({ credentials, now = new Date(), fetchImpl = fetch }) {
-  const { clientId, clientSecret, refreshToken, accessToken: suppliedAccessToken, siteUrl = 'sc-domain:sonicxboy.dev' } = credentials
+  const { clientId, clientSecret, refreshToken, accessToken: suppliedAccessToken, siteUrl = 'https://sonicxboy.dev/' } = credentials
   if (!suppliedAccessToken && !(clientId && clientSecret && refreshToken)) {
     throw Object.assign(new Error('Search Console is not connected'), { code: 'not-connected' })
   }

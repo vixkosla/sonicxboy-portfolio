@@ -1,15 +1,16 @@
 {
   "available": true,
   "scope": "portfolio-home-pages",
-  "source": "manual-export",
-  "refreshedAt": "2026-09-29T11:37:02.486Z",
+  "source": "api",
+  "refreshedAt": "2026-09-30T12:06:38.663Z",
   "siteUrl": "https://sonicxboy.dev/",
   "requestedWindowDays": 28,
   "period": {
-    "startDate": "2026-08-29",
-    "endDate": "2026-09-25"
+    "startDate": "2026-09-02",
+    "endDate": "2026-09-29",
+    "timeZone": "America/Los_Angeles"
   },
-  "dataThrough": "2026-09-25",
+  "dataThrough": "2026-09-29",
   "firstIncompleteDate": null,
   "totals": {
     "clicks": 0,
@@ -19,130 +20,102 @@
   },
   "daily": [
     {
-      "date": "2026-08-29",
-      "clicks": 0,
-      "impressions": 0,
-      "ctr": 0,
-      "position": 0
-    },
-    {
-      "date": "2026-08-30",
-      "clicks": 0,
-      "impressions": 0,
-      "ctr": 0,
-      "position": 0
-    },
-    {
-      "date": "2026-08-31",
-      "clicks": 0,
-      "impressions": 0,
-      "ctr": 0,
-      "position": 0
-    },
-    {
-      "date": "2026-09-01",
-      "clicks": 0,
-      "impressions": 0,
-      "ctr": 0,
-      "position": 0
-    },
-    {
       "date": "2026-09-02",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-03",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-04",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-05",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-06",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-07",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-08",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-09",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-10",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-11",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-12",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-13",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-14",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-15",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-16",
@@ -156,63 +129,91 @@
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-18",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-19",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-20",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-21",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-22",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-23",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-24",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
     },
     {
       "date": "2026-09-25",
       "clicks": 0,
       "impressions": 0,
       "ctr": 0,
-      "position": 0
+      "position": null
+    },
+    {
+      "date": "2026-09-26",
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": 0,
+      "position": null
+    },
+    {
+      "date": "2026-09-27",
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": 0,
+      "position": null
+    },
+    {
+      "date": "2026-09-28",
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": 0,
+      "position": null
+    },
+    {
+      "date": "2026-09-29",
+      "clicks": 0,
+      "impressions": 0,
+      "ctr": 0,
+      "position": null
     }
   ],
   "queries": [],

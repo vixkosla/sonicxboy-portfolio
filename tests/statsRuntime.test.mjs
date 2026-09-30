@@ -58,6 +58,7 @@ test('Google refreshes its access token and applies the scope filter to totals a
   }
   const result = await collectGoogle({ credentials: { clientId: 'client', clientSecret: 'secret', refreshToken: 'refresh' }, now: new Date('2026-09-28T01:00:00Z'), fetchImpl })
   assert.equal(requests.length, 4)
+  assert.equal(result.siteUrl, 'https://sonicxboy.dev/')
   assert.ok(requests.every((q) => q.dimensionFilterGroups[0].filters[0].expression === GOOGLE_PAGE_FILTER))
   assert.equal(result.totals.clicks, 2)
   assert.equal(result.pages[0].path, '/en/')

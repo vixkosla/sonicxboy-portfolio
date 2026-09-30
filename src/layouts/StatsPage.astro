@@ -18,6 +18,7 @@ Astro.response.headers.set('CDN-Cache-Control', 'no-store')
 const dashboard = await getStatsDashboard()
 const traffic = dashboard.metrika.data
 const google = dashboard.google.data
+const indexing = dashboard.indexing.data
 const number = (value: number | null | undefined) => value == null ? '—' : value.toLocaleString(locale)
 const percent = (value: number) => (value * 100).toLocaleString(locale, { maximumFractionDigits: 1 }) + '%'
 const date = (value: string | null | undefined) => value ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(new Date(value + 'T12:00:00Z')) : '—'
@@ -159,7 +160,7 @@ const metrics = traffic ? [
               <div class="metric"><span class="metric-label">CTR</span><strong>{percent(google.totals.ctr)}</strong><span class="metric-note">{t('доля показов с кликом', 'impressions that led to a click')}</span></div>
               <div class="metric"><span class="metric-label">{t('Средняя позиция', 'Average position')}</span><strong>{position(google.totals.position)}</strong><span class="metric-note">{t('по всем показам за период', 'across impressions in this period')}</span></div>
             </div>
-            <p class="note google-note">{t('Google публикует данные с задержкой.', 'Google reports data with a delay.')} {google.dataThrough && t('Последний день с данными: ', 'Latest day with data: ') + date(google.dataThrough) + '.'} {google.firstIncompleteDate && t('Данные с ', 'Data from ') + date(google.firstIncompleteDate) + t(' ещё уточняются.', ' is still being finalized.')}</p>
+            <p class="note google-note">{t('Google публикует данные с задержкой.', 'Google reports data with a delay.')} {google.dataThrough && t('Последний день с данными: ', 'Latest day with data: ') + date(google.dataThrough)} {google.firstIncompleteDate && t('Данные с ', 'Data from ') + date(google.firstIncompleteDate) + t(' ещё уточняются.', ' is still being finalized.')}</p>
             <div class="query-card">
               <h3>{t('По каким запросам находят', 'Queries that bring people here')}</h3>
               {google.queries.length ? <div class="table-scroll"><table>
@@ -178,10 +179,25 @@ const metrics = traffic ? [
             </div>
           </div>
         )}
+        {indexing && <div class="index-card">
+          <div class="index-heading">
+            <h3>{t('Индексация главных страниц', 'Main pages in Google’s index')}</h3>
+            <p>{dashboard.indexing.status === 'stale' ? t('Сохранённая проверка', 'Saved inspection') : t('Проверено Google', 'Checked with Google')}{' · '}<time datetime={indexing.refreshedAt}>{timestamp(indexing.refreshedAt)}</time></p>
+          </div>
+          <ul class="index-list">
+            {indexing.pages.map((page: { path: string; verdict: string; lastCrawlTime: string | null; googleCanonical: string | null }) => <li>
+              <code>{page.path}</code>
+              <strong class:list={[{ 'index-warning': page.verdict !== 'PASS' }]}>{page.verdict === 'PASS' ? t('В индексе', 'Indexed') : t('Индексация не подтверждена', 'Indexing not confirmed')}</strong>
+              <span>{page.lastCrawlTime ? <>{t('Последний обход: ', 'Last crawl: ')}<time datetime={page.lastCrawlTime}>{timestamp(page.lastCrawlTime)}</time></> : t('Дата обхода неизвестна', 'Crawl date unavailable')}</span>
+              {page.googleCanonical && page.googleCanonical !== new URL(page.path, SITE).href && <span class="index-warning">{t('Google выбрал другой канонический адрес', 'Google selected a different canonical URL')}</span>}
+            </li>)}
+          </ul>
+          <p class="note">{t('Проверка показывает статус версии в индексе Google, а не результат сканирования страницы прямо сейчас.', 'This is the status of Google’s indexed version, not a live-page test.')}</p>
+        </div>}
       </section>
-      <p class="method">{t('Отчёт учитывает русскую и английскую главные страницы портфолио. Основной период — 28 полных дней, сегодняшний день показан отдельно. Метрика проверяется при открытии страницы; данные Google обновляются автоматически только после подключения API.', 'This report covers the Russian and English portfolio home pages. The main period contains 28 complete days; today is shown separately. Metrica is checked when the page opens; Google data refreshes automatically only after its API is connected.')}</p>
+      <p class="method">{t('Только русская и английская главные страницы портфолио. Метрика и поисковые данные обновляются сервером с кэшем до 5 минут; статус индексации — до 12 часов. Сегодняшний день неполный.', 'Only the Russian and English portfolio home pages. Server data has up to 5 minutes of cache for traffic and search, and up to 12 hours for index status. Today is a partial day.')}</p>
     </main>
-    <footer><a href={lang === 'ru' ? '/' : '/en/'}>{t('← Вернуться к портфолио', '← Back to the portfolio')}</a><a href={SOURCE_REPOSITORY}>{t('Исходный код', 'Source code')}</a></footer>
+    <footer><a href={lang === 'ru' ? '/' : '/en/'}>{t('← Вернуться к портфолио', '← Back to the portfolio')}</a><a href="/stats/privacy/">{t('Данные и условия', 'Data use and terms')}</a><a href={SOURCE_REPOSITORY}>{t('Исходный код', 'Source code')}</a></footer>
   </body>
 </html>
 
@@ -251,6 +267,16 @@ const metrics = traffic ? [
   .pending-mark { color: #72a588; font-size: 32px; font-weight: 600; }
   .google-pending p { font-size: 12px; color: #9fb6a8; max-width: 650px; line-height: 1.8; margin-top: 9px; }
   .google-note { margin-top: 14px; margin-bottom: 20px; }
+  .index-card { margin-top: 18px; border: 1px solid #284b37; border-radius: 10px; padding: 22px 24px; background: #10241980; }
+  .index-heading { display: flex; justify-content: space-between; align-items: baseline; flex-wrap: wrap; gap: 7px 20px; }
+  .index-heading p { font-size: 11px; color: #91ac9b; }
+  .index-list { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 0; margin: 18px 0 0; list-style: none; }
+  .index-list li { display: flex; flex-direction: column; gap: 7px; border: 1px solid #2c4938; border-radius: 7px; padding: 15px 17px; min-width: 0; }
+  .index-list code { color: #e7f8ed; font-size: 13px; }
+  .index-list strong { color: #adf1c9; font-size: 15px; font-weight: 500; }
+  .index-list span { color: #97ad9d; font-size: 11px; line-height: 1.5; }
+  .index-list .index-warning { color: #e9ca91; }
+  .index-card .note { margin-top: 16px; }
   .table-scroll { overflow-x: auto; margin-top: 20px; }
   table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
   th, td { padding: 13px 10px; border-bottom: 1px solid #253f30; font-weight: 400; }
@@ -285,6 +311,8 @@ const metrics = traffic ? [
     .chart-heading { flex-wrap: wrap; }
     .chart-foot { flex-direction: column; gap: 8px; }
     .google-pending { padding: 22px 18px; gap: 16px; align-items: flex-start; }
+    .index-card { padding: 20px 16px; }
+    .index-list { grid-template-columns: 1fr; }
     .search-section { margin-top: 30px; }
   }
 </style>

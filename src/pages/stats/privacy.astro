@@ -1,0 +1,53 @@
+---
+import '@fontsource-variable/onest'
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, follow" />
+    <link rel="canonical" href="https://sonicxboy.dev/stats/privacy/" />
+    <title>Данные и условия статистики — SonicXBoy</title>
+    <meta name="description" content="Как SonicXBoy Stats использует данные Google Search Console и Яндекс.Метрики." />
+  </head>
+  <body>
+    <main>
+      <p class="eyebrow">SONICXBOY / STATS</p>
+      <h1>Данные и условия статистики</h1>
+      <p class="date">Обновлено 30.09.2026</p>
+      <section id="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Использование данных</h2>
+        <p>SonicXBoy Stats запрашивает у владельца сайта доступ к Google Search Console только на чтение. Приложение обращается к данным главных страниц <code>sonicxboy.dev</code>, чтобы показывать на <a href="/stats/">странице статистики</a> суммарные показы, клики, позиции и поисковые запросы. Там же показываются сводные данные Яндекс.Метрики о посещениях и переходах к контакту.</p>
+        <p>OAuth-токены и ключи хранятся в закрытых настройках сервера и локальном хранилище владельца, не передаются браузеру посетителя и не публикуются в исходном коде. Доступ к Google можно отозвать в <a href="https://myaccount.google.com/permissions">настройках аккаунта Google</a>. Данные Google обновляются через Search Console API; при недоступности API может показываться сохранённый отчёт с датой его получения.</p>
+        <p>По вопросам доступа и данных можно связаться с владельцем через <a href="/#contact">портфолио SonicXBoy</a>.</p>
+      </section>
+      <section id="terms" aria-labelledby="terms-title">
+        <h2 id="terms-title">Условия использования</h2>
+        <p>Статистика опубликована для информации о работе портфолио. Показатели предоставляются Google Search Console и Яндекс.Метрикой, могут поступать с задержкой и не являются гарантией будущих результатов. SonicXBoy Stats не является продуктом Google или Яндекса.</p>
+      </section>
+      <section lang="en" aria-labelledby="english-title">
+        <h2 id="english-title">English summary</h2>
+        <p>SonicXBoy Stats requests read-only access to the site owner's Google Search Console data and queries the main pages on <code>sonicxboy.dev</code>. It publishes aggregate impressions, clicks, positions and search queries on the <a href="/en/stats/">statistics page</a>, alongside aggregate traffic data from Yandex Metrica. OAuth tokens and keys stay in private server settings and the owner's local storage; they are not sent to visitors' browsers or published in source code. The owner can revoke Google access in <a href="https://myaccount.google.com/permissions">Google Account permissions</a>. Reports may be delayed or temporarily show a dated saved copy. This information is provided as-is and is not a Google or Yandex product.</p>
+      </section>
+      <footer><a href="/stats/">← Статистика</a><a href="/">Портфолио</a></footer>
+    </main>
+  </body>
+</html>
+
+<style>
+  :global(*) { box-sizing: border-box; }
+  :global(html) { background: #060b09; color-scheme: dark; }
+  :global(body) { margin: 0; color: #e9f1ed; font-family: 'Onest Variable', system-ui, sans-serif; }
+  :global(a) { color: #85f0bd; }
+  :global(a:focus-visible) { outline: 2px solid #82ebbc; outline-offset: 4px; }
+  main { width: min(760px, calc(100% - 40px)); margin: 0 auto; padding: 64px 0; }
+  .eyebrow { color: #79c79f; font-size: 11px; letter-spacing: .13em; }
+  h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.15; }
+  h2 { margin-top: 40px; font-size: 22px; }
+  p { line-height: 1.7; }
+  .date { color: #9cb0a5; font-size: 13px; }
+  code { color: #85f0bd; }
+  footer { display: flex; gap: 24px; margin-top: 48px; border-top: 1px solid #244435; padding-top: 24px; }
+</style>

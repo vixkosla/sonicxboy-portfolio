@@ -28,6 +28,13 @@ const run = (script) =>
     child.on('exit', (code) => (code === 0 ? resolve() : reject(new Error(`${script} exited ${code}`))))
   })
 
+const googleConfigured = Boolean(
+  process.env.GOOGLE_ACCESS_TOKEN ||
+    process.env.GOOGLE_REFRESH_TOKEN ||
+    localTokens.google?.accessToken ||
+    localTokens.google?.refreshToken,
+)
+
 const providers = [
   {
     name: 'Яндекс.Метрика',
@@ -36,13 +43,13 @@ const providers = [
   },
   {
     name: 'Google Search Console',
-    configured: Boolean(
-      process.env.GOOGLE_ACCESS_TOKEN ||
-        process.env.GOOGLE_REFRESH_TOKEN ||
-        localTokens.google?.accessToken ||
-        localTokens.google?.refreshToken,
-    ),
+    configured: googleConfigured,
     script: 'fetch-google-stats.mjs',
+  },
+  {
+    name: 'Google Indexing',
+    configured: googleConfigured,
+    script: 'fetch-google-index.mjs',
   },
 ]
 
