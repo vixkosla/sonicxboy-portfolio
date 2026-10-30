@@ -1,0 +1,692 @@
+---
+import '@fontsource-variable/onest'
+import '@fontsource-variable/jetbrains-mono'
+import { ClientRouter } from 'astro:transitions'
+import BrandMark from '../components/BrandMark.astro'
+import { SITE } from '../i18n.ts'
+import { PRODUCT_TREE, PRODUCTS_CRUMB, type Crumb } from '../data/products.ts'
+
+interface Props {
+  title: string
+  description: string
+  // Path segments after /products/, e.g. ['telegram-mcp', 'install.md'].
+  file: string[]
+  crumbs: Crumb[]
+  schema?: Record<string, unknown>
+}
+
+const { title, description, file, crumbs, schema } = Astro.props
+const pathname = Astro.url.pathname.endsWith('/')
+  ? Astro.url.pathname
+  : `${Astro.url.pathname}/`
+const canonical = `${SITE}${pathname}`
+
+const breadcrumbs = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [{ name: 'SonicXBoy', href: '/' }, PRODUCTS_CRUMB, ...crumbs]
+    .filter((crumb, index, all) => all.findIndex((other) => other.href === crumb.href) === index)
+    .map((crumb, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: crumb.name,
+      item: `${SITE}${crumb.href}`,
+    })),
+}
+
+// Rendered as a file tree. Glyphs are computed from depth and the next
+// sibling so the ASCII branches stay correct when entries are added.
+const rows = PRODUCT_TREE.map((entry, index) => {
+  const rest = PRODUCT_TREE.slice(index + 1)
+  const nextSibling = rest.find((other) => other.depth <= entry.depth)
+  const last = !nextSibling || nextSibling.depth < entry.depth
+  const parentLast =
+    entry.depth === 2 &&
+    !PRODUCT_TREE.slice(index + 1).some((other) => other.depth === 1)
+  const indent = entry.depth === 2 ? (parentLast ? '   ' : '│  ') : ''
+  return { ...entry, glyph: `${indent}${last ? '└─' : '├─'}` }
+})
+---
+
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="robots" content="index, follow, max-snippet:-1" />
+    <link rel="canonical" href={canonical} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#050907" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="SonicXBoy" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={`${SITE}/og.png`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json" set:html={JSON.stringify(breadcrumbs)} />
+    {schema && <script type="application/ld+json" set:html={JSON.stringify(schema)} />}
+    <ClientRouter fallback="swap" />
+  </head>
+  <body>
+    <a class="skip-link" href="#readme">К содержанию</a>
+
+    <header class="bar" transition:persist="products-bar">
+      <span class="bar__mark"><BrandMark /></span>
+      <nav class="bar__nav" aria-label="Разделы сайта">
+        <a href="/">Главная</a>
+        <a href="/products/" data-section>Продукты</a>
+        <a href="https://github.com/vixkosla" rel="me">GitHub</a>
+      </nav>
+    </header>
+
+    <div class="frame">
+      <aside class="tree" transition:persist="products-tree" aria-label="Страницы раздела">
+        <p class="tree__root">~/products</p>
+        <ul>
+          {rows.map((row) =>
+            row.folder ? (
+              <li class="tree__row tree__row--folder">
+                <span class="tree__glyph" aria-hidden="true">{row.glyph}</span>
+                <span class="tree__file">{row.file}</span>
+              </li>
+            ) : (
+              <li class="tree__row">
+                <span class="tree__glyph" aria-hidden="true">{row.glyph}</span>
+                <a class="tree__link" href={row.href} data-tree-link>
+                  <span class="tree__file">{row.file}</span>
+                  <span class="tree__label">{row.label}</span>
+                </a>
+              </li>
+            ),
+          )}
+        </ul>
+        <p class="tree__note">
+          Каждая страница — отдельный адрес. Дерево остаётся на месте, меняется
+          только текст.
+        </p>
+      </aside>
+
+      <main id="readme" class="readme" transition:animate="fade">
+        <p class="path" aria-label="Путь к странице">
+          <span class="path__dim">~/products/</span>{file.join('/')}
+        </p>
+        <slot />
+      </main>
+    </div>
+
+    <footer class="foot">
+      <span>© SonicXBoy · Санкт-Петербург</span>
+      <a href="https://t.me/vixkosla">Написать в Telegram</a>
+    </footer>
+
+    <script>
+      // The tree and bar persist between pages, so their current-page state
+      // is refreshed after every client-side swap rather than in the markup.
+      const markCurrent = () => {
+        const here = window.location.pathname.replace(/\/?$/, '/')
+        document.querySelectorAll<HTMLAnchorElement>('[data-tree-link]').forEach((link) => {
+          if (link.pathname === here) link.setAttribute('aria-current', 'page')
+          else link.removeAttribute('aria-current')
+        })
+        document.querySelectorAll<HTMLAnchorElement>('[data-section]').forEach((link) => {
+          link.setAttribute('aria-current', 'location')
+        })
+      }
+      document.addEventListener('astro:page-load', markCurrent)
+    </script>
+  </body>
+</html>
+
+<style is:global>
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  :root {
+    --bg: #050907;
+    --panel: #08100c;
+    --ink: #e8f5ee;
+    --ink-dim: rgba(218, 238, 229, 0.72);
+    --ink-faint: rgba(218, 238, 229, 0.46);
+    --line: rgba(24, 211, 131, 0.16);
+    --line-strong: rgba(24, 211, 131, 0.34);
+    --emerald: #18d383;
+    --mint: #7dffc7;
+    --emerald-deep: #0a7a4c;
+    --mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --body: 'Onest Variable', system-ui, sans-serif;
+    --tree-w: 17.5rem;
+    color-scheme: dark;
+  }
+
+  html {
+    background: var(--bg);
+    scroll-padding-top: 5.5rem;
+  }
+
+  body {
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    color: var(--ink);
+    background:
+      linear-gradient(90deg, rgba(24, 211, 131, 0.035) 1px, transparent 1px) 0 0 / 4rem 4rem,
+      var(--bg);
+    font-family: var(--body);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    color: var(--bg);
+    background: var(--emerald);
+  }
+
+  a {
+    color: inherit;
+  }
+
+  a:focus-visible {
+    outline: 2px solid var(--emerald);
+    outline-offset: 3px;
+  }
+
+  .skip-link {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 100;
+    padding: 0.6rem 0.85rem;
+    color: var(--bg);
+    background: var(--emerald);
+    font: 600 0.75rem/1 var(--mono);
+    transform: translateY(-160%);
+  }
+
+  .skip-link:focus {
+    transform: none;
+  }
+
+  /* ── Bar ─────────────────────────────────────────────── */
+
+  .bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 4.5rem;
+    padding: 0.7rem clamp(1rem, 4vw, 3.5rem);
+    border-bottom: 1px solid var(--line);
+    background: rgba(5, 9, 7, 0.86);
+    backdrop-filter: blur(14px);
+  }
+
+  .bar__mark {
+    display: inline-flex;
+    font-size: 0.5rem;
+  }
+
+  .bar__nav {
+    display: flex;
+    gap: clamp(0.9rem, 2.2vw, 2rem);
+    font: 600 0.7rem/1 var(--mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .bar__nav a {
+    color: var(--ink-dim);
+    text-decoration: none;
+    transition: color 0.2s ease;
+  }
+
+  .bar__nav a:hover,
+  .bar__nav a[aria-current] {
+    color: var(--emerald);
+  }
+
+  /* ── Frame: persistent tree + README column ──────────── */
+
+  .frame {
+    flex: 1;
+    display: grid;
+    grid-template-columns: var(--tree-w) minmax(0, 1fr);
+    width: 100%;
+    max-width: 78rem;
+    margin: 0 auto;
+    padding: 0 clamp(1rem, 4vw, 3.5rem);
+  }
+
+  .tree {
+    position: sticky;
+    top: 4.5rem;
+    align-self: start;
+    max-height: calc(100vh - 4.5rem);
+    overflow-y: auto;
+    padding: 2.6rem 1.5rem 2rem 0;
+    border-right: 1px solid var(--line);
+    font: 500 0.8rem/1.2 var(--mono);
+  }
+
+  .tree__root {
+    margin: 0 0 0.9rem;
+    color: var(--emerald);
+    letter-spacing: 0.04em;
+  }
+
+  .tree ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .tree__row {
+    display: flex;
+    align-items: baseline;
+    white-space: pre;
+  }
+
+  .tree__glyph {
+    flex: none;
+    color: var(--line-strong);
+  }
+
+  .tree__row--folder .tree__file {
+    padding: 0.42rem 0.5rem;
+    color: var(--ink);
+  }
+
+  .tree__link {
+    display: flex;
+    flex: 1;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-width: 0;
+    padding: 0.42rem 0.5rem;
+    border-radius: 3px;
+    color: var(--ink-dim);
+    text-decoration: none;
+    transition: color 0.18s ease, background 0.18s ease;
+  }
+
+  .tree__label {
+    color: var(--ink-faint);
+    font-family: var(--body);
+    font-size: 0.74rem;
+  }
+
+  .tree__link:hover {
+    color: var(--ink);
+    background: rgba(24, 211, 131, 0.07);
+  }
+
+  .tree__link[aria-current='page'] {
+    color: var(--bg);
+    background: var(--emerald);
+  }
+
+  .tree__link[aria-current='page'] .tree__label {
+    color: rgba(5, 9, 7, 0.72);
+  }
+
+  .tree__note {
+    margin: 2rem 0 0;
+    max-width: 22ch;
+    color: var(--ink-faint);
+    font: 400 0.72rem/1.55 var(--body);
+    white-space: normal;
+  }
+
+  /* ── README typography ───────────────────────────────── */
+
+  .readme {
+    min-width: 0;
+    max-width: 46rem;
+    padding: 2.4rem 0 5rem clamp(1.5rem, 4vw, 4rem);
+  }
+
+  .path {
+    margin: 0 0 2.2rem;
+    color: var(--ink);
+    font: 500 0.74rem/1.4 var(--mono);
+    overflow-wrap: anywhere;
+  }
+
+  .path__dim {
+    color: var(--ink-faint);
+  }
+
+  .readme h1,
+  .readme h2,
+  .readme h3 {
+    margin: 0;
+    font-weight: 650;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+  }
+
+  .readme h1 {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+  }
+
+  .readme h2 {
+    margin-top: 2.8rem;
+    padding-top: 1.4rem;
+    border-top: 1px solid var(--line);
+    font-size: 1.3rem;
+  }
+
+  .readme h3 {
+    margin-top: 1.8rem;
+    font-size: 1.02rem;
+  }
+
+  /* Markdown heading markers, dimmed like a raw README. */
+  .readme h1::before,
+  .readme h2::before,
+  .readme h3::before {
+    margin-right: 0.55em;
+    color: var(--emerald-deep);
+    font-family: var(--mono);
+    font-weight: 500;
+  }
+
+  .readme h1::before {
+    content: '#';
+  }
+
+  .readme h2::before {
+    content: '##';
+  }
+
+  .readme h3::before {
+    content: '###';
+  }
+
+  .readme p,
+  .readme ul,
+  .readme ol {
+    margin: 1rem 0 0;
+    color: var(--ink-dim);
+  }
+
+  .readme ul,
+  .readme ol {
+    padding-left: 1.25rem;
+  }
+
+  .readme li + li {
+    margin-top: 0.35rem;
+  }
+
+  .readme li::marker {
+    color: var(--emerald);
+  }
+
+  .readme strong {
+    color: var(--ink);
+    font-weight: 620;
+  }
+
+  .readme a {
+    color: var(--mint);
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 0.2em;
+  }
+
+  .readme a:hover {
+    text-decoration-color: var(--mint);
+  }
+
+  .readme code {
+    padding: 0.08em 0.36em;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    color: var(--ink);
+    background: rgba(24, 211, 131, 0.06);
+    font: 500 0.84em/1 var(--mono);
+  }
+
+  .readme pre {
+    margin: 1.2rem 0 0;
+    padding: 1rem 1.15rem;
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--emerald);
+    border-radius: 3px;
+    background: var(--panel);
+    font: 450 0.8rem/1.6 var(--mono);
+  }
+
+  .readme pre code {
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+  }
+
+  .readme .lead {
+    margin-top: 1.2rem;
+    color: var(--ink);
+    font-size: 1.12rem;
+    line-height: 1.6;
+  }
+
+  .readme figure {
+    margin: 1.4rem 0 0;
+  }
+
+  .readme figure img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--panel);
+  }
+
+  .readme figcaption {
+    margin-top: 0.55rem;
+    color: var(--ink-faint);
+    font: 500 0.72rem/1.45 var(--mono);
+  }
+
+  .readme blockquote {
+    margin: 1.4rem 0 0;
+    padding: 0.2rem 0 0.2rem 1rem;
+    border-left: 2px solid var(--line-strong);
+  }
+
+  .readme blockquote p {
+    margin: 0;
+  }
+
+  .readme table {
+    width: 100%;
+    margin-top: 1.2rem;
+    border-collapse: collapse;
+    font-size: 0.92rem;
+  }
+
+  .readme th,
+  .readme td {
+    padding: 0.6rem 0.75rem 0.6rem 0;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .readme th {
+    color: var(--ink-faint);
+    font: 600 0.68rem/1.3 var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .readme td {
+    color: var(--ink-dim);
+  }
+
+  .readme td:first-child {
+    white-space: nowrap;
+  }
+
+  .readme .badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 1rem;
+    padding: 0;
+    list-style: none;
+  }
+
+  .readme .badges li {
+    margin: 0;
+    padding: 0.26rem 0.55rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    color: var(--emerald);
+    font: 600 0.66rem/1 var(--mono);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Bottom pager: previous / next page in the tree. */
+  .pager {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-top: 3.5rem;
+  }
+
+  .readme .pager a {
+    display: block;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    color: var(--ink);
+    text-decoration: none;
+    transition: border-color 0.18s ease, background 0.18s ease;
+  }
+
+  .readme .pager a:hover {
+    border-color: var(--line-strong);
+    background: rgba(24, 211, 131, 0.05);
+  }
+
+  .pager small {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--ink-faint);
+    font: 600 0.64rem/1 var(--mono);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .pager__next {
+    grid-column: 2;
+    text-align: right;
+  }
+
+  .foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.4rem clamp(1rem, 4vw, 3.5rem);
+    border-top: 1px solid var(--line);
+    color: var(--ink-faint);
+    font: 500 0.7rem/1.4 var(--mono);
+  }
+
+  .foot a {
+    color: var(--ink-dim);
+    text-decoration: none;
+  }
+
+  .foot a:hover {
+    color: var(--emerald);
+  }
+
+  /* ── Narrow screens: tree becomes a scrollable strip ─── */
+
+  @media (max-width: 860px) {
+    .bar {
+      min-height: 3.75rem;
+    }
+
+    .bar__nav a:not([data-section]):not(:first-child) {
+      display: none;
+    }
+
+    .frame {
+      grid-template-columns: minmax(0, 1fr);
+      padding: 0 1rem;
+    }
+
+    .tree {
+      position: static;
+      max-height: none;
+      padding: 1rem 0 0.9rem;
+      border-right: 0;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    .tree__root,
+    .tree__note,
+    .tree__glyph,
+    .tree__link .tree__file,
+    .tree__row--folder {
+      display: none;
+    }
+
+    .tree__label {
+      color: inherit;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+
+    .tree ul {
+      display: flex;
+      gap: 0.35rem;
+    }
+
+    .tree__link {
+      padding: 0.45rem 0.6rem;
+      border: 1px solid var(--line);
+    }
+
+    .readme {
+      padding: 1.6rem 0 3.5rem;
+    }
+
+    .readme td:first-child {
+      white-space: normal;
+    }
+
+    .pager {
+      grid-template-columns: 1fr;
+    }
+
+    .pager__next {
+      grid-column: 1;
+    }
+
+    .foot {
+      flex-direction: column;
+    }
+  }
+</style>

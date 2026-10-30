@@ -114,7 +114,7 @@ import {
   PLASMA_WARM_DURATION,
   PLASMA_WARM_START,
 } from '../lib/plasmaIgnitionScale.ts'
-import { SOURCE_REPOSITORY } from '../i18n.ts'
+import { BEHANCE_PROFILE, SOURCE_REPOSITORY } from '../i18n.ts'
 
 const EMERALD = new Color('#18d383')
 const STRUCTURAL_EMISSIVE_COLOR = new Color('#063d2b')
@@ -392,6 +392,9 @@ const HERO_PLATE_RECOIL_DURATION = 0.15
 const HERO_PLATE_FLIGHT_DURATION = 1.55
 const HERO_CARD_REVEAL =
   HERO_PLATE_LAUNCH_START + HERO_PLATE_RECOIL_DURATION + 1.27
+// Skip-to-end target (SpinSimulation.elapsed): the same settled card beat the
+// `card` preview stage uses - the hero plate has landed and the card is open.
+const FINALE_SPIN_ELAPSED = MAIN_SPIN_START + HERO_CARD_REVEAL + 0.42
 // Give the air-support oval its own closing beat before the card arrives.
 // CSS uses this lead to fold the near/inner lanes away first, instead of
 // cutting the entire figure on the same frame as the card reveal.
@@ -989,9 +992,12 @@ interface AssemblyCubeProps {
   // The public pause control freezes the choreography clock. Restart remounts
   // this component with a fresh React key, resetting its simulations and DOM.
   paused?: boolean
+  // Skip-to-end remounts with this flag: both clocks start at the settled
+  // card beat, so the visitor lands on the final scene with the card open.
+  finale?: boolean
 }
 
-function AssemblyCube({ cardRef, paused = false }: AssemblyCubeProps) {
+function AssemblyCube({ cardRef, paused = false, finale = false }: AssemblyCubeProps) {
   const pausedRef = useRef(paused)
   useEffect(() => {
     pausedRef.current = paused
@@ -1218,9 +1224,14 @@ function AssemblyCube({ cardRef, paused = false }: AssemblyCubeProps) {
       simulation.time = simulation.endTime * previewCamera.time
     } else if (previewCamera?.clock === 'motion') {
       simulation.time = simulation.endTime + 0.1
+    } else if (finale) {
+      // Spin elapsed equals time since assembly ended, so keep both clocks
+      // on the same real timeline (assembly glow envelopes stay released).
+      simulation.time = simulation.endTime + FINALE_SPIN_ELAPSED
     }
     return simulation
   }, [
+    finale,
     previewAssemblyGlow,
     previewAssemblyGlowStage,
     previewCamera,
@@ -1296,9 +1307,18 @@ function AssemblyCube({ cardRef, paused = false }: AssemblyCubeProps) {
       }
       simulation.elapsed = previewCamera.time
       simulation.settled = true
+    } else if (finale) {
+      // Integrate the real spin-down instead of forcing `settled`, so the
+      // shell rests at the same angle a full run would have reached.
+      while (simulation.elapsed < FINALE_SPIN_ELAPSED - 1e-6) {
+        simulation.update(
+          Math.min(1 / 20, FINALE_SPIN_ELAPSED - simulation.elapsed),
+        )
+      }
     }
     return simulation
   }, [
+    finale,
     previewAssemblyGlow,
     previewAssemblyGlowStage,
     previewCamera,
@@ -3542,6 +3562,7 @@ export interface HeroCardCopy {
   pauseLabel: string
   playLabel: string
   restartLabel: string
+  skipLabel: string
 }
 
 const DEFAULT_CARD_COPY: HeroCardCopy = {
@@ -3556,6 +3577,7 @@ const DEFAULT_CARD_COPY: HeroCardCopy = {
   pauseLabel: 'Пауза',
   playLabel: 'Продолжить',
   restartLabel: 'Сначала',
+  skipLabel: 'В конец',
 }
 
 const CARD_CIRCUIT_PATHS = [
@@ -3781,9 +3803,11 @@ export default function HeroScene({
   const cardRef = useRef<HTMLElement | null>(null)
   const cardBodyRef = useRef<HTMLDivElement | null>(null)
   // Public transport: pause freezes the choreography clock; restart bumps
-  // AssemblyCube's key to begin a fresh run from time 0.
+  // AssemblyCube's key to begin a fresh run from time 0; skip bumps it too,
+  // but starts the fresh run at the final card beat.
   const [paused, setPaused] = useState(false)
   const [runId, setRunId] = useState(0)
+  const [finale, setFinale] = useState(false)
   useEffect(() => {
     const mobile = window.matchMedia('(max-width: 720px)')
     const resumeIfMobile = () => {
@@ -3795,6 +3819,12 @@ export default function HeroScene({
   }, [])
   const restartScene = () => {
     setPaused(false)
+    setFinale(false)
+    setRunId((id) => id + 1)
+  }
+  const skipScene = () => {
+    setPaused(false)
+    setFinale(true)
     setRunId((id) => id + 1)
   }
   const previewLightingBaseline = useMemo(
@@ -3973,7 +4003,7 @@ export default function HeroScene({
           ) : (
             <ReactorWarmSpotlight />
           )}
-          <AssemblyCube key={runId} cardRef={cardRef} paused={paused} />
+          <AssemblyCube key={runId} cardRef={cardRef} paused={paused} finale={finale} />
           <SceneControls />
         </Canvas>
       </div>
@@ -4006,6 +4036,17 @@ export default function HeroScene({
         >
           <span aria-hidden="true">↺</span>
           <span className="animation-transport__label">{copy.restartLabel}</span>
+        </button>
+        <button
+          className="animation-transport__button"
+          type="button"
+          data-animation-skip
+          onClick={skipScene}
+          aria-label={copy.skipLabel}
+          title={copy.skipLabel}
+        >
+          <span aria-hidden="true">⇥</span>
+          <span className="animation-transport__label">{copy.skipLabel}</span>
         </button>
       </div>
 
@@ -4205,6 +4246,18 @@ export default function HeroScene({
           <nav className="reactor-card__actions" aria-label={copy.ariaNav}>
             <a
               className="reactor-card__icon"
+              href={BEHANCE_PROFILE}
+              target="_blank"
+              rel="noopener"
+              aria-label="Behance"
+              title="Behance"
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path fillRule="evenodd" d="M1 5h6c2.7 0 4.2 1.4 4.2 3.5 0 1.3-.6 2.3-1.7 2.8 1.6.5 2.5 1.7 2.5 3.4 0 2.5-1.9 4.3-4.8 4.3H1V5Zm3 2.5v3h2.5c1.2 0 1.8-.5 1.8-1.5s-.6-1.5-1.8-1.5H4Zm0 5.4v3.6h2.8c1.5 0 2.2-.6 2.2-1.8s-.7-1.8-2.2-1.8H4Zm11-7.4h7v2h-7v-2Zm3.5 3c3.3 0 5 2.2 5 5.4v.9h-7.2c.2 1.4.9 2.1 2.3 2.1 1 0 1.7-.4 2-1.1h2.7c-.6 2.2-2.3 3.5-4.8 3.5-3.4 0-5.2-2.2-5.2-5.4s1.9-5.4 5.2-5.4Zm-2.2 4.3h4.4c-.2-1.3-.9-1.9-2.2-1.9-1.2 0-2 .7-2.2 1.9Z" />
+              </svg>
+            </a>
+            <a
+              className="reactor-card__icon"
               href="https://x.com/vixkosla"
               target="_blank"
               rel="noopener"
@@ -4242,8 +4295,10 @@ export default function HeroScene({
               href="https://t.me/vixkosla"
               target="_blank"
               rel="noopener"
+              aria-label={copy.cta}
             >
-              {copy.cta}
+              <span className="reactor-card__cta-full">{copy.cta}</span>
+              <span className="reactor-card__cta-compact" aria-hidden="true">Telegram</span>
             </a>
           </nav>
         </div>

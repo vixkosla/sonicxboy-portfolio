@@ -1,0 +1,88 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import { TELEGRAM_MCP_CRUMB } from '../../../data/products.ts'
+
+const title = 'Установка Telegram MCP — Claude Code, Codex и другие клиенты | SonicXBoy'
+const description =
+  'Как установить Telegram MCP: api_id и api_hash, вход по коду Telegram, подключение MCP-сервера к Claude Code, Codex и Cursor, прокси для MTProto.'
+
+// Code samples hold literal braces, so they are passed as text.
+const SAMPLE_1 = `{"apiId": 123456, "apiHash": "32-символьный hex"}`
+const SAMPLE_2 = `{
+  "mcpServers": {
+    "telegram": {
+      "command": "node",
+      "args": ["/path/to/telegram-mcp/server.mjs"]
+    }
+  }
+}`
+const SAMPLE_3 = `{"apiId": 123456, "apiHash": "…", "proxy": "socks5://127.0.0.1:1080"}`
+---
+
+<ProductsShell
+  {title}
+  {description}
+  file={['telegram-mcp', 'install.md']}
+  crumbs={[TELEGRAM_MCP_CRUMB, { name: 'Установка', href: '/products/telegram-mcp/install/' }]}
+>
+  <h1>Установка</h1>
+  <p class="lead">Четыре шага и около пяти минут. Нужны Node.js (проверено на 22) и аккаунт Telegram.</p>
+
+  <pre><code>git clone https://github.com/vixkosla/telegram-mcp.git
+cd telegram-mcp
+npm ci</code></pre>
+
+  <h2>1. Ключи приложения</h2>
+  <p>
+    На <a href="https://my.telegram.org">my.telegram.org</a> → API development
+    tools создайте приложение и запишите ключи в
+    <code>~/.config/telegram-mcp/config.json</code>:
+  </p>
+  <pre><code set:text={SAMPLE_1} /></pre>
+  <p>
+    Права на файл — <code>0600</code>. Вместо файла можно задать
+    <code>TELEGRAM_API_ID</code> и <code>TELEGRAM_API_HASH</code>, другой путь —
+    через <code>TELEGRAM_MCP_CONFIG</code>.
+  </p>
+
+  <h2>2. Вход</h2>
+  <pre><code>node server.mjs login</code></pre>
+  <p>
+    Телефон, код из официального Telegram, при необходимости облачный пароль.
+    Сессия сохранится в <code>session.txt</code> рядом с сервером. В списке
+    устройств Telegram появится новая сессия под именем вашего приложения
+    с my.telegram.org.
+  </p>
+  <p>
+    Войти можно и из агента: <code>login_send_code</code>, затем
+    <code>login_sign_in</code>. Код действует 10 минут.
+  </p>
+
+  <h2>3. Подключение к клиенту</h2>
+  <h3>Claude Code</h3>
+  <pre><code>claude mcp add telegram -- node /path/to/telegram-mcp/server.mjs</code></pre>
+
+  <h3>Codex</h3>
+  <pre><code># ~/.codex/config.toml
+[mcp_servers.telegram]
+command = "node"
+args = ["/path/to/telegram-mcp/server.mjs"]
+startup_timeout_sec = 20</code></pre>
+
+  <h3>Cursor, Claude Desktop и другие</h3>
+  <pre><code set:text={SAMPLE_2} /></pre>
+
+  <h2>4. Проверка</h2>
+  <p>
+    Попросите агента вызвать <code>status</code>. В ответе — имя аккаунта и
+    последние четыре цифры номера.
+  </p>
+
+  <h2>Если Telegram недоступен</h2>
+  <p>Когда MTProto с этой машины не доходит до серверов Telegram, добавьте прокси в тот же <code>config.json</code>:</p>
+  <pre><code set:text={SAMPLE_3} /></pre>
+  <p>Поддерживаются <code>socks5://</code> и <code>socks4://</code>, с логином и паролем в адресе.</p>
+
+  <ProductsPager />
+</ProductsShell>

@@ -1,0 +1,86 @@
+---
+import ProductsShell from '../../layouts/ProductsShell.astro'
+import ProductsPager from '../../components/ProductsPager.astro'
+import { SITE } from '../../i18n.ts'
+
+const title = 'Продукты SonicXBoy — Telegram MCP, Viewport Lab и инструменты разработчика'
+const description =
+  'Небольшие инструменты разработчика: Telegram MCP подключает личный Telegram к Claude Code и Codex, Viewport Lab показывает страницу в размерах телефона, планшета и ПК.'
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'CollectionPage',
+  name: 'Продукты SonicXBoy',
+  url: `${SITE}/products/`,
+  description,
+  inLanguage: 'ru',
+  author: { '@type': 'Person', name: 'SonicXBoy', url: SITE },
+  mainEntity: {
+    '@type': 'ItemList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Telegram MCP',
+        url: `${SITE}/products/telegram-mcp/`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Viewport Lab',
+        url: `${SITE}/products/viewport-lab/`,
+      },
+    ],
+  },
+}
+---
+
+<ProductsShell {title} {description} {schema} file={['README.md']} crumbs={[]}>
+  <h1>Продукты</h1>
+  <p class="lead">
+    Инструменты, которые я сделал для своей работы и довёл до состояния, когда
+    ими можно делиться. Каждый решает одну задачу и не просит больше доступа,
+    чем ей нужно.
+  </p>
+
+  <h2>Продукты</h2>
+  <h3><a href="/products/telegram-mcp/">Telegram MCP</a></h3>
+  <p>
+    MCP-сервер для личного Telegram. ИИ-агент — Claude Code, Codex и другие
+    MCP-клиенты — читает и ищет переписку, а отправляет сообщение только по
+    прямой просьбе и с явным подтверждением. Отдельная сессия, десять
+    инструментов, без браузера. Исходный код на{' '}
+    <a href="https://github.com/vixkosla/telegram-mcp">GitHub</a>.
+  </p>
+  <ul class="badges" aria-label="Характеристики">
+    <li>v1.0</li>
+    <li>Node.js</li>
+    <li>MTProto</li>
+    <li>MCP stdio</li>
+  </ul>
+
+  <h3><a href="/products/viewport-lab/">Viewport Lab</a></h3>
+  <p>
+    Расширение для Chrome: текущая страница в точных размерах телефона,
+    планшета и малого ПК — по одному экрану или сеткой из шести. Поворот, свой
+    размер, горячие клавиши, только разрешение <code>activeTab</code>.{' '}
+    <a href="https://chromewebstore.google.com/detail/gpoopdgejgpendnncdlaohpdmciolkip">Chrome Web Store</a>.
+  </p>
+  <ul class="badges" aria-label="Характеристики">
+    <li>v1.1</li>
+    <li>Chrome MV3</li>
+    <li>activeTab</li>
+  </ul>
+
+  <h2>Дальше</h2>
+  <p>Список будет пополняться инструментами того же рода.</p>
+
+  <h2>Принцип</h2>
+  <ul>
+    <li>Узкий доступ: только то, что нужно для задачи.</li>
+    <li>Опасные действия — с явным подтверждением.</li>
+    <li>Короткая документация, которую можно прочитать за минуту.</li>
+  </ul>
+
+  <ProductsPager />
+</ProductsShell>

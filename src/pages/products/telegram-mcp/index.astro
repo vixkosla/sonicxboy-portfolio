@@ -1,0 +1,106 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import { TELEGRAM_MCP_CRUMB } from '../../../data/products.ts'
+import { SITE } from '../../../i18n.ts'
+
+const title = 'Telegram MCP — MCP-сервер для личного Telegram | SonicXBoy'
+const description =
+  'Telegram MCP подключает личный Telegram к ИИ-агентам: Claude Code, Codex и другим MCP-клиентам. Чтение и поиск переписки, отправка только с подтверждением, отдельная сессия.'
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Telegram MCP',
+  url: `${SITE}/products/telegram-mcp/`,
+  description,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Linux, macOS, Windows (Node.js)',
+  softwareVersion: '1.0.0',
+  license: 'https://opensource.org/licenses/MIT',
+  codeRepository: 'https://github.com/vixkosla/telegram-mcp',
+  inLanguage: 'ru',
+  author: { '@type': 'Person', name: 'SonicXBoy', url: SITE },
+  featureList: [
+    'Список чатов и поиск по имени',
+    'Чтение истории без отметки о прочтении',
+    'Поиск по сообщениям во всех чатах или в одном',
+    'Скачивание фото и документов из сообщений',
+    'Отправка сообщений и файлов только с confirm: true',
+    'Вход по коду Telegram и облачному паролю',
+    'SOCKS-прокси для MTProto',
+  ],
+}
+
+// Code samples hold literal braces, so they are passed as text.
+const SAMPLE_1 = `вы     › Что мне вчера писали в рабочем чате про релиз?
+
+агент  → list_dialogs    {"query": "рабочий"}
+агент  → search_messages {"peer": "title:Рабочий", "query": "релиз"}
+агент  ‹ Три сообщения, последнее — перенос на пятницу…
+
+вы     › Ответь: «Ок, в пятницу успеваю».
+
+агент  → send_message    {"peer": "title:Рабочий",
+                          "text": "Ок, в пятницу успеваю", "confirm": true}`
+---
+
+<ProductsShell
+  {title}
+  {description}
+  {schema}
+  file={['telegram-mcp', 'README.md']}
+  crumbs={[TELEGRAM_MCP_CRUMB]}
+>
+  <h1>Telegram MCP</h1>
+  <ul class="badges" aria-label="Характеристики">
+    <li>v1.0</li>
+    <li>Node.js</li>
+    <li>MTProto · GramJS</li>
+    <li>MCP stdio</li>
+    <li>MIT</li>
+  </ul>
+  <p class="lead">
+    MCP-сервер, который даёт ИИ-агенту доступ к вашему личному Telegram:
+    найти чат, прочитать и поискать переписку, отправить сообщение — когда вы
+    прямо об этом попросили.
+  </p>
+
+  <h2>Зачем</h2>
+  <p>
+    Без него агент добирается до Telegram через браузер, Telegram Web, CDP или
+    файлы десктопного клиента. Это хрупко и даёт агенту больше, чем нужно.
+    Telegram MCP — один узкий вход: отдельная сессия, десять инструментов и
+    подтверждение на каждое действие, которое что-то меняет.
+  </p>
+
+  <h2>Что умеет</h2>
+  <ul>
+    <li><strong>Чаты</strong> — последние диалоги, поиск по имени и @username, архив.</li>
+    <li><strong>История</strong> — сообщения чата постранично. Чат не помечается прочитанным.</li>
+    <li><strong>Поиск</strong> — по всем чатам сразу или внутри одного.</li>
+    <li><strong>Вложения</strong> — фото и документы из сообщений сохраняются локально.</li>
+    <li><strong>Отправка</strong> — текст или файл, только с <code>confirm: true</code>, можно ответом на сообщение.</li>
+    <li><strong>Вход</strong> — код из Telegram и облачный пароль, из терминала или прямо из агента.</li>
+  </ul>
+
+  <h2>Как это выглядит</h2>
+  <pre><code set:text={SAMPLE_1} /></pre>
+
+  <h2>Совместимость</h2>
+  <p>
+    Работает с любым клиентом, который запускает MCP-серверы через stdio.
+    Я подключаю его к <strong>Claude Code</strong> и <strong>Codex</strong>; для
+    Cursor, Claude Desktop и других клиентов схема та же — команда
+    <code>node server.mjs</code>.
+  </p>
+
+  <h2>Статус</h2>
+  <p>
+    Версия 1.0 — рабочий инструмент, которым я пользуюсь сам. Исходный код
+    открыт под лицензией MIT:{' '}
+    <a href="https://github.com/vixkosla/telegram-mcp">github.com/vixkosla/telegram-mcp</a>.
+  </p>
+
+  <ProductsPager />
+</ProductsShell>

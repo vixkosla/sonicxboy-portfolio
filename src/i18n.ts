@@ -1,4 +1,5 @@
 export const SITE = 'https://sonicxboy.dev'
+export const BEHANCE_PROFILE = 'https://www.behance.net/askerovtob997'
 export const SOURCE_REPOSITORY = 'https://github.com/vixkosla/sonicxboy-portfolio'
 
 export type Lang = 'ru' | 'en'
@@ -15,6 +16,7 @@ export interface HeroCardCopy {
   pauseLabel: string
   playLabel: string
   restartLabel: string
+  skipLabel: string
 }
 
 export interface PageCopy {
@@ -176,6 +178,7 @@ export const translations: Record<Lang, PageCopy> = {
       pauseLabel: 'Пауза',
       playLabel: 'Продолжить',
       restartLabel: 'Сначала',
+      skipLabel: 'В конец',
     },
   },
   en: {
@@ -206,6 +209,7 @@ export const translations: Record<Lang, PageCopy> = {
       pauseLabel: 'Pause',
       playLabel: 'Play',
       restartLabel: 'Restart',
+      skipLabel: 'Skip to end',
     },
   },
 }

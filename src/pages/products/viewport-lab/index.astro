@@ -1,0 +1,179 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import { VIEWPORT_LAB_CRUMB } from '../../../data/products.ts'
+import { SITE } from '../../../i18n.ts'
+
+const title = 'Viewport Lab — проверка адаптивной вёрстки в Chrome | SonicXBoy'
+const description =
+  'Расширение для Chrome: открывает текущую страницу в точных CSS-размерах телефона, планшета и малого ПК — по одному или сеткой из шести. Поворот, свой размер, без лишних разрешений.'
+
+const store = 'https://chromewebstore.google.com/detail/gpoopdgejgpendnncdlaohpdmciolkip'
+const source = 'https://github.com/vixkosla/browser-extensions/tree/main/viewport-lab'
+
+const schema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Viewport Lab',
+  url: `${SITE}/products/viewport-lab/`,
+  description,
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Chrome, Chromium, Brave, Vivaldi',
+  softwareVersion: '1.1.0',
+  license: 'https://opensource.org/licenses/MIT',
+  installUrl: store,
+  codeRepository: 'https://github.com/vixkosla/browser-extensions',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  inLanguage: 'ru',
+  author: { '@type': 'Person', name: 'SonicXBoy', url: SITE },
+  screenshot: [
+    `${SITE}/products/viewport-lab/single.webp`,
+    `${SITE}/products/viewport-lab/grid.webp`,
+  ],
+  featureList: [
+    'Один экран в точном CSS-размере',
+    'Сетка из шести телефонов',
+    'Сетка «большой телефон → планшет → малый ПК»',
+    'Поворот в альбомную ориентацию',
+    'Свой размер ширина × высота',
+    'Горячие клавиши и запоминание настроек',
+    'Только разрешение activeTab',
+  ],
+}
+
+const SHORTCUTS = `Alt + Shift + V   открыть текущую страницу в Viewport Lab
+1                 один экран
+2                 сетка
+O                 повернуть
+F                 вписать сетку в окно
+R                 перезагрузить превью`
+---
+
+<ProductsShell
+  {title}
+  {description}
+  {schema}
+  file={['viewport-lab', 'README.md']}
+  crumbs={[VIEWPORT_LAB_CRUMB]}
+>
+  <h1>Viewport Lab</h1>
+  <ul class="badges" aria-label="Характеристики">
+    <li>v1.1</li>
+    <li>Chrome MV3</li>
+    <li>activeTab</li>
+    <li>RU · EN</li>
+    <li>MIT</li>
+  </ul>
+  <p class="lead">
+    Расширение для Chrome, которое показывает текущую страницу сразу в нужных
+    размерах экрана: один телефон крупно или шесть размеров рядом — без
+    бесконечного растягивания окна и DevTools.
+  </p>
+  <p>
+    <a href={store}>Установить из Chrome Web Store</a> · <a href={source}>Исходный код</a>
+  </p>
+
+  <figure>
+    <img
+      src="/products/viewport-lab/grid.webp"
+      width="1280"
+      height="800"
+      alt="Шесть телефонных размеров одной страницы рядом на общем полотне"
+      loading="eager"
+    />
+    <figcaption>Сетка телефонов: 390, 375, 414, 393, 360 и 384 CSS-пикселя.</figcaption>
+  </figure>
+
+  <h2>Зачем</h2>
+  <p>
+    Адаптивная вёрстка ломается на конкретных ширинах: заголовок переносится не
+    там, карточка вылезает на 360 пикселях, планшет попадает между двумя
+    брейкпоинтами. Viewport Lab показывает эти ширины одновременно, и разница
+    видна с одного взгляда.
+  </p>
+
+  <h2>Что умеет</h2>
+  <ul>
+    <li><strong>Один экран</strong> — страница в точном CSS-размере, вписанная в окно.</li>
+    <li><strong>Сетка телефонов</strong> — шесть популярных размеров на одном полотне.</li>
+    <li><strong>Планшет → ПК</strong> — 430, 600, 768, 1024 и 1280 пикселей: переход от большого телефона к малому ПК.</li>
+    <li><strong>Поворот</strong> — тот же размер в альбомной ориентации одной кнопкой.</li>
+    <li><strong>Свой размер</strong> — любая ширина и высота от 240 до 3840 пикселей.</li>
+    <li><strong>Полотно</strong> — общий масштаб, перетаскивание и кнопка «Вписать».</li>
+    <li><strong>Память</strong> — режим, размер и ориентация сохраняются до следующего открытия.</li>
+  </ul>
+
+  <h2>Как это выглядит</h2>
+  <figure>
+    <img
+      src="/products/viewport-lab/single.webp"
+      width="1280"
+      height="800"
+      alt="Одна страница в размере 390 × 844"
+      loading="lazy"
+    />
+    <figcaption>Один экран: 390 × 844 с масштабом под окно.</figcaption>
+  </figure>
+  <figure>
+    <img
+      src="/products/viewport-lab/rotated.webp"
+      width="1280"
+      height="800"
+      alt="Тот же телефон, повёрнутый в альбомную ориентацию 844 × 390"
+      loading="lazy"
+    />
+    <figcaption>Поворот: тот же телефон в альбомной ориентации.</figcaption>
+  </figure>
+  <figure>
+    <img
+      src="/products/viewport-lab/wide.webp"
+      width="1280"
+      height="800"
+      alt="Шесть размеров от большого телефона до малого ПК"
+      loading="lazy"
+    />
+    <figcaption>Диапазон «планшет → ПК»: от 430 до 1280 пикселей.</figcaption>
+  </figure>
+
+  <h2>Клавиши</h2>
+  <pre><code set:text={SHORTCUTS} /></pre>
+  <p>
+    Клавиши привязаны к положению на клавиатуре, поэтому работают и в русской
+    раскладке.
+  </p>
+
+  <h2>Установка</h2>
+  <ol>
+    <li>Откройте <a href={store}>страницу в Chrome Web Store</a> и нажмите «Установить».</li>
+    <li>Откройте любой сайт и нажмите иконку Viewport Lab или <code>Alt + Shift + V</code>.</li>
+    <li>Можно ввести и другой адрес, в том числе <code>localhost</code> для локальной разработки.</li>
+  </ol>
+  <p>Работает в Chrome, Chromium, Brave и Vivaldi.</p>
+
+  <h2>Приватность</h2>
+  <p>
+    Расширение просит только <code>activeTab</code>: адрес текущей вкладки
+    читается после вашего клика и дальше компьютера не уходит. Нет аналитики,
+    рекламы, удалённого кода и доступа ко всем сайтам.{' '}
+    <a href="https://github.com/vixkosla/browser-extensions/blob/main/viewport-lab/PRIVACY.md">Политика конфиденциальности</a>.
+  </p>
+
+  <h2>Ограничения</h2>
+  <ul>
+    <li>Сравниваются CSS-размеры: без эмуляции железа, DPR, touch, сети и user agent.</li>
+    <li>
+      Некоторые сайты запрещают показ себя во фрейме. Для них есть кнопка
+      «Открыть сайт».
+    </li>
+  </ul>
+
+  <h2>Статус</h2>
+  <p>
+    Версия 1.0 опубликована в Chrome Web Store. Версия 1.1 — поворот, свой
+    размер, клавиши и память настроек — готовится к публикации. Исходный код
+    открыт под лицензией MIT:{' '}
+    <a href={source}>github.com/vixkosla/browser-extensions</a>.
+  </p>
+
+  <ProductsPager />
+</ProductsShell>

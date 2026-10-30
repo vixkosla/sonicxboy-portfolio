@@ -1,0 +1,120 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import { TELEGRAM_MCP_CRUMB } from '../../../data/products.ts'
+
+const title = 'Инструменты Telegram MCP — list_dialogs, get_messages, send_message | SonicXBoy'
+const description =
+  'Справочник восьми инструментов Telegram MCP: чаты, история, поиск по сообщениям, отправка с подтверждением, вход и выход. Параметры, лимиты и форматы peer.'
+
+// Code samples hold literal braces, so they are passed as text.
+const SAMPLE_1 = `{
+  "id": 4812,
+  "date": "2026-10-27T18:04:11.000Z",
+  "out": false,
+  "sender": "Андрей",
+  "text": "Релиз переносим на пятницу",
+  "textTruncated": false,
+  "replyTo": null,
+  "media": null
+}`
+---
+
+<ProductsShell
+  {title}
+  {description}
+  file={['telegram-mcp', 'tools.md']}
+  crumbs={[TELEGRAM_MCP_CRUMB, { name: 'Инструменты', href: '/products/telegram-mcp/tools/' }]}
+>
+  <h1>Инструменты</h1>
+  <p class="lead">
+    Десять инструментов. Пять только читают Telegram; отправка текста,
+    файла и выход требуют <code>confirm: true</code>.
+  </p>
+
+  <h2>Чтение</h2>
+  <table>
+    <thead>
+      <tr><th scope="col">Инструмент</th><th scope="col">Параметры</th><th scope="col">Что делает</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>status</code></td>
+        <td>—</td>
+        <td>Есть ли вход и под каким аккаунтом</td>
+      </tr>
+      <tr>
+        <td><code>list_dialogs</code></td>
+        <td><code>query</code>, <code>limit</code> ≤ 50, <code>archived</code></td>
+        <td>Последние чаты: id, название, @username, непрочитанные</td>
+      </tr>
+      <tr>
+        <td><code>get_messages</code></td>
+        <td><code>peer</code>, <code>limit</code> ≤ 50, <code>offsetId</code></td>
+        <td>История чата, старше <code>offsetId</code>. Не отмечает прочитанным</td>
+      </tr>
+      <tr>
+        <td><code>search_messages</code></td>
+        <td><code>query</code>, <code>peer</code>, <code>limit</code> ≤ 30</td>
+        <td>Поиск по всем чатам или внутри одного</td>
+      </tr>
+      <tr>
+        <td><code>download_media</code></td>
+        <td><code>peer</code>, <code>messageIds</code> ≤ 20</td>
+        <td>Сохраняет фото и документы до 50 МБ в локальную папку <code>downloads/</code>, возвращает пути</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Запись</h2>
+  <table>
+    <thead>
+      <tr><th scope="col">Инструмент</th><th scope="col">Параметры</th><th scope="col">Что делает</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>send_message</code></td>
+        <td><code>peer</code>, <code>text</code> ≤ 4096, <code>confirm</code>, <code>replyTo</code></td>
+        <td>Отправляет текст, при <code>replyTo</code> — ответом</td>
+      </tr>
+      <tr>
+        <td><code>send_file</code></td>
+        <td><code>peer</code>, <code>path</code>, <code>caption</code> ≤ 1024, <code>asPhoto</code>, <code>confirm</code>, <code>replyTo</code></td>
+        <td>Отправляет локальный файл до 50 МБ по абсолютному пути; документом или фото (JPG/PNG)</td>
+      </tr>
+      <tr>
+        <td><code>login_send_code</code></td>
+        <td><code>phone</code></td>
+        <td>Запрашивает код входа</td>
+      </tr>
+      <tr>
+        <td><code>login_sign_in</code></td>
+        <td><code>code</code>, <code>password</code></td>
+        <td>Завершает вход, при необходимости с облачным паролем</td>
+      </tr>
+      <tr>
+        <td><code>logout</code></td>
+        <td><code>confirm</code></td>
+        <td>Закрывает только сессию telegram-mcp</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Как указать чат</h2>
+  <p>Параметр <code>peer</code> принимает три формы:</p>
+  <ul>
+    <li><code>1234567890</code> — id из <code>list_dialogs</code>;</li>
+    <li><code>@username</code> — публичное имя;</li>
+    <li><code>title:Название</code> — по названию среди последних 200 чатов. Если подходит несколько, сервер перечислит их, а не выберет сам.</li>
+  </ul>
+
+  <h2>Что возвращается</h2>
+  <pre><code set:text={SAMPLE_1} /></pre>
+  <p>
+    Текст сообщения обрезается до 1500 символов, флаг
+    <code>textTruncated</code> об этом сообщает. Сами вложения в ответ
+    не входят — только их тип; файлы забирает <code>download_media</code>.
+  </p>
+
+  <ProductsPager />
+</ProductsShell>

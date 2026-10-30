@@ -9,7 +9,7 @@ import '@fontsource-variable/jetbrains-mono'
 import BrandMark from '../components/BrandMark.astro'
 import HeroScene from '../components/HeroScene.tsx'
 import ProjectInquiry from '../components/ProjectInquiry.astro'
-import { SITE, SOURCE_REPOSITORY, translations, type Lang } from '../i18n.ts'
+import { SITE, BEHANCE_PROFILE, SOURCE_REPOSITORY, translations, type Lang } from '../i18n.ts'
 
 interface Props {
   lang: Lang
@@ -141,6 +141,7 @@ const personSchema = {
     name: lang === 'ru' ? 'Санкт-Петербург' : 'Saint Petersburg',
   },
   sameAs: [
+    BEHANCE_PROFILE,
     'https://x.com/vixkosla',
     'https://www.upwork.com/freelancers/askerovt',
     'https://t.me/vixkosla',
@@ -2372,6 +2373,20 @@ const sourceSchema = {
         transform: translateY(-2px);
       }
 
+      :global(.reactor-card__cta-compact) {
+        display: none;
+      }
+
+      @media (max-width: 360px) {
+        :global(.reactor-card__cta-full) {
+          display: none;
+        }
+
+        :global(.reactor-card__cta-compact) {
+          display: inline;
+        }
+      }
+
       @media (max-width: 960px) {
         :global(.reactor-card) {
           min-height: clamp(370px, 46vh, 500px);
@@ -2821,6 +2836,11 @@ const sourceSchema = {
           display: none;
         }
 
+        /* Four nav links: tighten so RU keeps clear of the brand mark. */
+        .lang {
+          gap: 0.3rem;
+          letter-spacing: 0.06em;
+        }
       }
 
       /* On short portrait phones the title-derived card offset leaves too
@@ -3044,6 +3064,8 @@ const sourceSchema = {
         href={lang === 'ru' ? '/stats/' : '/en/stats/'}
         >STATS</a
       >
+      <span class="lang__sep" aria-hidden="true">/</span>
+      <a class="lang__link lang__link--products" href="/products/">PRODUCTS</a>
     </nav>
 
     <main>
