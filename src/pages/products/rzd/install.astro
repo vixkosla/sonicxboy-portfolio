@@ -1,0 +1,59 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import { RZD_CRUMB } from '../../../data/products.ts'
+
+const title = 'Установка билетов РЖД — Codex, Claude Code и Grok | SonicXBoy'
+const description =
+  'Как установить скилл билетов РЖД: клонировать репозиторий в каталог скиллов Codex, Claude Code или Grok и работать в уже открытой сессии Chrome.'
+
+const SOURCE = 'https://github.com/vixkosla/rzd-tickets'
+const CLONE = `git clone https://github.com/vixkosla/rzd-tickets.git
+mkdir -p ~/.codex/skills ~/.grok/skills ~/.claude/skills
+ln -s "$PWD/rzd-tickets" ~/.codex/skills/rzd-tickets
+ln -s "$PWD/rzd-tickets" ~/.grok/skills/rzd-tickets
+ln -s "$PWD/rzd-tickets" ~/.claude/skills/rzd-tickets`
+const ONE = `git clone https://github.com/vixkosla/rzd-tickets.git ~/.codex/skills/rzd-tickets`
+---
+
+<ProductsShell
+  {title}
+  {description}
+  file={['rzd', 'install.md']}
+  crumbs={[RZD_CRUMB, { name: 'Установка', href: '/products/rzd/install/' }]}
+>
+  <h1>Установка</h1>
+  <p class="lead">
+    Каталог с <code>SKILL.md</code>. Сборка не нужна. Нужен Chrome, в котором
+    уже выполнен вход в личный кабинет РЖД.
+  </p>
+
+  <pre><code set:text={CLONE} /></pre>
+  <p>
+    Исходный код: <a href={SOURCE}>github.com/vixkosla/rzd-tickets</a>, лицензия MIT.
+  </p>
+
+  <h2>1. Один клиент</h2>
+  <p>
+    Codex читает <code>~/.codex/skills</code>, Grok — <code>~/.grok/skills</code>,
+    Claude Code — <code>~/.claude/skills</code>. Прямая копия для Codex:
+  </p>
+  <pre><code set:text={ONE} /></pre>
+  <p>Для Grok и Claude Code путь тот же, меняется только каталог клиента.</p>
+
+  <h2>2. Сессия</h2>
+  <p>
+    Заказ идёт в отдельном Chrome, не в повседневном браузере. Скилл не хранит
+    пароль и не просит записать его в файл. Код из СМС и QR СБП подтверждает
+    человек.
+  </p>
+
+  <h2>3. Проверка</h2>
+  <p>
+    Попросите агента найти билет и остановиться перед оплатой. Готовый шаг —
+    страница с QR СБП, без списания денег. Возврат агент не начинает, пока об
+    этом не попросили отдельно.
+  </p>
+
+  <ProductsPager />
+</ProductsShell>

@@ -7,6 +7,7 @@ import { SITE } from '../../../i18n.ts'
 const title = 'Билеты РЖД — скилл агента для своего заказа | SonicXBoy'
 const description =
   'Скилл для ИИ-агента: поиск и заказ билета РЖД в уже открытой сессии. Оплату по QR СБП подтверждает человек, повторный билет не покупается, возврат только по отдельной просьбе.'
+const source = 'https://github.com/vixkosla/rzd-tickets'
 
 const schema = {
   '@context': 'https://schema.org',
@@ -16,6 +17,9 @@ const schema = {
   description,
   applicationCategory: 'UtilitiesApplication',
   operatingSystem: 'Linux',
+  softwareVersion: '1.0.0',
+  license: 'https://opensource.org/licenses/MIT',
+  codeRepository: source,
   inLanguage: 'ru',
   author: { '@type': 'Person', name: 'SonicXBoy', url: SITE },
   featureList: [
@@ -37,14 +41,18 @@ const schema = {
 >
   <h1>Билеты РЖД</h1>
   <ul class="badges" aria-label="Характеристики">
+    <li>v1.0</li>
     <li>скилл</li>
-    <li>агент</li>
     <li>свой аккаунт</li>
     <li>оплата вручную</li>
+    <li>MIT</li>
   </ul>
   <p class="lead">
     Скилл, по которому агент доводит мой билет на сайте РЖД от поиска до
     готового заказа. Деньги списываю я: агент останавливается на QR СБП.
+  </p>
+  <p>
+    <a href="/products/rzd/install/">Установка</a> · <a href={source}>Исходный код</a>
   </p>
 
   <h2>Зачем</h2>
@@ -80,17 +88,15 @@ const schema = {
   <ul>
     <li>Чужой аккаунт, чужой пассажир и чужой заказ не используются.</li>
     <li>Код из СМС и банковское подтверждение остаются у меня.</li>
-    <li>Это записи о своих поездках, не касса и не сервис для чужих билетов.</li>
-    <li>
-      Рабочий сценарий остаётся на этой машине. На сайте нет сессии, профиля и
-      служебных шагов.
-    </li>
+    <li>Это свой билет, не касса и не сервис для чужих заказов.</li>
+    <li>В репозитории нет пароля, сессии и данных чужих заказов.</li>
   </ul>
 
   <h2>Статус</h2>
   <p>
-    Сценарий проверен на реальных билетах Петербург — Москва в обе стороны,
-    включая возврат по отдельной просьбе.
+    Версия 1.0 проверена на реальных билетах Петербург — Москва в обе стороны,
+    включая возврат по отдельной просьбе. Исходный код открыт под лицензией MIT:{' '}
+    <a href={source}>github.com/vixkosla/rzd-tickets</a>.
   </p>
 
   <ProductsPager />

@@ -68,6 +68,12 @@ export const PRODUCT_TREE: ProductDoc[] = [
     label: 'Обзор',
     depth: 2,
   },
+  {
+    href: '/products/rzd/install/',
+    file: 'install.md',
+    label: 'Установка',
+    depth: 2,
+  },
 ]
 
 // Breadcrumb trail used for the path bar and BreadcrumbList JSON-LD.
