@@ -55,6 +55,19 @@ export const PRODUCT_TREE: ProductDoc[] = [
     label: 'Обзор',
     depth: 2,
   },
+  {
+    href: '/products/rzd/',
+    file: 'rzd/',
+    label: 'Билеты РЖД',
+    depth: 1,
+    folder: true,
+  },
+  {
+    href: '/products/rzd/',
+    file: 'README.md',
+    label: 'Обзор',
+    depth: 2,
+  },
 ]
 
 // Breadcrumb trail used for the path bar and BreadcrumbList JSON-LD.
@@ -71,4 +84,8 @@ export const TELEGRAM_MCP_CRUMB: Crumb = {
 export const VIEWPORT_LAB_CRUMB: Crumb = {
   name: 'Viewport Lab',
   href: '/products/viewport-lab/',
+}
+export const RZD_CRUMB: Crumb = {
+  name: 'Билеты РЖД',
+  href: '/products/rzd/',
 }

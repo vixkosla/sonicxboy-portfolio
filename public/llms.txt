@@ -89,6 +89,11 @@ Extensions API, GSAP, Rapier, Blender, Figma.
   https://sonicxboy.dev/products/viewport-lab/
   Chrome Web Store:
   https://chromewebstore.google.com/detail/gpoopdgejgpendnncdlaohpdmciolkip
+- Билеты РЖД — скилл для ИИ-агента. Поиск и заказ в уже открытой сессии
+  личного кабинета. Оплату по QR СБП подтверждает человек, повторный заказ
+  не начинается, возврат только по отдельной просьбе. Рабочий сценарий
+  остаётся локальным.
+  https://sonicxboy.dev/products/rzd/
 
 ## Живые демо
 

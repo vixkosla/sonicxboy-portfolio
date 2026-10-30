@@ -3,9 +3,9 @@ import ProductsShell from '../../layouts/ProductsShell.astro'
 import ProductsPager from '../../components/ProductsPager.astro'
 import { SITE } from '../../i18n.ts'
 
-const title = 'Продукты SonicXBoy — Telegram MCP, Viewport Lab и инструменты разработчика'
+const title = 'Продукты SonicXBoy — Telegram MCP, Viewport Lab и билеты РЖД'
 const description =
-  'Небольшие инструменты разработчика: Telegram MCP подключает личный Telegram к Claude Code и Codex, Viewport Lab показывает страницу в размерах телефона, планшета и ПК.'
+  'Инструменты для своей работы: Telegram MCP подключает личный Telegram к Claude Code и Codex, Viewport Lab показывает страницу в размерах телефона, планшета и ПК, скилл РЖД доводит свой билет до оплаты человеком.'
 
 const schema = {
   '@context': 'https://schema.org',
@@ -29,6 +29,12 @@ const schema = {
         position: 2,
         name: 'Viewport Lab',
         url: `${SITE}/products/viewport-lab/`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: 'Билеты РЖД',
+        url: `${SITE}/products/rzd/`,
       },
     ],
   },
@@ -70,6 +76,17 @@ const schema = {
     <li>v1.1</li>
     <li>Chrome MV3</li>
     <li>activeTab</li>
+  </ul>
+
+  <h3><a href="/products/rzd/">Билеты РЖД</a></h3>
+  <p>
+    Скилл для агента: найти поезд и довести свой заказ на сайте РЖД до QR
+    СБП. Оплату подтверждаю я. Повторный билет и возврат не начинаются сами.
+  </p>
+  <ul class="badges" aria-label="Характеристики">
+    <li>скилл</li>
+    <li>свой аккаунт</li>
+    <li>оплата вручную</li>
   </ul>
 
   <h2>Дальше</h2>
