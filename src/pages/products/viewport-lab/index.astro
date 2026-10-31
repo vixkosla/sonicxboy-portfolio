@@ -1,6 +1,7 @@
 ---
 import ProductsShell from '../../../layouts/ProductsShell.astro'
 import ProductsPager from '../../../components/ProductsPager.astro'
+import ProductHero from '../../../components/ProductHero.astro'
 import { VIEWPORT_LAB_CRUMB } from '../../../data/products.ts'
 import { SITE } from '../../../i18n.ts'
 
@@ -56,22 +57,13 @@ R                 перезагрузить превью`
   file={['viewport-lab', 'README.md']}
   crumbs={[VIEWPORT_LAB_CRUMB]}
 >
-  <h1>Viewport Lab</h1>
-  <ul class="badges" aria-label="Характеристики">
-    <li>v1.1</li>
-    <li>Chrome MV3</li>
-    <li>activeTab</li>
-    <li>RU · EN</li>
-    <li>MIT</li>
-  </ul>
-  <p class="lead">
-    Расширение для Chrome, которое показывает текущую страницу сразу в нужных
-    размерах экрана: один телефон крупно или шесть размеров рядом — без
-    бесконечного растягивания окна и DevTools.
-  </p>
-  <p>
-    <a href={store}>Установить из Chrome Web Store</a> · <a href={source}>Исходный код</a>
-  </p>
+  <ProductHero slug="viewport-lab">
+    <p>
+      Расширение для Chrome, которое показывает текущую страницу сразу в нужных
+      размерах экрана: один телефон крупно или шесть размеров рядом — без
+      бесконечного растягивания окна и DevTools.
+    </p>
+  </ProductHero>
 
   <figure>
     <img
@@ -169,8 +161,9 @@ R                 перезагрузить превью`
 
   <h2>Статус</h2>
   <p>
-    Версия 1.0 опубликована в Chrome Web Store. Версия 1.1 — поворот, свой
-    размер, клавиши и память настроек — готовится к публикации. Исходный код
+    В Chrome Web Store опубликована версия 1.0. Версия 1.1 — поворот, свой
+    размер, клавиши и память настроек — с 31 октября на проверке в магазине и
+    выйдет после одобрения. Исходный код
     открыт под лицензией MIT:{' '}
     <a href={source}>github.com/vixkosla/browser-extensions</a>.
   </p>

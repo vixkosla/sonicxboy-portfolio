@@ -2,6 +2,16 @@
 import ProductsShell from '../../layouts/ProductsShell.astro'
 import ProductsPager from '../../components/ProductsPager.astro'
 import { SITE } from '../../i18n.ts'
+import AgentChat, { type ChatLine } from '../../components/AgentChat.astro'
+import { PRODUCTS } from '../../data/products.ts'
+
+const TELEGRAM_SESSION: ChatLine[] = [
+  { who: 'вы', text: 'Что вчера писали в рабочем чате про релиз?' },
+  { who: 'агент', tool: 'search_messages', args: '«релиз»' },
+  { who: 'агент', text: 'Три сообщения, последнее — перенос на пятницу.' },
+  { who: 'вы', text: 'Ответь: «Ок, в пятницу успеваю».' },
+  { who: 'агент', tool: 'send_message', args: 'confirm: true' },
+]
 
 const title = 'Продукты SonicXBoy — Telegram MCP, Viewport Lab и билеты РЖД'
 const description =
@@ -49,55 +59,68 @@ const schema = {
     чем ей нужно.
   </p>
 
-  <h2>Продукты</h2>
-  <h3><a href="/products/telegram-mcp/">Telegram MCP</a></h3>
-  <p>
-    MCP-сервер для личного Telegram. ИИ-агент — Claude Code, Codex и другие
-    MCP-клиенты — читает и ищет переписку, а отправляет сообщение только по
-    прямой просьбе и с явным подтверждением. Отдельная сессия, десять
-    инструментов, без браузера. Исходный код на{' '}
-    <a href="https://github.com/vixkosla/telegram-mcp">GitHub</a>.
-  </p>
-  <ul class="badges" aria-label="Характеристики">
-    <li>v1.0</li>
-    <li>Node.js</li>
-    <li>MTProto</li>
-    <li>MCP stdio</li>
-  </ul>
+  {PRODUCTS.map((product) => (
+    <section class="entry" aria-labelledby={`product-${product.slug}`}>
+      <div>
+        <p class="entry__dir">{product.slug}/</p>
+        <h2 id={`product-${product.slug}`}>
+          <a href={product.href}>{product.name}</a>
+        </h2>
+        <p>{product.summary}</p>
+        <dl class="facts">
+          {product.facts.map((fact) => (
+            <div>
+              <dt>{fact.label}</dt>
+              <dd>{fact.value}</dd>
+            </div>
+          ))}
+        </dl>
+        <p class="actions">
+          <a
+            class="button button--primary"
+            href={product.install.href}
+            rel={product.install.href.startsWith('http') ? 'noopener' : undefined}
+          >
+            {product.install.label}
+          </a>
+          <a class="button" href={product.source.href} rel="noopener">{product.source.label}</a>
+        </p>
+      </div>
 
-  <h3><a href="/products/viewport-lab/">Viewport Lab</a></h3>
-  <p>
-    Расширение для Chrome: текущая страница в точных размерах телефона,
-    планшета и малого ПК — по одному экрану или сеткой из шести. Поворот, свой
-    размер, горячие клавиши, только разрешение <code>activeTab</code>.{' '}
-    <a href="https://chromewebstore.google.com/detail/gpoopdgejgpendnncdlaohpdmciolkip">Chrome Web Store</a>.
-  </p>
-  <ul class="badges" aria-label="Характеристики">
-    <li>v1.1</li>
-    <li>Chrome MV3</li>
-    <li>activeTab</li>
-  </ul>
+      {product.slug === 'telegram-mcp' && (
+        <AgentChat title="Claude Code + Telegram MCP" lines={TELEGRAM_SESSION} />
+      )}
 
-  <h3><a href="/products/rzd/">Билеты РЖД</a></h3>
-  <p>
-    Скилл для агента: найти поезд и довести свой заказ на сайте РЖД до QR
-    СБП. Оплату подтверждаю я. Повторный билет и возврат не начинаются сами.
-    Исходный код на <a href="https://github.com/vixkosla/rzd-tickets">GitHub</a>.
-  </p>
-  <ul class="badges" aria-label="Характеристики">
-    <li>v1.0</li>
-    <li>скилл</li>
-    <li>свой аккаунт</li>
-    <li>MIT</li>
-  </ul>
+      {product.slug === 'viewport-lab' && (
+        <a class="preview" href={product.href} aria-label="Viewport Lab: подробнее">
+          <img
+            src="/products/viewport-lab/grid.webp"
+            width="1280"
+            height="800"
+            alt="Одна страница в шести телефонных размерах рядом"
+            loading="lazy"
+          />
+        </a>
+      )}
 
-  <h2>Дальше</h2>
-  <p>Список будет пополняться инструментами того же рода.</p>
+      {product.slug === 'rzd' && (
+        <figure class="preview">
+          <p class="preview__head">Заказ билета</p>
+          <ol class="steps">
+            <li><div><strong>Поиск поезда</strong><span>В уже открытом личном кабинете</span></div></li>
+            <li><div><strong>Пассажир и места</strong><span>Только свой аккаунт и свой заказ</span></div></li>
+            <li><div><strong>QR СБП</strong><span>Агент останавливается здесь</span></div></li>
+            <li class="steps__human"><div><strong>Оплата</strong><span>Подтверждаю я в банке</span></div></li>
+          </ol>
+        </figure>
+      )}
+    </section>
+  ))}
 
-  <h2>Принцип</h2>
+  <h2>Принципы</h2>
   <ul>
     <li>Узкий доступ: только то, что нужно для задачи.</li>
-    <li>Опасные действия — с явным подтверждением.</li>
+    <li>Действия, которые что-то меняют, — только с явным подтверждением.</li>
     <li>Короткая документация, которую можно прочитать за минуту.</li>
   </ul>
 

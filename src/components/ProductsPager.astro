@@ -1,8 +1,18 @@
 ---
-// Previous / next links through the README tree, in tree order.
+// Previous / next links through the README tree, in tree order. Labels name
+// the product, so "Обзор" never stands alone between two products.
 import { PRODUCT_TREE } from '../data/products.ts'
 
-const pages = PRODUCT_TREE.filter(
+const named = PRODUCT_TREE.map((entry, index) => {
+  if (entry.depth !== 2) return { ...entry, title: entry.label }
+  const folder = PRODUCT_TREE.slice(0, index).findLast((other) => other.folder)
+  const product = folder?.label ?? ''
+  return {
+    ...entry,
+    title: entry.label === 'Обзор' ? product : `${product}: ${entry.label.toLowerCase()}`,
+  }
+})
+const pages = named.filter(
   (entry, index, all) =>
     !entry.folder && all.findIndex((other) => !other.folder && other.href === entry.href) === index,
 )
@@ -15,14 +25,14 @@ const next = index >= 0 && index < pages.length - 1 ? pages[index + 1] : undefin
 <nav class="pager" aria-label="Соседние страницы">
   {previous && (
     <a href={previous.href} rel="prev">
-      <small>← Назад</small>
-      {previous.label}
+      <small>Назад</small>
+      {previous.title}
     </a>
   )}
   {next && (
     <a class="pager__next" href={next.href} rel="next">
-      <small>Дальше →</small>
-      {next.label}
+      <small>Дальше</small>
+      {next.title}
     </a>
   )}
 </nav>

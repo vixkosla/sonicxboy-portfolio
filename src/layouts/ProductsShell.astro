@@ -4,7 +4,7 @@ import '@fontsource-variable/jetbrains-mono'
 import { ClientRouter } from 'astro:transitions'
 import BrandMark from '../components/BrandMark.astro'
 import { SITE } from '../i18n.ts'
-import { PRODUCT_TREE, PRODUCTS_CRUMB, type Crumb } from '../data/products.ts'
+import { PRODUCT_TREE, PRODUCTS, PRODUCTS_CRUMB, type Crumb } from '../data/products.ts'
 
 interface Props {
   title: string
@@ -46,6 +46,19 @@ const rows = PRODUCT_TREE.map((entry, index) => {
   const indent = entry.depth === 2 ? (parentLast ? '   ' : '│  ') : ''
   return { ...entry, glyph: `${indent}${last ? '└─' : '├─'}` }
 })
+
+// Narrow screens drop the tree for a short nav: the products themselves on
+// the index, or the current product's pages plus a way back.
+const current = PRODUCTS.find((product) => product.slug === file[0])
+const mobileLinks = current
+  ? [
+      { href: '/products/', label: 'Все продукты' },
+      ...PRODUCT_TREE.filter((entry) => entry.depth === 2 && entry.href.startsWith(current.href)).map(
+        (entry) => ({ href: entry.href, label: entry.label }),
+      ),
+    ]
+  : PRODUCTS.map((product) => ({ href: product.href, label: product.name }))
+const here = pathname
 ---
 
 <!doctype html>
@@ -104,13 +117,16 @@ const rows = PRODUCT_TREE.map((entry, index) => {
             ),
           )}
         </ul>
-        <p class="tree__note">
-          Каждая страница — отдельный адрес. Дерево остаётся на месте, меняется
-          только текст.
-        </p>
       </aside>
 
       <main id="readme" class="readme" transition:animate="fade">
+        <nav class="mnav" aria-label={current ? current.name : 'Продукты'}>
+          {mobileLinks.map((link) => (
+            <a href={link.href} aria-current={link.href === here ? 'page' : undefined}>
+              {link.label}
+            </a>
+          ))}
+        </nav>
         <p class="path" aria-label="Путь к странице">
           <span class="path__dim">~/products/</span>{file.join('/')}
         </p>
@@ -341,20 +357,23 @@ const rows = PRODUCT_TREE.map((entry, index) => {
     color: rgba(5, 9, 7, 0.72);
   }
 
-  .tree__note {
-    margin: 2rem 0 0;
-    max-width: 22ch;
-    color: var(--ink-faint);
-    font: 400 0.72rem/1.55 var(--body);
-    white-space: normal;
-  }
-
   /* ── README typography ───────────────────────────────── */
 
+  /* Text keeps a readable measure; screenshots, code and previews may use
+     the full column. */
   .readme {
     min-width: 0;
-    max-width: 46rem;
+    max-width: 56rem;
     padding: 2.4rem 0 5rem clamp(1.5rem, 4vw, 4rem);
+  }
+
+  .readme > :is(h1, h3, p, ul, ol, blockquote),
+  .hero__lead {
+    max-width: 42rem;
+  }
+
+  .mnav {
+    display: none;
   }
 
   .path {
@@ -544,26 +563,6 @@ const rows = PRODUCT_TREE.map((entry, index) => {
     white-space: nowrap;
   }
 
-  .readme .badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin-top: 1rem;
-    padding: 0;
-    list-style: none;
-  }
-
-  .readme .badges li {
-    margin: 0;
-    padding: 0.26rem 0.55rem;
-    border: 1px solid var(--line-strong);
-    border-radius: 3px;
-    color: var(--emerald);
-    font: 600 0.66rem/1 var(--mono);
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
   /* Bottom pager: previous / next page in the tree. */
   .pager {
     display: grid;
@@ -589,16 +588,284 @@ const rows = PRODUCT_TREE.map((entry, index) => {
 
   .pager small {
     display: block;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.3rem;
     color: var(--ink-faint);
-    font: 600 0.64rem/1 var(--mono);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font: 500 0.72rem/1 var(--mono);
   }
 
   .pager__next {
     grid-column: 2;
     text-align: right;
+  }
+
+  /* ── Product header ─────────────────────────────────── */
+
+  .hero {
+    padding-bottom: 2.2rem;
+  }
+
+  .hero__lead > p:first-child {
+    margin-top: 1.2rem;
+    color: var(--ink);
+    font-size: 1.14rem;
+    line-height: 1.6;
+  }
+
+  /* Facts read as a spec sheet: label over value, split by hairlines. */
+  .readme .facts {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    margin: 1.8rem 0 0;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .facts > div {
+    padding: 0.85rem 1rem 0.9rem 0;
+  }
+
+  .facts > div + div {
+    padding-left: 1rem;
+    border-left: 1px solid var(--line);
+  }
+
+  .facts dt {
+    color: var(--ink-faint);
+    font: 500 0.72rem/1.3 var(--mono);
+  }
+
+  /* In row layouts the label sits on the value's baseline. */
+  .readme .entry .facts dt {
+    padding-top: 0.55rem;
+  }
+
+  .facts dd {
+    margin: 0.3rem 0 0;
+    color: var(--ink);
+    font-size: 0.92rem;
+    line-height: 1.4;
+  }
+
+  .readme .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+  }
+
+  .readme .button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 1.15rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 3px;
+    color: var(--ink);
+    font-size: 0.95rem;
+    font-weight: 560;
+    text-decoration: none;
+    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+  }
+
+  .readme .button:hover {
+    border-color: var(--emerald);
+    background: rgba(24, 211, 131, 0.07);
+  }
+
+  .readme .button--primary {
+    border-color: var(--emerald);
+    color: var(--bg);
+    background: var(--emerald);
+  }
+
+  .readme .button--primary:hover {
+    border-color: var(--mint);
+    color: var(--bg);
+    background: var(--mint);
+  }
+
+  /* ── Index: one entry per product ───────────────────── */
+
+  .entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+    gap: 2.2rem;
+    align-items: start;
+    margin-top: 2.8rem;
+    padding-top: 2.4rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .readme .entry__dir {
+    margin: 0;
+    color: var(--emerald);
+    font: 500 0.78rem/1.3 var(--mono);
+  }
+
+  .readme .entry h2 {
+    margin: 0.45rem 0 0;
+    padding: 0;
+    border: 0;
+    font-size: 1.75rem;
+  }
+
+  .readme .entry h2::before {
+    content: none;
+  }
+
+  .readme .entry h2 a {
+    color: var(--ink);
+    text-decoration: none;
+  }
+
+  .readme .entry h2 a:hover {
+    color: var(--mint);
+  }
+
+  .readme .entry .facts {
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: 1rem;
+    margin-top: 1.2rem;
+    border: 0;
+  }
+
+  .readme .entry .facts > div {
+    display: contents;
+  }
+
+  .readme .entry .facts dt,
+  .readme .entry .facts dd {
+    margin: 0;
+    padding: 0.4rem 0;
+    border-top: 1px solid var(--line);
+  }
+
+  .readme .entry .facts dd {
+    font-size: 0.86rem;
+  }
+
+  .readme .entry .actions {
+    margin-top: 1.3rem;
+  }
+
+  .preview {
+    display: block;
+    margin: 0;
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    background: var(--panel);
+    overflow: hidden;
+  }
+
+  .readme a.preview {
+    text-decoration: none;
+    transition: border-color 0.18s ease;
+  }
+
+  .readme a.preview:hover {
+    border-color: var(--line-strong);
+  }
+
+  .preview img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .readme .preview__head {
+    margin: 0;
+    padding: 0.55rem 0.9rem;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-faint);
+    font: 500 0.72rem/1.3 var(--mono);
+  }
+
+  /* Agent transcript: who speaks, what tool runs. */
+  .readme .chat {
+    margin: 0;
+    padding: 0.9rem;
+    list-style: none;
+    font: 450 0.8rem/1.5 var(--mono);
+  }
+
+  .readme .chat li {
+    display: grid;
+    grid-template-columns: 3.4rem minmax(0, 1fr);
+    gap: 0.6rem;
+    margin: 0;
+    color: var(--ink-dim);
+  }
+
+  .readme .chat li + li {
+    margin-top: 0.55rem;
+  }
+
+  .chat__who {
+    color: var(--ink-faint);
+  }
+
+  .chat__you {
+    color: var(--ink);
+  }
+
+  .chat__tool {
+    color: var(--mint);
+  }
+
+  .chat__args {
+    color: var(--ink-faint);
+    overflow-wrap: anywhere;
+  }
+
+  /* RZD flow: a real sequence, so it is numbered. The last step is a person. */
+  .readme .steps {
+    margin: 0;
+    padding: 0.4rem 0.9rem 0.9rem;
+    list-style: none;
+    counter-reset: step;
+  }
+
+  .readme .steps li {
+    display: grid;
+    grid-template-columns: 1.8rem minmax(0, 1fr);
+    gap: 0.7rem;
+    margin: 0;
+    padding: 0.7rem 0;
+    border-bottom: 1px dashed var(--line);
+    counter-increment: step;
+  }
+
+  .readme .steps li::before {
+    content: counter(step);
+    display: grid;
+    place-items: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    color: var(--emerald);
+    font: 600 0.75rem/1 var(--mono);
+  }
+
+  .steps strong {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .steps span {
+    color: var(--ink-faint);
+    font-size: 0.86rem;
+  }
+
+  .readme .steps .steps__human {
+    border-bottom: 0;
+  }
+
+  .readme .steps .steps__human::before {
+    border-color: var(--mint);
+    color: var(--bg);
+    background: var(--mint);
   }
 
   .foot {
@@ -637,40 +904,81 @@ const rows = PRODUCT_TREE.map((entry, index) => {
     }
 
     .tree {
-      position: static;
-      max-height: none;
-      padding: 1rem 0 0.9rem;
-      border-right: 0;
-      border-bottom: 1px solid var(--line);
-      overflow-x: auto;
-    }
-
-    .tree__root,
-    .tree__note,
-    .tree__glyph,
-    .tree__link .tree__file,
-    .tree__row--folder {
       display: none;
     }
 
-    .tree__label {
-      color: inherit;
-      font-size: 0.8rem;
+    .readme {
+      padding: 1rem 0 3.5rem;
+    }
+
+    .mnav {
+      display: flex;
+      gap: 0.4rem;
+      margin: 0 -1rem 1.6rem;
+      padding: 0 1rem 1rem;
+      border-bottom: 1px solid var(--line);
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .readme .mnav a {
+      flex: none;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      color: var(--ink-dim);
+      font-size: 0.86rem;
+      text-decoration: none;
       white-space: nowrap;
     }
 
-    .tree ul {
-      display: flex;
-      gap: 0.35rem;
+    .readme .mnav a[aria-current='page'] {
+      border-color: var(--emerald);
+      color: var(--bg);
+      background: var(--emerald);
     }
 
-    .tree__link {
-      padding: 0.45rem 0.6rem;
-      border: 1px solid var(--line);
+    .entry {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1.4rem;
+      margin-top: 2.2rem;
+      padding-top: 2rem;
     }
 
-    .readme {
-      padding: 1.6rem 0 3.5rem;
+    .facts > div + div {
+      padding-left: 0;
+      border-left: 0;
+    }
+
+    .readme .facts {
+      grid-template-columns: max-content minmax(0, 1fr);
+      column-gap: 1rem;
+      border-bottom: 0;
+    }
+
+    .readme .facts > div {
+      display: contents;
+    }
+
+    .readme .facts dt,
+    .readme .facts dd {
+      margin: 0;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .readme .entry .facts dt,
+    .readme .entry .facts dd {
+      border-bottom: 0;
+    }
+
+    .readme .facts dt {
+      padding-top: 0.62rem;
+    }
+
+    .readme .button {
+      flex: 1 1 auto;
+      justify-content: center;
     }
 
     .readme td:first-child {

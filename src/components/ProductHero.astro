@@ -1,0 +1,35 @@
+---
+// Product page header: name, the page's own lead (slot), facts and the two
+// actions every product has. Facts and links come from data/products.ts.
+import { productBySlug } from '../data/products.ts'
+
+interface Props {
+  slug: string
+}
+
+const product = productBySlug(Astro.props.slug)
+const external = (href: string) => href.startsWith('http')
+---
+
+<header class="hero">
+  <h1>{product.name}</h1>
+  <div class="hero__lead"><slot /></div>
+  <dl class="facts">
+    {product.facts.map((fact) => (
+      <div>
+        <dt>{fact.label}</dt>
+        <dd>{fact.value}</dd>
+      </div>
+    ))}
+  </dl>
+  <p class="actions">
+    <a
+      class="button button--primary"
+      href={product.install.href}
+      rel={external(product.install.href) ? 'noopener' : undefined}
+    >
+      {product.install.label}
+    </a>
+    <a class="button" href={product.source.href} rel="noopener">{product.source.label}</a>
+  </p>
+</header>

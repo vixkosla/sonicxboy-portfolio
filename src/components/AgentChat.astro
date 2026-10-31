@@ -1,0 +1,33 @@
+---
+// A short agent session: who speaks, and which MCP tool runs with what.
+// Wraps on narrow screens instead of scrolling like a code block.
+export interface ChatLine {
+  who: 'вы' | 'агент'
+  text?: string
+  tool?: string
+  args?: string
+}
+
+interface Props {
+  title: string
+  lines: ChatLine[]
+}
+
+const { title, lines } = Astro.props
+---
+
+<figure class="preview">
+  <p class="preview__head">{title}</p>
+  <ol class="chat" aria-label="Пример разговора с агентом">
+    {lines.map((line) => (
+      <li>
+        <span class={line.who === 'вы' ? 'chat__you' : 'chat__who'}>{line.who}</span>
+        <span>
+          {line.tool && <span class="chat__tool">{line.tool}</span>}
+          {line.args && <span class="chat__args"> {line.args}</span>}
+          {line.text}
+        </span>
+      </li>
+    ))}
+  </ol>
+</figure>

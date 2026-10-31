@@ -1,6 +1,8 @@
 ---
 import ProductsShell from '../../../layouts/ProductsShell.astro'
 import ProductsPager from '../../../components/ProductsPager.astro'
+import ProductHero from '../../../components/ProductHero.astro'
+import AgentChat, { type ChatLine } from '../../../components/AgentChat.astro'
 import { TELEGRAM_MCP_CRUMB } from '../../../data/products.ts'
 import { SITE } from '../../../i18n.ts'
 
@@ -32,17 +34,18 @@ const schema = {
   ],
 }
 
-// Code samples hold literal braces, so they are passed as text.
-const SAMPLE_1 = `вы     › Что мне вчера писали в рабочем чате про релиз?
-
-агент  → list_dialogs    {"query": "рабочий"}
-агент  → search_messages {"peer": "title:Рабочий", "query": "релиз"}
-агент  ‹ Три сообщения, последнее — перенос на пятницу…
-
-вы     › Ответь: «Ок, в пятницу успеваю».
-
-агент  → send_message    {"peer": "title:Рабочий",
-                          "text": "Ок, в пятницу успеваю", "confirm": true}`
+const SESSION: ChatLine[] = [
+  { who: 'вы', text: 'Что мне вчера писали в рабочем чате про релиз?' },
+  { who: 'агент', tool: 'list_dialogs', args: '{"query": "рабочий"}' },
+  { who: 'агент', tool: 'search_messages', args: '{"peer": "title:Рабочий", "query": "релиз"}' },
+  { who: 'агент', text: 'Три сообщения, последнее — перенос на пятницу.' },
+  { who: 'вы', text: 'Ответь: «Ок, в пятницу успеваю».' },
+  {
+    who: 'агент',
+    tool: 'send_message',
+    args: '{"peer": "title:Рабочий", "text": "Ок, в пятницу успеваю", "confirm": true}',
+  },
+]
 ---
 
 <ProductsShell
@@ -52,19 +55,13 @@ const SAMPLE_1 = `вы     › Что мне вчера писали в рабо
   file={['telegram-mcp', 'README.md']}
   crumbs={[TELEGRAM_MCP_CRUMB]}
 >
-  <h1>Telegram MCP</h1>
-  <ul class="badges" aria-label="Характеристики">
-    <li>v1.0</li>
-    <li>Node.js</li>
-    <li>MTProto · GramJS</li>
-    <li>MCP stdio</li>
-    <li>MIT</li>
-  </ul>
-  <p class="lead">
-    MCP-сервер, который даёт ИИ-агенту доступ к вашему личному Telegram:
-    найти чат, прочитать и поискать переписку, отправить сообщение — когда вы
-    прямо об этом попросили.
-  </p>
+  <ProductHero slug="telegram-mcp">
+    <p>
+      MCP-сервер, который даёт ИИ-агенту доступ к вашему личному Telegram:
+      найти чат, прочитать и поискать переписку, отправить сообщение — когда вы
+      прямо об этом попросили.
+    </p>
+  </ProductHero>
 
   <h2>Зачем</h2>
   <p>
@@ -85,7 +82,7 @@ const SAMPLE_1 = `вы     › Что мне вчера писали в рабо
   </ul>
 
   <h2>Как это выглядит</h2>
-  <pre><code set:text={SAMPLE_1} /></pre>
+  <AgentChat title="Claude Code + Telegram MCP" lines={SESSION} />
 
   <h2>Совместимость</h2>
   <p>

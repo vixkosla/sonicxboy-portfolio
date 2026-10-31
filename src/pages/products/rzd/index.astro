@@ -1,6 +1,7 @@
 ---
 import ProductsShell from '../../../layouts/ProductsShell.astro'
 import ProductsPager from '../../../components/ProductsPager.astro'
+import ProductHero from '../../../components/ProductHero.astro'
 import { RZD_CRUMB } from '../../../data/products.ts'
 import { SITE } from '../../../i18n.ts'
 
@@ -39,21 +40,12 @@ const schema = {
   file={['rzd', 'README.md']}
   crumbs={[RZD_CRUMB]}
 >
-  <h1>Билеты РЖД</h1>
-  <ul class="badges" aria-label="Характеристики">
-    <li>v1.0</li>
-    <li>скилл</li>
-    <li>свой аккаунт</li>
-    <li>оплата вручную</li>
-    <li>MIT</li>
-  </ul>
-  <p class="lead">
-    Скилл, по которому агент доводит мой билет на сайте РЖД от поиска до
-    готового заказа. Деньги списываю я: агент останавливается на QR СБП.
-  </p>
-  <p>
-    <a href="/products/rzd/install/">Установка</a> · <a href={source}>Исходный код</a>
-  </p>
+  <ProductHero slug="rzd">
+    <p>
+      Скилл, по которому агент доводит мой билет на сайте РЖД от поиска до
+      готового заказа. Деньги списываю я: агент останавливается на QR СБП.
+    </p>
+  </ProductHero>
 
   <h2>Зачем</h2>
   <p>
