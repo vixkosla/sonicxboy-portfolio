@@ -74,6 +74,25 @@ export const PRODUCT_TREE: ProductDoc[] = [
     label: 'Установка',
     depth: 2,
   },
+  {
+    href: '/products/tabby-agent-recovery/',
+    file: 'tabby-agent-recovery/',
+    label: 'Tabby Agent Recovery',
+    depth: 1,
+    folder: true,
+  },
+  {
+    href: '/products/tabby-agent-recovery/',
+    file: 'README.md',
+    label: 'Обзор',
+    depth: 2,
+  },
+  {
+    href: '/products/tabby-agent-recovery/install/',
+    file: 'install.md',
+    label: 'Установка',
+    depth: 2,
+  },
 ]
 
 // One record per product: the index entries and each product header read
@@ -150,6 +169,24 @@ export const PRODUCTS: Product[] = [
     install: { href: '/products/rzd/install/', label: 'Установка' },
     source: { href: 'https://github.com/vixkosla/rzd-tickets', label: 'Исходный код' },
   },
+  {
+    slug: 'tabby-agent-recovery',
+    name: 'Tabby Agent Recovery',
+    href: '/products/tabby-agent-recovery/',
+    summary:
+      'Плагин для Tabby: возобновляет разговоры Codex и Claude Code после перезапуска, сохраняет сплиты и оставляет завершённую панель на месте.',
+    facts: [
+      { label: 'Версия', value: '1.1.0, npm' },
+      { label: 'Клиент', value: 'Tabby' },
+      { label: 'Автопоиск сессий', value: 'Linux · Codex и Claude Code' },
+      { label: 'Лицензия', value: 'MIT' },
+    ],
+    install: { href: '/products/tabby-agent-recovery/install/', label: 'Установка' },
+    source: {
+      href: 'https://github.com/vixkosla/tabby-agent-recovery',
+      label: 'Исходный код',
+    },
+  },
 ]
 
 export const productBySlug = (slug: string): Product => {
@@ -176,4 +213,8 @@ export const VIEWPORT_LAB_CRUMB: Crumb = {
 export const RZD_CRUMB: Crumb = {
   name: 'Билеты РЖД',
   href: '/products/rzd/',
+}
+export const TABBY_AGENT_RECOVERY_CRUMB: Crumb = {
+  name: 'Tabby Agent Recovery',
+  href: '/products/tabby-agent-recovery/',
 }

@@ -1,0 +1,65 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import { TABBY_AGENT_RECOVERY_CRUMB } from '../../../data/products.ts'
+const title = 'Установка Tabby Agent Recovery | SonicXBoy'
+const description = 'Установка плагина agent-recovery из Tabby Plugin Manager или npm. Проверка восстановления Codex и Claude Code, явный профиль с ID разговора и локальные настройки.'
+---
+<ProductsShell {title} {description} file={['tabby-agent-recovery', 'install.md']} crumbs={[TABBY_AGENT_RECOVERY_CRUMB, { name: 'Установка', href: '/products/tabby-agent-recovery/install/' }]}>
+  <h1>Установка</h1>
+  <p class="lead">Нужны Tabby и установленный, настроенный Codex или Claude Code.
+    Для автоматического поиска сессий — Linux. Отдельный <code>agent-sessions</code> не требуется.</p>
+
+  <h2>1. Установите плагин</h2>
+  <ol>
+    <li>Откройте Tabby → Settings → Plugins.</li>
+    <li>Найдите <code>agent-recovery</code> и нажмите Get / Install.</li>
+    <li>Перезапустите Tabby. В Installed должна появиться версия 1.1.0.</li>
+  </ol>
+  <p>Если поиск не показывает пакет, откройте каталог кнопкой Plugins folder
+    и выполните в нём:</p>
+  <pre><code>npm install tabby-agent-recovery@latest</code></pre>
+  <p>Затем перезапустите Tabby. Для обновления уже установленного плагина
+    подходит та же команда. <a href="https://www.npmjs.com/package/tabby-agent-recovery">Пакет в npm</a>.</p>
+  <p>Если используете разработческую копию через symlink, обновляйте её в исходной
+    папке. Установка npm поверх ссылки заменит её пакетом из реестра.</p>
+
+  <h2>2. Проверьте восстановление</h2>
+  <ol>
+    <li>Включите восстановление вкладок в настройках Tabby.</li>
+    <li>Откройте Codex или Claude Code в панели и начните разговор, чтобы агент сохранил его ID.</li>
+    <li>Сделайте сплит и закройте Tabby обычным способом: при закрытии он сохраняет раскладку.</li>
+    <li>Откройте Tabby снова. Проверьте прежний разговор, рабочую папку и расположение панелей.</li>
+  </ol>
+  <p>После аварийного завершения доступна последняя сохранённая раскладка Tabby.
+    Ещё не сохранённые изменения восстановить нельзя. Плагин возобновляет разговор,
+    но не отправляет следующую реплику за вас.</p>
+
+  <h2 id="explicit">Если автоматический поиск не сработал</h2>
+  <p>Укажите точный ID нужного разговора в профиле Tabby. Это также способ
+    использования на macOS и Windows. В Settings → Profiles создайте локальный
+    профиль, задайте рабочую папку, исполняемый файл агента и аргументы:</p>
+  <pre><code>{`# Codex: команда — путь к codex, аргументы:
+resume <ID-разговора>
+
+# Claude Code: команда — путь к claude, аргументы:
+--resume <ID-разговора>`}</code></pre>
+  <p>Замените <code>&lt;ID-разговора&gt;</code> реальным UUID сессии.
+    Аргументы вводятся отдельно от пути к исполняемому файлу.
+    Команды <code>--last</code> и <code>--continue</code> не фиксируют конкретный разговор.</p>
+  <p>Общий демон Codex и нестандартные обёртки могут скрывать принадлежность сессии
+    панели. Для новых сессий Codex с доступным параметром <code>--no-daemon</code>
+    можно использовать его; уже существующий разговор надёжнее закрепить по ID.</p>
+
+  <h2>Локальные файлы</h2>
+  <p>По умолчанию снимки находятся в <code>~/.local/state/tabby-agent-recovery</code>.
+    Если уже есть состояние <code>agent-sessions</code>, используется его каталог.
+    Путь можно задать через <code>AGENT_SESSIONS_STATE</code>.</p>
+  <ul>
+    <li><code>TABBY_AGENT_RECOVERY_SCROLLBACK=1</code> — включить историю экрана и полное окружение профиля в дополнительные снимки.</li>
+    <li><code>TABBY_AGENT_RECOVERY_LOG=1</code> — записывать вывод панелей в отдельные файлы.</li>
+  </ul>
+  <p>Обе настройки по умолчанию выключены. Если они нужны, задайте переменные
+    в окружении запуска Tabby, затем перезапустите приложение.</p>
+  <ProductsPager />
+</ProductsShell>

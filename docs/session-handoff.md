@@ -1,5 +1,133 @@
 # Session handoff
 
+## 2026-11-07 — Tabby product fixed; accepted Products design restored
+
+This is the current release. A separate Tabby page deployment was built from
+old HEAD `2006f72` and accidentally reverted the accepted November 6 design.
+Restore and preserve the StatsBrandLockup, exact Stats gradient, compact text
+catalog, and dashed navigation branches. Product icons remain rejected.
+
+- Four products and ten document routes. Tabby now appears in the catalog,
+  desktop/mobile navigation, pager, dynamic ItemList schema, sitemap, and llms.txt.
+- Rewrote Tabby overview/install instructions to match the released plugin:
+  standalone exact-ID Codex/Claude recovery, automatic process detection on Linux,
+  explicit UUID profiles elsewhere, no claim of a process surviving a reboot.
+- Added inline code wrapping; the 320px installation page no longer overflows.
+  Sidebar persistence key is `products-branches-nav-v2`.
+- Plugin `tabby-agent-recovery@1.1.0` is public in npm with `latest=1.1.0`.
+  GitHub main/tag v1.1.0: commit `ee3af365319c7fc85b4311a0d0be058da7ff04ab`.
+  Source worktree: `/home/vixkosla/.local/share/agent-worktrees/tabby-agent-recovery-autonomous-recovery-20261107-acfeee8c`.
+  28 plugin tests pass. Isolated Tabby 1.0.238/Linux integration used local CLI
+  fixtures without model calls: exact IDs after full restart, nested split ratios,
+  finished-pane retention, background startup without tab selection, no duplicate
+  launches. No changes to the user's running Tabby or private plugin symlink.
+- Site: 52 tests and build pass; all 10 routes at 320, 390, 768, 900, 1024, 1440,
+  and 1920px pass locally AND on production. Actual catalog→overview→install
+  clicks and active navigation work on desktop/mobile. Reviewed screenshots.
+- Before publishing, compared all 77 deployed runtime/public/config files:
+  only the intended six Products/data/llms files differ. No homepage/Stats changes.
+- Production deployment `dpl_HBoUVu6SPkJzFNgTG2NBLHCsuiv9`, Ready and aliased:
+  https://sonicxboy-l63tmurhx-askerovtamerlans-projects.vercel.app
+  https://sonicxboy.dev/products/
+- Evidence: `output/playwright/recovery-live-result.json`, `recovery-live-*.png`,
+  `recovery-tests.log`, `recovery-build.log`. Plugin evidence: its `output/qa/`.
+- This complete site source is being committed to its own branch and published
+  to origin/main so future worktrees include the corrected design. The user's
+  main working copy and other worktrees are not overwritten.
+
+## 2026-11-06 — User correction: reuse Stats identity and the original menu lines
+
+**This supersedes and rejects the icon treatment below.** The user explicitly
+rejected the new product icons as unrelated to the site's established design.
+Their direction is to use the logo and background gradient from `/stats/` and
+the earlier menu's branching/dashed lines, keeping the accepted minimal layout.
+Do not reintroduce product glyphs, the favicon-plus-wordmark header, or a new
+visual language. Continue in this same `products-finish-20261106-567a886b` worktree.
+
+- Deleted the newly created `ProductGlyph.astro` and both usages. The catalog
+  source now exactly matches the accepted minimal catalog from November 5.
+- ProductsShell imports the existing `StatsBrandLockup.astro` directly. The
+  component itself is unchanged. Its 10px base size matches Stats exactly;
+  measured lockup 162.484375 x 31.765625px, title 17.2px Tektur.
+- Used Stats' exact `#060b09` base and
+  `radial-gradient(ellipse at 80% 0, #12312555, transparent 38rem)` body background.
+  Compared computed styles against the actual public Stats page, with screenshots.
+- Recovered the earlier README menu's branch structure from Git and drew it as
+  thin dashed vertical/horizontal connectors with correctly terminated last
+  branches. Added a dashed sidebar divider and mobile document-nav separator.
+  Current descriptive link labels and compact content typography remain.
+- On narrow phones, the full logo links home and the header keeps the Products
+  link; duplicate Home and GitHub links are hidden so the original logo fits.
+- New persistence IDs `products-brand-bar` and `products-branches-nav` replace
+  rejected header/menu markup when navigating from an older tab.
+- Fresh build and diff whitespace check pass. All 8 built Products routes at
+  seven widths (320–1920px, 56 combinations) pass layout/image checks with no
+  page errors. Actual desktop/mobile links, keyboard skip link, old-markup
+  replacement and reduced motion pass. Visually reviewed catalog and document
+  screenshots against `output/playwright/stats-reference.png`.
+- Evidence: `output/playwright/brand-verification.json`, `brand-reference-match.log`,
+  `stats-reference-styles.log`, `brand-*.png`.
+- Published at https://sonicxboy.dev/products/ on 2026-11-06 around 14:43 UTC;
+  deployment `dpl_C3uXB4JjpETPYQGEMWtkPKKrKo5C`, URL
+  `https://sonicxboy-b59wvv6hh-askerovtamerlans-projects.vercel.app`, Ready and aliased.
+  All 8 live routes at 390/1440px pass (16 combinations), no errors or layout
+  failures. Navigation, skip-link focus, persistence replacement and reduced
+  motion pass. Reviewed `brand-live-desktop.png` and `brand-live-mobile.png`;
+  results in `brand-live-verification.json`. Source remains uncommitted here;
+  no main-checkout integration or push. This is the current published design,
+  pending the user's visual response; do not describe the rejected icons as accepted.
+
+## 2026-11-06 — Finish the accepted minimal Products design
+
+Recovered session `01a1a86f-6835-7420-b1d5-c712914c5596`. Its last user correction
+accepted the minimal layout and asked for small decorative details integrated
+into that layout. This last request had only been discussed. The user now asked
+to finish it; the earlier authorization to publish immediately remains applicable.
+
+- Current release source: `/home/vixkosla/.local/share/agent-worktrees/sonicxboy-behance-20261024-products-rele-products-finish-20261106-567a886b`.
+- Branch: `agents/sonicxboy-behance-20261024-products-rele-products-finish-20261106-567a886b`.
+- Base: `2006f72`, plus an explicit snapshot of the previous `products-polish-20261105-438ee99d` worktree's uncommitted minimal design. Do not replace this snapshot with bare HEAD.
+- Added `src/components/ProductGlyph.astro`: small decorative line drawings for Telegram, screen sizes and tickets. Used beside catalog headings and documentation navigation groups. SVGs are hidden from assistive technology, have no animation or added dependencies.
+- Reused the existing favicon as a 20px brand mark in the shared header. Preserved approved text, typography, spacing, colors and catalog structure. Runtime changes are confined to the new component, `src/layouts/ProductsShell.astro` and `src/pages/products/index.astro`.
+- Updated persistent header/sidebar identifiers to `products-glyphs-bar` / `products-glyphs-nav`. A real production tab opened before deployment received the new markup on navigation afterward: zero retained old nodes, correct active link.
+- Compared Vercel's prior deployment source hashes: 83 runtime/source/public/config files identical, exactly two changed files, one added component, no missing files. Prior deployment: `dpl_CPdcpqiCbYyZYxaGwRcfZVzkMusJ`.
+- `pnpm build`, 52 tests and `git diff --check` pass. Local built-page browser review covers all 8 routes at 320, 390, 768, 900, 1024, 1440 and 1920px: no overflow, checked clipped controls, broken images or page errors. Actual desktop/mobile navigation, keyboard skip link, persistence replacement and reduced motion pass.
+- Published and verified at https://sonicxboy.dev/products/ on 2026-11-06 around 13:11 UTC. Deployment `dpl_AgwXk2Uo2p5tbhZjtXsHHqy9Ayzr`, URL `https://sonicxboy-ddw9z3h9c-askerovtamerlans-projects.vercel.app`, status Ready and production domain assigned.
+- Live browser review: all 8 routes at 390px and 1440px (16 combinations), no failures/page errors; actual internal clicks, skip-link focus and reduced motion pass. Visually reviewed desktop/mobile catalog and documentation captures. Evidence: `output/playwright/verification.json`, `live-verification.json`, `old-tab-upgrade.log`, `source-comparison.json`, `finish-*.png`, `live-*.png`.
+- Local built static preview: http://127.0.0.1:4813/products/ (serve `dist/client`, not `dist`). Browser verification used an owned headless `products-finish` session; no user tabs touched.
+- No commit, merge or push. Main checkout and the previous worktree remain unchanged. Future releases must preserve this worktree's minimal design and new glyph component. This styling task is implemented, published and verified; further art direction can start from this result.
+
+## 2026-11-05 — Minimal documentation pass (supersedes the compact showcase)
+
+User asked for an even more minimal docs treatment and previously authorized immediate publication.
+Same worktree and branch as below; runtime changes now cover `src/layouts/ProductsShell.astro` and `src/pages/products/index.astro`.
+
+- Catalog is three text sections: product name, summary, documentation/install/source links. Removed duplicate facts, large previews, principles and the redundant catalog pager; product documents retain their details and examples.
+- Shared shell uses a plain SonicXBoy text link, normal grouped documentation navigation, no ASCII tree glyphs/file-name labels/path bar or markdown heading prefixes. Mobile index has no duplicate product navigation. Links replace boxed actions and the pager has only a separating rule.
+- Body remains 16px, h1 28px, catalog headings 20px; header 56px. Catalog text measure is capped at 42rem. No new assets or dependencies.
+- Production build and 52 tests pass. All 8 Products routes at 320, 390, 768, 900, 1024, 1440 and 1920px pass layout/image checks (56 combinations), with no page errors. Actual desktop and mobile navigation updates active links; the keyboard skip link focuses main.
+- Reviewed `output/playwright/minimal-desktop.png`, `minimal-mobile.png`, `minimal-doc-desktop.png`, and `minimal-doc-mobile.png`. Previous compact source snapshots are retained in the same excluded artifact directory.
+- Published and verified at https://sonicxboy.dev/products/. Final deployment `dpl_CPdcpqiCbYyZYxaGwRcfZVzkMusJ`, URL `https://sonicxboy-3dercprn5-askerovtamerlans-projects.vercel.app` (2026-11-05, 16:15 UTC). Prior compact production: `dpl_Ebwa1ADpUPg2JNQ7GA7S7phh4nHT`.
+- Final release also changes persistence identifiers to `products-docs-bar` / `products-docs-nav` so navigation from an older open tab replaces the old header/sidebar markup. Verified by simulating previous persistence identifiers and clicking into a product: no old marked nodes retained, active link correct.
+- Live checks: all 8 routes at 390px and 1440px (16 combinations), no overflow, broken images, clipped checked controls or page errors; actual desktop/mobile document and install navigation passes. Keyboard skip link passes. Screenshots `minimal-live-desktop.png` and `minimal-live-mobile.png` were visually reviewed; `minimal-live-verification.json` records the results. Final live catalog has 3 text entries, 0 previews and 0 ASCII navigation glyphs; body/h1 are 16/28px.
+- Source remains in this worktree, uncommitted and unmerged. This minimal pass supersedes all larger catalog screenshots and shell snapshots below.
+
+## 2026-11-05 — Products styling and scale
+
+- Worktree: `/home/vixkosla/.local/share/agent-worktrees/sonicxboy-behance-20261024-products-rele-products-polish-20261105-438ee99d`.
+- Branch: `agents/sonicxboy-behance-20261024-products-rele-products-polish-20261105-438ee99d`; base `2006f72` (the clean Products redesign checkout, not the older dirty main).
+- Implementation: `src/layouts/ProductsShell.astro` only. Preserved product copy, URLs, README tree, Onest/JetBrains typography and emerald palette.
+- User correction: this is docs, so keep it compact, neat and minimal. The earlier enlarged showcase treatment is superseded. Final frame: 86rem; body 16px; h1 28–36px; product headings 24px; header 72px. Removed the decorative background grid and solid bright action fills. Reduced preview type, padding and section spacing, keeping readable muted text. Product rows stack by available content width; sidebar becomes wrapping navigation below 1100px. Retained server-rendered active navigation, skip-link focus target and reduced-motion styling.
+- `pnpm build` and `git diff --check` passed. Existing large Three.js bundle warning remains unrelated.
+- Production-build browser review: all 8 Products routes at 320, 390, 768, 1024, 1280, 1440 and 1920px (56 combinations): HTTP 200, no horizontal overflow, no clipped checked text/controls, all images decode, no page errors.
+- Actual desktop/mobile internal clicks update the persistent tree and mobile navigation. Keyboard skip link is visible and focuses main; reduced-motion navigation has no running animations.
+- Screenshots and machine-readable results: `output/playwright/`. Reviewed the full catalog, product overview, 320/390px mobile and 1440/1920px desktop captures.
+- Owned headless Playwright CLI session: `products-polish`, custom Chromium executable from local Playwright cache; no user browser tabs used. Built static preview at `http://127.0.0.1:4812/products/` via Python HTTP server. Dev server was stopped before reviewing the build.
+- Published on explicit user instruction on 2026-11-05 at 13:10 UTC. Production: https://sonicxboy.dev/products/; deployment `dpl_Ebwa1ADpUPg2JNQ7GA7S7phh4nHT`, URL `https://sonicxboy-lkwk112ua-askerovtamerlans-projects.vercel.app`. Previous production: `dpl_8QNUizXKNgCgBN84ey6mAqs9tQyL`.
+- Compared source SHA-1s against the prior deployment: 84 runtime/source/config files match; only `src/layouts/ProductsShell.astro` differs; no missing or extra runtime files. Fresh local build, 52 tests and Vercel build passed.
+- Live verification: all 8 Products routes return 200; desktop body/h1/product-heading sizes are 16/36/24px, mobile body/h1 are 16/28px. Desktop and mobile show no horizontal overflow or page errors; actual internal navigation updates the active item. Screenshots reviewed in `output/playwright/live-desktop.png` and `live-mobile.png`; result in `live-verification.json`.
+- Changes remain uncommitted in this isolated worktree; no merge or push. Source checkout remains unchanged. Future releases must include this worktree's ProductsShell to preserve the published compact styling.
+
 Updated: 2026-07-31
 
 ## 2026-08-01 desktop opening ported to portrait; black-hole flourish now visible on every viewport

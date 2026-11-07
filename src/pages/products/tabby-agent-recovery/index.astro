@@ -1,0 +1,73 @@
+---
+import ProductsShell from '../../../layouts/ProductsShell.astro'
+import ProductsPager from '../../../components/ProductsPager.astro'
+import ProductHero from '../../../components/ProductHero.astro'
+import { TABBY_AGENT_RECOVERY_CRUMB } from '../../../data/products.ts'
+import { SITE } from '../../../i18n.ts'
+
+const title = 'Tabby Agent Recovery — восстановление разговоров агентов | SonicXBoy'
+const description = 'Плагин для Tabby: возобновляет разговоры Codex и Claude Code по точному ID, сохраняет сплиты и завершённые панели. Автопоиск сессий в Linux, без обязательного внешнего лаунчера.'
+const source = 'https://github.com/vixkosla/tabby-agent-recovery'
+const npm = 'https://www.npmjs.com/package/tabby-agent-recovery'
+const schema = {
+  '@context': 'https://schema.org', '@type': 'SoftwareApplication',
+  name: 'Tabby Agent Recovery', url: `${SITE}/products/tabby-agent-recovery/`, description,
+  applicationCategory: 'DeveloperApplication', operatingSystem: 'Linux; macOS and Windows with explicit resume profiles',
+  softwareVersion: '1.1.0', license: 'https://opensource.org/licenses/MIT',
+  installUrl: npm, codeRepository: source,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  inLanguage: 'ru', author: { '@type': 'Person', name: 'SonicXBoy', url: SITE },
+  featureList: ['Возобновление Codex и Claude Code по точному ID разговора', 'Автоматический поиск сессий в Linux', 'Сохранение вложенных сплитов и завершённых панелей', 'Запуск фоновых панелей без перехвата фокуса', 'Локальные снимки раскладки'],
+}
+---
+<ProductsShell {title} {description} {schema} file={['tabby-agent-recovery', 'README.md']} crumbs={[TABBY_AGENT_RECOVERY_CRUMB]}>
+  <ProductHero slug="tabby-agent-recovery">
+    <p>Возвращает разговоры Codex и Claude Code в панели Tabby после перезапуска.
+      Сам сохраняет команду продолжения с точным ID сессии. Отдельный лаунчер не нужен.</p>
+  </ProductHero>
+
+  <h2>Как работает</h2>
+  <p>Tabby запоминает окно и сплиты, но обычная панель после перезагрузки открывается
+    новым шеллом. Плагин находит запущенного агента в этой панели и сохраняет
+    команду <code>codex resume &lt;ID&gt;</code> или <code>claude --resume &lt;ID&gt;</code>.
+    При следующем запуске агент открывает тот же разговор в прежней панели.</p>
+  <p>Это новый процесс с сохранённой историей. Плагин не продолжает вычисления,
+    пока компьютер выключен, и не отправляет новое задание автоматически.</p>
+
+  <h2>Что сохраняется</h2>
+  <ul>
+    <li>Точный разговор, рабочая папка и поддерживаемые параметры запуска агента.</li>
+    <li>Дерево сплитов Tabby, их порядок, заголовки и пропорции.</li>
+    <li>Панель после завершения процесса: она остаётся в раскладке.</li>
+    <li>Последние 20 снимков раскладки при запуске и актуальная копия после сохранения.</li>
+  </ul>
+  <p>Восстановленные панели запускаются и в фоновых вкладках. Переключать каждую
+    вручную не требуется, фокус остаётся на выбранной вкладке.</p>
+
+  <h2>Поддержка</h2>
+  <p>Автоматический поиск запущенных Codex и Claude Code работает в Linux.
+    Плагин проверяет процессы именно этой панели и локальные метаданные разговора.
+    На macOS и Windows можно использовать профиль Tabby с явной командой
+    возобновления и ID; автоматического поиска там пока нет.</p>
+  <p>Если ID определить нельзя, плагин сохраняет обычное поведение Tabby.
+    Он не выбирает «последний» разговор. Общий демон Codex, нестандартная обёртка
+    или неизвестные параметры запуска могут мешать определению сессии —
+    для таких случаев есть <a href="/products/tabby-agent-recovery/install/#explicit">явный профиль возобновления</a>.</p>
+  <p>Существующая интеграция с <code>agent-sessions</code> остаётся дополнительной:
+    при доступном лаунчере плагин сохраняет команду подключения к управляемой сессии.
+    Старые reconnect-скрипты при отсутствии лаунчера остаются без подмены.</p>
+
+  <h2>Приватность</h2>
+  <p>Плагин не отправляет данные в сеть. Его дополнительные снимки по умолчанию
+    не содержат вывода терминала и секретных переменных окружения. Сохраняются
+    пути и команды запуска; файлы создаются с правами <code>0600</code>.
+    Настройки хранения истории самого Tabby действуют отдельно.</p>
+  <p>Запись вывода можно включить явно. Подробности — в
+    <a href="https://github.com/vixkosla/tabby-agent-recovery/blob/main/PRIVACY.md">политике конфиденциальности</a>.</p>
+
+  <h2>Установка</h2>
+  <p>Tabby → Settings → Plugins → поиск <code>agent-recovery</code>.
+    Пакет <a href={npm}>tabby-agent-recovery 1.1.0</a>, лицензия MIT.
+    <a href="/products/tabby-agent-recovery/install/">Пошаговая инструкция и проверка</a>.</p>
+  <ProductsPager />
+</ProductsShell>

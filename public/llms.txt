@@ -96,6 +96,15 @@ Extensions API, GSAP, Rapier, Blender, Figma.
   https://sonicxboy.dev/products/rzd/
   Установка: https://sonicxboy.dev/products/rzd/install/
 
+- Tabby Agent Recovery (v1.1.0, MIT) — плагин для Tabby. Самостоятельно
+  сохраняет точные команды возобновления Codex и Claude Code; автоматический
+  поиск запущенных сессий работает в Linux. agent-sessions не обязателен.
+  Сохраняет сплиты и завершённые панели. После перезапуска запускает новый
+  процесс с прежним разговором, без автоматической отправки задания.
+  Исходный код: https://github.com/vixkosla/tabby-agent-recovery
+  https://sonicxboy.dev/products/tabby-agent-recovery/
+  Установка: https://sonicxboy.dev/products/tabby-agent-recovery/install/
+
 ## Живые демо
 
 - Стеклянная спираль (последняя работа): https://bubble-gum-glass-spiral.netlify.app/

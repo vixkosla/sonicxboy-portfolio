@@ -1,21 +1,11 @@
 ---
 import ProductsShell from '../../layouts/ProductsShell.astro'
-import ProductsPager from '../../components/ProductsPager.astro'
 import { SITE } from '../../i18n.ts'
-import AgentChat, { type ChatLine } from '../../components/AgentChat.astro'
 import { PRODUCTS } from '../../data/products.ts'
 
-const TELEGRAM_SESSION: ChatLine[] = [
-  { who: 'вы', text: 'Что вчера писали в рабочем чате про релиз?' },
-  { who: 'агент', tool: 'search_messages', args: '«релиз»' },
-  { who: 'агент', text: 'Три сообщения, последнее — перенос на пятницу.' },
-  { who: 'вы', text: 'Ответь: «Ок, в пятницу успеваю».' },
-  { who: 'агент', tool: 'send_message', args: 'confirm: true' },
-]
-
-const title = 'Продукты SonicXBoy — Telegram MCP, Viewport Lab и билеты РЖД'
+const title = 'Продукты SonicXBoy — Telegram MCP, Viewport Lab, РЖД и Tabby'
 const description =
-  'Инструменты для своей работы: Telegram MCP подключает личный Telegram к Claude Code и Codex, Viewport Lab показывает страницу в размерах телефона, планшета и ПК, скилл РЖД доводит свой билет до оплаты человеком.'
+  'Инструменты для своей работы: Telegram MCP подключает личный Telegram к Claude Code и Codex, Viewport Lab показывает страницу в размерах телефона, планшета и ПК, скилл РЖД доводит свой билет до оплаты человеком, Tabby Agent Recovery возобновляет разговоры агентов в терминале.'
 
 const schema = {
   '@context': 'https://schema.org',
@@ -27,102 +17,34 @@ const schema = {
   author: { '@type': 'Person', name: 'SonicXBoy', url: SITE },
   mainEntity: {
     '@type': 'ItemList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Telegram MCP',
-        url: `${SITE}/products/telegram-mcp/`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Viewport Lab',
-        url: `${SITE}/products/viewport-lab/`,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: 'Билеты РЖД',
-        url: `${SITE}/products/rzd/`,
-      },
-    ],
+    itemListElement: PRODUCTS.map((product, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: product.name,
+      url: `${SITE}${product.href}`,
+    })),
   },
 }
 ---
 
 <ProductsShell {title} {description} {schema} file={['README.md']} crumbs={[]}>
   <h1>Продукты</h1>
-  <p class="lead">
-    Инструменты, которые я сделал для своей работы и довёл до состояния, когда
-    ими можно делиться. Каждый решает одну задачу и не просит больше доступа,
-    чем ей нужно.
-  </p>
+  <p class="lead">Инструменты для моей работы. Описание, установка и исходный код.</p>
 
   {PRODUCTS.map((product) => (
     <section class="entry" aria-labelledby={`product-${product.slug}`}>
-      <div>
-        <p class="entry__dir">{product.slug}/</p>
-        <h2 id={`product-${product.slug}`}>
-          <a href={product.href}>{product.name}</a>
-        </h2>
-        <p>{product.summary}</p>
-        <dl class="facts">
-          {product.facts.map((fact) => (
-            <div>
-              <dt>{fact.label}</dt>
-              <dd>{fact.value}</dd>
-            </div>
-          ))}
-        </dl>
-        <p class="actions">
-          <a
-            class="button button--primary"
-            href={product.install.href}
-            rel={product.install.href.startsWith('http') ? 'noopener' : undefined}
-          >
-            {product.install.label}
-          </a>
-          <a class="button" href={product.source.href} rel="noopener">{product.source.label}</a>
-        </p>
-      </div>
-
-      {product.slug === 'telegram-mcp' && (
-        <AgentChat title="Claude Code + Telegram MCP" lines={TELEGRAM_SESSION} />
-      )}
-
-      {product.slug === 'viewport-lab' && (
-        <a class="preview" href={product.href} aria-label="Viewport Lab: подробнее">
-          <img
-            src="/products/viewport-lab/grid.webp"
-            width="1280"
-            height="800"
-            alt="Одна страница в шести телефонных размерах рядом"
-            loading="lazy"
-          />
-        </a>
-      )}
-
-      {product.slug === 'rzd' && (
-        <figure class="preview">
-          <p class="preview__head">Заказ билета</p>
-          <ol class="steps">
-            <li><div><strong>Поиск поезда</strong><span>В уже открытом личном кабинете</span></div></li>
-            <li><div><strong>Пассажир и места</strong><span>Только свой аккаунт и свой заказ</span></div></li>
-            <li><div><strong>QR СБП</strong><span>Агент останавливается здесь</span></div></li>
-            <li class="steps__human"><div><strong>Оплата</strong><span>Подтверждаю я в банке</span></div></li>
-          </ol>
-        </figure>
-      )}
+      <h2 id={`product-${product.slug}`}>
+        <a href={product.href}>{product.name}</a>
+      </h2>
+      <p>{product.summary}</p>
+      <p class="entry__links">
+        <a href={product.href}>Документация</a>
+        <a
+          href={product.install.href}
+          rel={product.install.href.startsWith('http') ? 'noopener' : undefined}
+        >Установка</a>
+        <a href={product.source.href} rel="noopener">Исходный код</a>
+      </p>
     </section>
   ))}
-
-  <h2>Принципы</h2>
-  <ul>
-    <li>Узкий доступ: только то, что нужно для задачи.</li>
-    <li>Действия, которые что-то меняют, — только с явным подтверждением.</li>
-    <li>Короткая документация, которую можно прочитать за минуту.</li>
-  </ul>
-
-  <ProductsPager />
 </ProductsShell>

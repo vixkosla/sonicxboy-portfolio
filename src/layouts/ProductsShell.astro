@@ -2,7 +2,7 @@
 import '@fontsource-variable/onest'
 import '@fontsource-variable/jetbrains-mono'
 import { ClientRouter } from 'astro:transitions'
-import BrandMark from '../components/BrandMark.astro'
+import StatsBrandLockup from '../components/StatsBrandLockup.astro'
 import { SITE } from '../i18n.ts'
 import { PRODUCT_TREE, PRODUCTS, PRODUCTS_CRUMB, type Crumb } from '../data/products.ts'
 
@@ -34,19 +34,6 @@ const breadcrumbs = {
     })),
 }
 
-// Rendered as a file tree. Glyphs are computed from depth and the next
-// sibling so the ASCII branches stay correct when entries are added.
-const rows = PRODUCT_TREE.map((entry, index) => {
-  const rest = PRODUCT_TREE.slice(index + 1)
-  const nextSibling = rest.find((other) => other.depth <= entry.depth)
-  const last = !nextSibling || nextSibling.depth < entry.depth
-  const parentLast =
-    entry.depth === 2 &&
-    !PRODUCT_TREE.slice(index + 1).some((other) => other.depth === 1)
-  const indent = entry.depth === 2 ? (parentLast ? '   ' : '│  ') : ''
-  return { ...entry, glyph: `${indent}${last ? '└─' : '├─'}` }
-})
-
 // Narrow screens drop the tree for a short nav: the products themselves on
 // the index, or the current product's pages plus a way back.
 const current = PRODUCTS.find((product) => product.slug === file[0])
@@ -71,7 +58,7 @@ const here = pathname
     <meta name="robots" content="index, follow, max-snippet:-1" />
     <link rel="canonical" href={canonical} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="theme-color" content="#050907" />
+    <meta name="theme-color" content="#060b09" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="SonicXBoy" />
     <meta property="og:locale" content="ru_RU" />
@@ -87,49 +74,42 @@ const here = pathname
   <body>
     <a class="skip-link" href="#readme">К содержанию</a>
 
-    <header class="bar" transition:persist="products-bar">
-      <span class="bar__mark"><BrandMark /></span>
+    <header class="bar" transition:persist="products-brand-bar">
+      <StatsBrandLockup class="products-brand" href="/" label="SonicXBoy — на главную" />
       <nav class="bar__nav" aria-label="Разделы сайта">
         <a href="/">Главная</a>
-        <a href="/products/" data-section>Продукты</a>
+        <a href="/products/" aria-current="location" data-section>Продукты</a>
         <a href="https://github.com/vixkosla" rel="me">GitHub</a>
       </nav>
     </header>
 
     <div class="frame">
-      <aside class="tree" transition:persist="products-tree" aria-label="Страницы раздела">
-        <p class="tree__root">~/products</p>
-        <ul>
-          {rows.map((row) =>
-            row.folder ? (
-              <li class="tree__row tree__row--folder">
-                <span class="tree__glyph" aria-hidden="true">{row.glyph}</span>
-                <span class="tree__file">{row.file}</span>
-              </li>
-            ) : (
-              <li class="tree__row">
-                <span class="tree__glyph" aria-hidden="true">{row.glyph}</span>
-                <a class="tree__link" href={row.href} data-tree-link>
-                  <span class="tree__file">{row.file}</span>
-                  <span class="tree__label">{row.label}</span>
-                </a>
-              </li>
-            ),
-          )}
-        </ul>
+      <aside class="tree" transition:persist="products-branches-nav-v2" aria-label="Страницы раздела">
+        <nav aria-label="Документация">
+          <ul>
+            {PRODUCT_TREE.map((row) =>
+              row.folder ? (
+                <li class="tree__group">{row.label}</li>
+              ) : (
+                <li class:list={['tree__row', { 'tree__row--child': row.depth === 2 }]}>
+                  <a class="tree__link" href={row.href} aria-current={row.href === here ? 'page' : undefined} data-tree-link>
+                    {row.label}
+                  </a>
+                </li>
+              ),
+            )}
+          </ul>
+        </nav>
       </aside>
 
-      <main id="readme" class="readme" transition:animate="fade">
-        <nav class="mnav" aria-label={current ? current.name : 'Продукты'}>
+      <main id="readme" tabindex="-1" class="readme" transition:animate="fade">
+        <nav class:list={['mnav', { 'mnav--index': !current }]} aria-label={current ? current.name : 'Продукты'}>
           {mobileLinks.map((link) => (
             <a href={link.href} aria-current={link.href === here ? 'page' : undefined}>
               {link.label}
             </a>
           ))}
         </nav>
-        <p class="path" aria-label="Путь к странице">
-          <span class="path__dim">~/products/</span>{file.join('/')}
-        </p>
         <slot />
       </main>
     </div>
@@ -165,11 +145,11 @@ const here = pathname
   }
 
   :root {
-    --bg: #050907;
+    --bg: #060b09;
     --panel: #08100c;
     --ink: #e8f5ee;
-    --ink-dim: rgba(218, 238, 229, 0.72);
-    --ink-faint: rgba(218, 238, 229, 0.46);
+    --ink-dim: #afc4b9;
+    --ink-faint: #8ca397;
     --line: rgba(24, 211, 131, 0.16);
     --line-strong: rgba(24, 211, 131, 0.34);
     --emerald: #18d383;
@@ -177,13 +157,16 @@ const here = pathname
     --emerald-deep: #0a7a4c;
     --mono: 'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, monospace;
     --body: 'Onest Variable', system-ui, sans-serif;
-    --tree-w: 17.5rem;
+    --tree-w: 13.5rem;
+    --page-width: 74rem;
+    --gutter: clamp(1.25rem, 3vw, 2rem);
+    --bar-h: 3.5rem;
     color-scheme: dark;
   }
 
   html {
     background: var(--bg);
-    scroll-padding-top: 5.5rem;
+    scroll-padding-top: calc(var(--bar-h) + 1.5rem);
   }
 
   body {
@@ -192,11 +175,10 @@ const here = pathname
     display: flex;
     flex-direction: column;
     color: var(--ink);
-    background:
-      linear-gradient(90deg, rgba(24, 211, 131, 0.035) 1px, transparent 1px) 0 0 / 4rem 4rem,
-      var(--bg);
+    /* Same restrained upper-right light as the Stats page. */
+    background: radial-gradient(ellipse at 80% 0, #12312555, transparent 38rem);
     font-family: var(--body);
-    font-size: 17px;
+    font-size: 16px;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
   }
@@ -210,7 +192,7 @@ const here = pathname
     color: inherit;
   }
 
-  a:focus-visible {
+  :is(a, button, summary, pre):focus-visible {
     outline: 2px solid var(--emerald);
     outline-offset: 3px;
   }
@@ -241,27 +223,29 @@ const here = pathname
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    min-height: 4.5rem;
-    padding: 0.7rem clamp(1rem, 4vw, 3.5rem);
+    height: var(--bar-h);
+    padding: 0.75rem max(var(--gutter), calc((100vw - var(--page-width)) / 2 + var(--gutter)));
     border-bottom: 1px solid var(--line);
-    background: rgba(5, 9, 7, 0.86);
+    background: rgba(6, 11, 9, 0.72);
     backdrop-filter: blur(14px);
   }
 
-  .bar__mark {
-    display: inline-flex;
-    font-size: 0.5rem;
+  .products-brand {
+    flex-shrink: 0;
+    font-size: 10px;
   }
 
   .bar__nav {
     display: flex;
     gap: clamp(0.9rem, 2.2vw, 2rem);
-    font: 600 0.7rem/1 var(--mono);
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+    align-items: center;
+    font: 550 0.85rem/1.3 var(--body);
   }
 
   .bar__nav a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
     color: var(--ink-dim);
     text-decoration: none;
     transition: color 0.2s ease;
@@ -279,26 +263,21 @@ const here = pathname
     display: grid;
     grid-template-columns: var(--tree-w) minmax(0, 1fr);
     width: 100%;
-    max-width: 78rem;
+    max-width: var(--page-width);
     margin: 0 auto;
-    padding: 0 clamp(1rem, 4vw, 3.5rem);
+    padding: 0 var(--gutter);
   }
 
   .tree {
     position: sticky;
-    top: 4.5rem;
+    top: var(--bar-h);
     align-self: start;
-    max-height: calc(100vh - 4.5rem);
+    max-height: calc(100dvh - var(--bar-h));
     overflow-y: auto;
-    padding: 2.6rem 1.5rem 2rem 0;
-    border-right: 1px solid var(--line);
-    font: 500 0.8rem/1.2 var(--mono);
-  }
-
-  .tree__root {
-    margin: 0 0 0.9rem;
-    color: var(--emerald);
-    letter-spacing: 0.04em;
+    padding: 2.5rem 1.5rem 2rem 0;
+    border-right: 1px dashed var(--line);
+    font-size: 0.875rem;
+    line-height: 1.4;
   }
 
   .tree ul {
@@ -307,54 +286,57 @@ const here = pathname
     list-style: none;
   }
 
-  .tree__row {
-    display: flex;
-    align-items: baseline;
-    white-space: pre;
-  }
-
-  .tree__glyph {
-    flex: none;
-    color: var(--line-strong);
-  }
-
-  .tree__row--folder .tree__file {
-    padding: 0.42rem 0.5rem;
+  .tree__group {
+    margin: 1.25rem 0 0.35rem;
     color: var(--ink);
+    font-weight: 550;
   }
 
   .tree__link {
-    display: flex;
-    flex: 1;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-    min-width: 0;
-    padding: 0.42rem 0.5rem;
-    border-radius: 3px;
-    color: var(--ink-dim);
-    text-decoration: none;
-    transition: color 0.18s ease, background 0.18s ease;
-  }
-
-  .tree__label {
+    display: block;
+    padding: 0.4rem 0;
     color: var(--ink-faint);
-    font-family: var(--body);
-    font-size: 0.74rem;
+    text-decoration: none;
   }
 
-  .tree__link:hover {
-    color: var(--ink);
-    background: rgba(24, 211, 131, 0.07);
+  /* The original README tree's branches, drawn as quiet dashed rules. */
+  .tree__row--child {
+    position: relative;
+    padding-left: 1.1rem;
   }
 
+  .tree__row--child::before,
+  .tree__row--child::after {
+    position: absolute;
+    left: 0.1rem;
+    content: '';
+    pointer-events: none;
+  }
+
+  .tree__row--child::before {
+    top: 0;
+    height: 100%;
+    border-left: 1px dashed var(--line-strong);
+  }
+
+  .tree__row--child::after {
+    top: 50%;
+    width: 0.6rem;
+    border-top: 1px dashed var(--line-strong);
+  }
+
+  .tree__row--child:has(+ .tree__group)::before,
+  .tree__row--child:last-child::before {
+    height: 50%;
+  }
+
+  .tree__row--child:has([aria-current='page'])::after {
+    border-top: 1px solid var(--emerald);
+  }
+
+  .tree__link:hover,
   .tree__link[aria-current='page'] {
-    color: var(--bg);
-    background: var(--emerald);
-  }
-
-  .tree__link[aria-current='page'] .tree__label {
-    color: rgba(5, 9, 7, 0.72);
+    color: var(--mint);
   }
 
   /* ── README typography ───────────────────────────────── */
@@ -363,28 +345,17 @@ const here = pathname
      the full column. */
   .readme {
     min-width: 0;
-    max-width: 56rem;
-    padding: 2.4rem 0 5rem clamp(1.5rem, 4vw, 4rem);
+    max-width: 50rem;
+    padding: 2.5rem 0 3.5rem clamp(1.5rem, 3vw, 2.5rem);
   }
 
   .readme > :is(h1, h3, p, ul, ol, blockquote),
   .hero__lead {
-    max-width: 42rem;
+    max-width: 44rem;
   }
 
   .mnav {
     display: none;
-  }
-
-  .path {
-    margin: 0 0 2.2rem;
-    color: var(--ink);
-    font: 500 0.74rem/1.4 var(--mono);
-    overflow-wrap: anywhere;
-  }
-
-  .path__dim {
-    color: var(--ink-faint);
   }
 
   .readme h1,
@@ -397,41 +368,21 @@ const here = pathname
   }
 
   .readme h1 {
-    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-size: 1.75rem;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
   }
 
   .readme h2 {
-    margin-top: 2.8rem;
-    padding-top: 1.4rem;
-    border-top: 1px solid var(--line);
+    margin-top: 2rem;
+    padding-top: 0;
     font-size: 1.3rem;
   }
 
   .readme h3 {
     margin-top: 1.8rem;
-    font-size: 1.02rem;
-  }
-
-  /* Markdown heading markers, dimmed like a raw README. */
-  .readme h1::before,
-  .readme h2::before,
-  .readme h3::before {
-    margin-right: 0.55em;
-    color: var(--emerald-deep);
-    font-family: var(--mono);
-    font-weight: 500;
-  }
-
-  .readme h1::before {
-    content: '#';
-  }
-
-  .readme h2::before {
-    content: '##';
-  }
-
-  .readme h3::before {
-    content: '###';
+    font-size: 1.05rem;
   }
 
   .readme p,
@@ -471,6 +422,7 @@ const here = pathname
   }
 
   .readme code {
+    overflow-wrap: anywhere;
     padding: 0.08em 0.36em;
     border: 1px solid var(--line);
     border-radius: 3px;
@@ -491,6 +443,7 @@ const here = pathname
   }
 
   .readme pre code {
+    overflow-wrap: normal;
     padding: 0;
     border: 0;
     background: none;
@@ -500,11 +453,11 @@ const here = pathname
   .readme .lead {
     margin-top: 1.2rem;
     color: var(--ink);
-    font-size: 1.12rem;
+    font-size: 1rem;
     line-height: 1.6;
   }
 
-  .readme figure {
+  .readme figure:not(.preview) {
     margin: 1.4rem 0 0;
   }
 
@@ -520,7 +473,7 @@ const here = pathname
   .readme figcaption {
     margin-top: 0.55rem;
     color: var(--ink-faint);
-    font: 500 0.72rem/1.45 var(--mono);
+    font: 450 0.85rem/1.5 var(--body);
   }
 
   .readme blockquote {
@@ -537,7 +490,7 @@ const here = pathname
     width: 100%;
     margin-top: 1.2rem;
     border-collapse: collapse;
-    font-size: 0.92rem;
+    font-size: 0.96rem;
   }
 
   .readme th,
@@ -550,9 +503,7 @@ const here = pathname
 
   .readme th {
     color: var(--ink-faint);
-    font: 600 0.68rem/1.3 var(--mono);
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    font: 600 0.85rem/1.4 var(--body);
   }
 
   .readme td {
@@ -573,24 +524,22 @@ const here = pathname
 
   .readme .pager a {
     display: block;
-    padding: 0.9rem 1rem;
-    border: 1px solid var(--line);
-    border-radius: 3px;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--line);
     color: var(--ink);
     text-decoration: none;
     transition: border-color 0.18s ease, background 0.18s ease;
   }
 
   .readme .pager a:hover {
-    border-color: var(--line-strong);
-    background: rgba(24, 211, 131, 0.05);
+    color: var(--mint);
   }
 
   .pager small {
     display: block;
     margin-bottom: 0.3rem;
     color: var(--ink-faint);
-    font: 500 0.72rem/1 var(--mono);
+    font: 500 0.8rem/1.4 var(--mono);
   }
 
   .pager__next {
@@ -601,21 +550,21 @@ const here = pathname
   /* ── Product header ─────────────────────────────────── */
 
   .hero {
-    padding-bottom: 2.2rem;
+    padding-bottom: 0.75rem;
   }
 
   .hero__lead > p:first-child {
     margin-top: 1.2rem;
     color: var(--ink);
-    font-size: 1.14rem;
+    font-size: 1rem;
     line-height: 1.6;
   }
 
   /* Facts read as a spec sheet: label over value, split by hairlines. */
   .readme .facts {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
-    margin: 1.8rem 0 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 1.25rem 0 0;
     border-top: 1px solid var(--line);
     border-bottom: 1px solid var(--line);
   }
@@ -624,32 +573,27 @@ const here = pathname
     padding: 0.85rem 1rem 0.9rem 0;
   }
 
-  .facts > div + div {
+  .facts > div:nth-child(even) {
     padding-left: 1rem;
     border-left: 1px solid var(--line);
   }
 
   .facts dt {
     color: var(--ink-faint);
-    font: 500 0.72rem/1.3 var(--mono);
-  }
-
-  /* In row layouts the label sits on the value's baseline. */
-  .readme .entry .facts dt {
-    padding-top: 0.55rem;
+    font: 500 0.8rem/1.5 var(--mono);
   }
 
   .facts dd {
     margin: 0.3rem 0 0;
     color: var(--ink);
-    font-size: 0.92rem;
+    font-size: 0.96rem;
     line-height: 1.4;
   }
 
   .readme .actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
+    gap: 1.5rem;
     margin-top: 1.5rem;
   }
 
@@ -657,60 +601,31 @@ const here = pathname
     display: inline-flex;
     align-items: center;
     min-height: 2.75rem;
-    padding: 0 1.15rem;
-    border: 1px solid var(--line-strong);
-    border-radius: 3px;
-    color: var(--ink);
-    font-size: 0.95rem;
-    font-weight: 560;
-    text-decoration: none;
-    transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
+    padding: 0.25rem 0;
+    color: var(--mint);
+    font-size: 0.875rem;
+    text-decoration: underline;
+    text-decoration-color: var(--line-strong);
+    text-underline-offset: 0.2em;
   }
 
   .readme .button:hover {
-    border-color: var(--emerald);
-    background: rgba(24, 211, 131, 0.07);
+    text-decoration-color: var(--mint);
   }
 
-  .readme .button--primary {
-    border-color: var(--emerald);
-    color: var(--bg);
-    background: var(--emerald);
-  }
-
-  .readme .button--primary:hover {
-    border-color: var(--mint);
-    color: var(--bg);
-    background: var(--mint);
-  }
-
-  /* ── Index: one entry per product ───────────────────── */
-
+  /* The index is a short directory. Examples and facts live in each document. */
   .entry {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
-    gap: 2.2rem;
-    align-items: start;
-    margin-top: 2.8rem;
-    padding-top: 2.4rem;
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
     border-top: 1px solid var(--line);
   }
 
-  .readme .entry__dir {
-    margin: 0;
-    color: var(--emerald);
-    font: 500 0.78rem/1.3 var(--mono);
-  }
-
   .readme .entry h2 {
-    margin: 0.45rem 0 0;
+    margin: 0;
     padding: 0;
     border: 0;
-    font-size: 1.75rem;
-  }
-
-  .readme .entry h2::before {
-    content: none;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
   }
 
   .readme .entry h2 a {
@@ -722,39 +637,34 @@ const here = pathname
     color: var(--mint);
   }
 
-  .readme .entry .facts {
-    grid-template-columns: max-content minmax(0, 1fr);
-    column-gap: 1rem;
-    margin-top: 1.2rem;
-    border: 0;
+  .readme .entry p { max-width: 42rem; margin-top: 0.65rem; }
+
+  .readme .entry__links {
+    display: flex;
+    flex-wrap: wrap;
+    column-gap: 1.25rem;
+    font-size: 0.875rem;
   }
 
-  .readme .entry .facts > div {
-    display: contents;
-  }
-
-  .readme .entry .facts dt,
-  .readme .entry .facts dd {
-    margin: 0;
-    padding: 0.4rem 0;
-    border-top: 1px solid var(--line);
-  }
-
-  .readme .entry .facts dd {
-    font-size: 0.86rem;
-  }
-
-  .readme .entry .actions {
-    margin-top: 1.3rem;
+  .entry__links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
   }
 
   .preview {
+    min-width: 0;
+    align-self: start;
     display: block;
     margin: 0;
     border: 1px solid var(--line);
-    border-radius: 3px;
+    border-radius: 4px;
     background: var(--panel);
     overflow: hidden;
+  }
+
+  .readme > .preview {
+    margin-top: 1.4rem;
   }
 
   .readme a.preview {
@@ -774,30 +684,30 @@ const here = pathname
 
   .readme .preview__head {
     margin: 0;
-    padding: 0.55rem 0.9rem;
+    padding: 0.65rem 1rem;
     border-bottom: 1px solid var(--line);
     color: var(--ink-faint);
-    font: 500 0.72rem/1.3 var(--mono);
+    font: 500 0.8rem/1.5 var(--mono);
   }
 
   /* Agent transcript: who speaks, what tool runs. */
   .readme .chat {
     margin: 0;
-    padding: 0.9rem;
+    padding: 1rem;
     list-style: none;
-    font: 450 0.8rem/1.5 var(--mono);
+    font: 450 0.8rem/1.6 var(--mono);
   }
 
   .readme .chat li {
     display: grid;
-    grid-template-columns: 3.4rem minmax(0, 1fr);
+    grid-template-columns: 3rem minmax(0, 1fr);
     gap: 0.6rem;
     margin: 0;
     color: var(--ink-dim);
   }
 
   .readme .chat li + li {
-    margin-top: 0.55rem;
+    margin-top: 1rem;
   }
 
   .chat__who {
@@ -809,6 +719,7 @@ const here = pathname
   }
 
   .chat__tool {
+    overflow-wrap: anywhere;
     color: var(--mint);
   }
 
@@ -817,65 +728,14 @@ const here = pathname
     overflow-wrap: anywhere;
   }
 
-  /* RZD flow: a real sequence, so it is numbered. The last step is a person. */
-  .readme .steps {
-    margin: 0;
-    padding: 0.4rem 0.9rem 0.9rem;
-    list-style: none;
-    counter-reset: step;
-  }
-
-  .readme .steps li {
-    display: grid;
-    grid-template-columns: 1.8rem minmax(0, 1fr);
-    gap: 0.7rem;
-    margin: 0;
-    padding: 0.7rem 0;
-    border-bottom: 1px dashed var(--line);
-    counter-increment: step;
-  }
-
-  .readme .steps li::before {
-    content: counter(step);
-    display: grid;
-    place-items: center;
-    width: 1.8rem;
-    height: 1.8rem;
-    border: 1px solid var(--line-strong);
-    border-radius: 50%;
-    color: var(--emerald);
-    font: 600 0.75rem/1 var(--mono);
-  }
-
-  .steps strong {
-    display: block;
-    color: var(--ink);
-    font-weight: 600;
-  }
-
-  .steps span {
-    color: var(--ink-faint);
-    font-size: 0.86rem;
-  }
-
-  .readme .steps .steps__human {
-    border-bottom: 0;
-  }
-
-  .readme .steps .steps__human::before {
-    border-color: var(--mint);
-    color: var(--bg);
-    background: var(--mint);
-  }
-
   .foot {
     display: flex;
     justify-content: space-between;
     gap: 1rem;
-    padding: 1.4rem clamp(1rem, 4vw, 3.5rem);
+    padding: 1.6rem max(var(--gutter), calc((100vw - var(--page-width)) / 2 + var(--gutter)));
     border-top: 1px solid var(--line);
     color: var(--ink-faint);
-    font: 500 0.7rem/1.4 var(--mono);
+    font: 450 0.85rem/1.5 var(--body);
   }
 
   .foot a {
@@ -887,68 +747,58 @@ const here = pathname
     color: var(--emerald);
   }
 
-  /* ── Narrow screens: tree becomes a scrollable strip ─── */
-
-  @media (max-width: 860px) {
-    .bar {
-      min-height: 3.75rem;
-    }
-
-    .bar__nav a:not([data-section]):not(:first-child) {
-      display: none;
-    }
-
+  @media (max-width: 900px) {
     .frame {
       grid-template-columns: minmax(0, 1fr);
-      padding: 0 1rem;
     }
 
-    .tree {
-      display: none;
-    }
+    .tree { display: none; }
 
-    .readme {
-      padding: 1rem 0 3.5rem;
-    }
+    .readme { width: 100%; max-width: 46rem; margin-inline: auto; padding: 2rem 0 3rem; }
 
     .mnav {
       display: flex;
-      gap: 0.4rem;
-      margin: 0 -1rem 1.6rem;
-      padding: 0 1rem 1rem;
-      border-bottom: 1px solid var(--line);
-      overflow-x: auto;
-      scrollbar-width: none;
+      flex-wrap: wrap;
+      gap: 0 1rem;
+      margin-bottom: 1.5rem;
+      padding-bottom: 1rem;
+      border-bottom: 1px dashed var(--line-strong);
     }
 
     .readme .mnav a {
-      flex: none;
-      padding: 0.5rem 0.75rem;
-      border: 1px solid var(--line);
-      border-radius: 3px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 2.75rem;
+      padding: 0.5rem 0;
       color: var(--ink-dim);
-      font-size: 0.86rem;
+      font-size: 0.9rem;
       text-decoration: none;
-      white-space: nowrap;
     }
+
+    .readme .mnav a:hover { color: var(--mint); }
+
+    .mnav--index { display: none; }
 
     .readme .mnav a[aria-current='page'] {
-      border-color: var(--emerald);
-      color: var(--bg);
-      background: var(--emerald);
+      color: var(--mint);
+      text-decoration: underline;
+      text-underline-offset: 0.35em;
     }
+  }
 
-    .entry {
-      grid-template-columns: minmax(0, 1fr);
-      gap: 1.4rem;
-      margin-top: 2.2rem;
-      padding-top: 2rem;
-    }
+  @media (max-width: 600px) {
+    :root { --bar-h: 3.5rem; }
 
-    .facts > div + div {
-      padding-left: 0;
-      border-left: 0;
-    }
+    body { font-size: 16px; }
+
+    .bar { gap: 0.75rem; }
+    .bar__nav { gap: 1rem; font-size: 0.85rem; }
+    .bar__nav a:not([data-section]) { display: none; }
+
+    .readme .mnav a { font-size: 0.85rem; }
+
+    .readme h1 { font-size: 1.75rem; }
+    .readme .lead, .hero__lead > p:first-child { font-size: 1rem; }
 
     .readme .facts {
       grid-template-columns: max-content minmax(0, 1fr);
@@ -956,45 +806,35 @@ const here = pathname
       border-bottom: 0;
     }
 
-    .readme .facts > div {
-      display: contents;
-    }
+    .readme .facts > div { display: contents; }
 
-    .readme .facts dt,
-    .readme .facts dd {
+    .readme .facts dt, .readme .facts dd {
       margin: 0;
-      padding: 0.5rem 0;
+      padding: 0.6rem 0;
       border-bottom: 1px solid var(--line);
     }
 
-    .readme .entry .facts dt,
-    .readme .entry .facts dd {
-      border-bottom: 0;
-    }
+    .readme .facts dt { padding-top: 0.7rem; }
 
-    .readme .facts dt {
-      padding-top: 0.62rem;
-    }
+    .readme td:first-child { white-space: normal; }
+    .readme table { font-size: 0.85rem; overflow-wrap: anywhere; }
+    .readme th, .readme td { padding-right: 0.5rem; }
+    .readme .chat { padding: 1rem; font-size: 0.8rem; }
+    .readme .chat li { grid-template-columns: 2.6rem minmax(0, 1fr); gap: 0.5rem; }
+    .readme .preview__head { padding: 0.75rem 1rem; font-size: 0.72rem; }
+    .pager { grid-template-columns: 1fr; }
+    .pager__next { grid-column: 1; }
+    .foot { flex-direction: column; gap: 0.5rem; }
+  }
 
-    .readme .button {
-      flex: 1 1 auto;
-      justify-content: center;
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation: none !important;
+      transition: none !important;
+      scroll-behavior: auto !important;
     }
-
-    .readme td:first-child {
-      white-space: normal;
-    }
-
-    .pager {
-      grid-template-columns: 1fr;
-    }
-
-    .pager__next {
-      grid-column: 1;
-    }
-
-    .foot {
-      flex-direction: column;
+    ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) {
+      animation: none !important;
     }
   }
 </style>
