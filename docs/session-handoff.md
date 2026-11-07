@@ -21,6 +21,9 @@ catalog, and dashed navigation branches. Product icons remain rejected.
   fixtures without model calls: exact IDs after full restart, nested split ratios,
   finished-pane retention, background startup without tab selection, no duplicate
   launches. No changes to the user's running Tabby or private plugin symlink.
+  Final clean installation from public npm 1.1.0 matches the released source;
+  the installed package loaded in isolated Tabby and restored both native
+  conversations in background tabs. See `output/qa/npm-integration-result.json`.
 - Site: 52 tests and build pass; all 10 routes at 320, 390, 768, 900, 1024, 1440,
   and 1920px pass locally AND on production. Actual catalog→overview→install
   clicks and active navigation work on desktop/mobile. Reviewed screenshots.
@@ -31,8 +34,8 @@ catalog, and dashed navigation branches. Product icons remain rejected.
   https://sonicxboy.dev/products/
 - Evidence: `output/playwright/recovery-live-result.json`, `recovery-live-*.png`,
   `recovery-tests.log`, `recovery-build.log`. Plugin evidence: its `output/qa/`.
-- This complete site source is being committed to its own branch and published
-  to origin/main so future worktrees include the corrected design. The user's
+- The complete site source is committed as `68ffba4` and published to
+  origin/main so future worktrees include the corrected design. The user's
   main working copy and other worktrees are not overwritten.
 
 ## 2026-11-06 — User correction: reuse Stats identity and the original menu lines
